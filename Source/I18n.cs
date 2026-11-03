@@ -144,6 +144,19 @@ static class I18n {
   // Version 1.0 & 1.1 & About
   Add("Dọn Dẹp PC Pro Max · Phiên bản 1.0 Chính thức", "DonDepPC Pro Max · Official Version 1.0");
   Add("Dọn Dẹp PC Pro Max · Phiên bản 1.1 Chính thức", "DonDepPC Pro Max · Official Version 1.1");
+   Add("Dọn Dẹp PC Pro Max · Phiên bản 1.2 Chính thức", "DonDepPC Pro Max · Official Version 1.2");
+   Add("TÁC ĐỘNG", "IMPACT");
+   Add("Tác động", "Impact");
+   Add("Cao", "High");
+   Add("Trung bình", "Medium");
+   Add("Thấp", "Low");
+   Add("⚡ Làm sạch DNS Cache", "⚡ Flush DNS Cache");
+   Add("Làm sạch DNS Cache", "Flush DNS Cache");
+   Add("Đã làm sạch DNS Resolver Cache thành công!", "DNS Resolver Cache flushed successfully!");
+   Add("🗑️ Dọn sạch Thùng rác", "🗑️ Empty Recycle Bin");
+   Add("Dọn Thùng rác", "Empty Recycle Bin");
+   Add("Bạn có chắc chắn muốn dọn sạch toàn bộ Thùng rác (Recycle Bin)?", "Are you sure you want to empty the Recycle Bin completely?");
+   Add("Đã làm sạch Thùng rác thành công!", "Recycle Bin emptied successfully!");
   Add("Tích hợp 4 trong 1: Tàn dư gỡ cài đặt · Tệp dung lượng lớn (>100MB) · Tệp trùng lặp · Lối tắt hỏng", "4-in-1: Leftovers · Large files (>100MB) · Duplicates · Broken shortcuts");
   Add("🔗 Lối tắt hỏng", "🔗 Broken Shortcuts");
   Add("Dọn lối tắt đã chọn", "Clean Selected Shortcuts");

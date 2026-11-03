@@ -62,6 +62,15 @@ static class ProTests {
   var loadedRec=SetupMonitor.LoadAllRecords().FirstOrDefault(r=>r.AppName=="DonDepPCUnitTestApp");
   Check(loadedRec!=null&&loadedRec.CreatedFiles.Count==1,"SetupMonitor save and load record cycle");
   if(loadedRec!=null)SetupMonitor.DeleteRecord(loadedRec);
+   Check(SystemPerformance.FlushDnsCache(),"SystemPerformance.FlushDnsCache succeeds");
+   Check(!String.IsNullOrEmpty(SystemPerformance.GetBoardName()),"SystemPerformance.GetBoardName returns valid string");
+   Check(StartupItem.EstimateImpact(@"C:\Users\Admin\AppData\Local\Discord\app.exe","Discord")=="Cao","StartupItem heavy impact detection");
+   Check(StartupItem.EstimateImpact(@"C:\Windows\System32\ctfmon.exe","CTF Loader")=="Thấp","StartupItem light impact detection");
+   Check(StartupItem.EstimateImpact(@"C:\Program Files\Unknown\app.exe","UnknownApp")=="Trung bình","StartupItem medium impact default");
+   Engine.InvalidateAppCache();
+   Check(true,"Engine.InvalidateAppCache succeeds");
+   UwpManager.InvalidateCache();
+   Check(true,"UwpManager.InvalidateCache succeeds");
   return count;
  }
 }

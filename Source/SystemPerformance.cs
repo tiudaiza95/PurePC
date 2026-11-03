@@ -70,7 +70,43 @@ public static class SystemPerformance {
   return mem;
  }
 
- static string cpuName, osName, gpuName;
+ static string cpuName, osName, gpuName, boardName;
+
+ [DllImport("dnsapi.dll", EntryPoint = "DnsFlushResolverCache")]
+ static extern int DnsFlushResolverCache();
+
+ [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+ static extern int SHEmptyRecycleBin(IntPtr hwnd, string rootPath, uint flags);
+
+ public static bool FlushDnsCache() {
+  try {
+   return DnsFlushResolverCache() == 1;
+  } catch { return false; }
+ }
+
+ public static bool EmptyRecycleBin(IntPtr hwnd) {
+  try {
+   return SHEmptyRecycleBin(hwnd, null, 7) == 0;
+  } catch { return false; }
+ }
+
+ public static string GetBoardName() {
+  if (boardName != null) return boardName;
+  try {
+   using (var k = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\BIOS")) {
+    if (k != null) {
+     string man = Convert.ToString(k.GetValue("BaseBoardManufacturer")).Trim();
+     string prod = Convert.ToString(k.GetValue("BaseBoardProduct")).Trim();
+     if (!String.IsNullOrEmpty(prod)) {
+      boardName = (String.IsNullOrEmpty(man) ? "" : man + " · ") + prod;
+      VendorDrivers.Board = boardName;
+      return boardName;
+     }
+    }
+   }
+  } catch {}
+  return VendorDrivers.Board ?? "Bo mạch chủ tiêu chuẩn";
+ }
 
  public static string GetCpuName() {
   if (cpuName != null) return cpuName;
@@ -94,6 +130,21 @@ public static class SystemPerformance {
  }
 
  public static string GetGpuName() {
+  if (gpuName != null) return gpuName;
+  try {
+   using (var baseKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}")) {
+    if (baseKey != null) {
+     foreach (string sub in new[] { "0000", "0001", "0002" }) {
+      using (var k = baseKey.OpenSubKey(sub)) {
+       if (k != null) {
+        string desc = Convert.ToString(k.GetValue("DriverDesc"));
+        if (!String.IsNullOrEmpty(desc)) { gpuName = desc; break; }
+       }
+      }
+     }
+    }
+   }
+  } catch {}
   if (gpuName != null) return gpuName;
   try {
    var d = VendorDrivers.Scan().FirstOrDefault(x => x.Class == "DISPLAY");

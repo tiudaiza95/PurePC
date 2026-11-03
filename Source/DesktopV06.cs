@@ -39,7 +39,7 @@ partial class DesktopApp {
    {I18n.T("Hệ điều hành"),SystemPerformance.GetOsName()},
    {I18n.T("Bộ vi xử lý (CPU)"),SystemPerformance.GetCpuName()},
    {I18n.T("Card đồ họa (GPU)"),SystemPerformance.GetGpuName()},
-   {I18n.T("Bo mạch chủ"),VendorDrivers.Board}
+   {I18n.T("Bo mạch chủ"),SystemPerformance.GetBoardName()}
   };
   for(int i=0;i<specs.GetLength(0);i++){
    specGrid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
@@ -184,8 +184,9 @@ partial class DesktopApp {
   var smartCare=WorkButton(I18n.T("⚡ Quét & Tối ưu (1-Click)"),async()=>{
    await WithScan(async token=>{
     var progress=new Progress<string>(s=>{junkStatus.Text=s;Text("Status",s);});
-    junkStatus.Text="Đang tối ưu giải phóng RAM đệm…";
+    junkStatus.Text="Đang tối ưu giải phóng RAM đệm & làm sạch DNS Cache…";
     long freedRam=await Task.Run(()=>SystemPerformance.OptimizeMemory());
+    bool dnsOk=await Task.Run(()=>SystemPerformance.FlushDnsCache());
     junkStatus.Text="Đang quét tệp tạm (%TEMP%), cache trình duyệt & tệp rác…";
     var found=await Task.Run(()=>JunkOverview.Scan(false,token,progress));
     junkReport=found;
@@ -200,9 +201,9 @@ partial class DesktopApp {
     if(startupCount>12)score-=15;else if(startupCount>6)score-=5;
     if(score<30)score=30;
     string healthStatus=score>=85?"RẤT TỐT":(score>=65?"KHÁ - NÊN TỐI ƯU":"CẦN DỌN DẸP NGAY");
-    string ramMsg=freedRam>0?"Đã giải phóng "+Features.Size(freedRam)+" RAM. ":"";
+    string ramMsg=freedRam>0?"Đã giải phóng "+Features.Size(freedRam)+" RAM. ":"";string dnsMsg=dnsOk?"Đã làm mới bộ nhớ đệm DNS mạng. ":"";
     string chromeNotice=chkChrome.IsChecked!=true?" (Đã bỏ qua cache Chrome)":"";
-    junkStatus.Text="★ SỨC KHỎE: "+score+"/100 ("+healthStatus+")"+chromeNotice+"\n"+ramMsg+"Phát hiện "+chosen.Count+" mục tệp tạm/rác ("+Features.Size(junkBytes)+"). Bấm 'Dọn mục đã chọn' để hoàn tất!";
+    junkStatus.Text="★ SỨC KHỎE: "+score+"/100 ("+healthStatus+")"+chromeNotice+"\n"+ramMsg+dnsMsg+"Phát hiện "+chosen.Count+" mục tệp tạm/rác ("+Features.Size(junkBytes)+"). Bấm 'Dọn mục đã chọn' để hoàn tất!";
     Text("Status","Đã quét toàn diện: Sức khỏe "+score+"/100 · "+Features.Size(junkBytes)+" rác · "+Features.Size(freedRam)+" RAM tối ưu.");
     Engine.Log("SMART_CARE score="+score+" freedRam="+freedRam+" junk="+junkBytes);
    });
@@ -272,7 +273,7 @@ partial class DesktopApp {
    var sb=new StringBuilder();
    sb.AppendLine("================================================================================");
    sb.AppendLine("                     BÁO CÁO TOÀN DIỆN DRIVER & THIẾT BỊ                      ");
-   sb.AppendLine("                   Dọn Dẹp PC Pro Max - Phiên bản 1.1                          ");
+   sb.AppendLine("                   Dọn Dẹp PC Pro Max - Phiên bản 1.2                          ");
    sb.AppendLine("             Thời gian xuất: "+DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
    sb.AppendLine("================================================================================");
    sb.AppendLine();

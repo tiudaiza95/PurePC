@@ -25,7 +25,46 @@ public class StartupItem {
  public RegistryValueKind Kind {get;set;}
  public bool Disabled {get;set;}
  public string Backup {get;set;}
- public string Status {get {return Disabled?"○ Đã tắt":"● Đang kích hoạt";}}
+ public string Status {get {return I18n.T(Disabled?"○ Đã tắt":"● Đang kích hoạt");}}
+ public string Impact {
+  get {
+   if(Disabled)return "—";
+   return I18n.T(EstimateImpact(Command,Name));
+  }
+ }
+ public static string EstimateImpact(string cmd,string name){
+  if(String.IsNullOrEmpty(cmd)&&String.IsNullOrEmpty(name))return "Thấp";
+  string combined=((name??"")+" "+(cmd??"")).ToLowerInvariant();
+  if(combined.Contains("teams")||combined.Contains("discord")||combined.Contains("spotify")||
+     combined.Contains("steam")||combined.Contains("epicgames")||combined.Contains("onedrive")||
+     combined.Contains("googledrive")||combined.Contains("dropbox")||combined.Contains("adobe")||
+     combined.Contains("creative cloud")||combined.Contains("skype")||combined.Contains("zoom")){
+   return "Cao";
+  }
+  if(combined.Contains("unikey")||combined.Contains("evkey")||combined.Contains("realtek")||
+     combined.Contains("rtkaud")||combined.Contains("ravcpl")||combined.Contains("igfxtray")||
+     combined.Contains("hkcmd")||combined.Contains("securityhealth")||combined.Contains("ctfmon")){
+   return "Thấp";
+  }
+  try{
+   string path=cmd;
+   if(!String.IsNullOrEmpty(path)){
+    path=path.Trim();
+    if(path.StartsWith("\"")){
+     int q=path.IndexOf('"',1);if(q>1)path=path.Substring(1,q-1);
+    }else{
+     int sp=path.IndexOf(' ');if(sp>0)path=path.Substring(0,sp);
+    }
+    path=Environment.ExpandEnvironmentVariables(path);
+    if(File.Exists(path)){
+     long len=new FileInfo(path).Length;
+     if(len>30L*1024*1024)return "Cao";
+     if(len<3L*1024*1024)return "Thấp";
+    }
+   }
+  }catch{}
+  return "Trung bình";
+ }
 }
 static partial class Features {
  public const string RunKey=@"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -43,11 +82,14 @@ static partial class Features {
   var dirs=new Stack<string>();dirs.Push(root);DateTime now=DateTime.UtcNow;
   while(dirs.Count>0){token.ThrowIfCancellationRequested();var dir=dirs.Pop();try {
    if(!NoLinks(dir)){result.Skipped++;continue;}
-   foreach(var path in Directory.EnumerateFileSystemEntries(dir)){
+   var dInfo=new DirectoryInfo(dir);
+   foreach(var fsi in dInfo.EnumerateFileSystemInfos()){
     token.ThrowIfCancellationRequested();if(++result.Visited>200000){result.Limited=true;dirs.Clear();break;}
-    try{var attr=File.GetAttributes(path);if((attr&FileAttributes.ReparsePoint)!=0){result.Skipped++;continue;}
-     if((attr&FileAttributes.Directory)!=0){dirs.Push(path);continue;}
-     var f=new FileInfo(path);if(temp?!EligibleTemp(f,now):f.Length<100L*1024*1024)continue;
+    try{
+     if((fsi.Attributes&FileAttributes.ReparsePoint)!=0){result.Skipped++;continue;}
+     if((fsi.Attributes&FileAttributes.Directory)!=0){dirs.Push(fsi.FullName);continue;}
+     var f=fsi as FileInfo;if(f==null)continue;
+     if(temp?!EligibleTemp(f,now):f.Length<100L*1024*1024)continue;
      result.Items.Add(new FileItem{Path=f.FullName,Size=f.Length,Modified=f.LastWriteTimeUtc});
      if(temp&&result.Items.Count>=5000){result.Limited=true;dirs.Clear();break;}
     }catch(UnauthorizedAccessException){result.Skipped++;}catch(IOException){result.Skipped++;}

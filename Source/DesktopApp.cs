@@ -52,7 +52,19 @@ partial class DesktopApp {
   Click("OpenRecycle",()=>Process.Start(new ProcessStartInfo("explorer.exe","shell:RecycleBinFolder"){UseShellExecute=true}));
   Click("OpenLog",()=>{string path=Path.Combine(Engine.Data,"activity.log");if(!File.Exists(path))Engine.Log("Nhật ký được tạo.");Process.Start(new ProcessStartInfo("notepad.exe","\""+path+"\""){UseShellExecute=true});});
   Click("RefreshHistory",LoadHistory);
-  window.Loaded+=async(s,e)=>await Work(async()=>{await Reload();target=Engine.Recall();if(target!=null){Text("SelectedApp","Lần gỡ gần nhất: "+target.Name);Text("SelectedHint","Có thể tiếp tục quét phần dư sau khi khởi động lại.");}Text("Status","Sẵn sàng · Dữ liệu Registry tại máy; không gửi danh sách lên mạng.");NavigatePro("Health");if(Environment.GetCommandLineArgs().Contains("--drivers")){OpenV04("Drivers",BuildDriverPage);C<RadioButton>("NavDrivers").IsChecked=true;}});
+  window.Loaded+=async(s,e)=>{
+   NavigatePro("Health");
+   if(Environment.GetCommandLineArgs().Contains("--drivers")){OpenV04("Drivers",BuildDriverPage);C<RadioButton>("NavDrivers").IsChecked=true;}
+   await Work(async()=>{
+    await Reload();
+    target=Engine.Recall();
+    if(target!=null){
+     Text("SelectedApp","Lần gỡ gần nhất: "+target.Name);
+     Text("SelectedHint","Có thể tiếp tục quét phần dư sau khi khởi động lại.");
+    }
+    Text("Status","Sẵn sàng · Dữ liệu Registry tại máy; không gửi danh sách lên mạng.");
+   });
+  };
   window.Closing+=(s,e)=>{if(busy){e.Cancel=true;if(cancellation!=null)cancellation.Cancel();Text("Status","Đang hoàn tất thao tác. Hãy đóng lại sau khi xử lý xong.");}};
   foreach(string gridName in new[]{"AppsGrid","RemnantsGrid","FilesGrid","StartupGrid"})foreach(var col in C<DataGrid>(gridName).Columns.OfType<DataGridTextColumn>()){
    var style=new Style(typeof(TextBlock));style.Setters.Add(new Setter(TextBlock.TextTrimmingProperty,TextTrimming.CharacterEllipsis));style.Setters.Add(new Setter(TextBlock.ToolTipProperty,new System.Windows.Data.Binding("Text"){RelativeSource=new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.Self)}));col.ElementStyle=style;

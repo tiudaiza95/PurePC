@@ -43,7 +43,10 @@ static partial class Engine {
   // HKCU Uninstall is shared by WOW64 views. Collapse only identical registry identities and metadata.
   return GroupIdentical(entries);
  }
- public static List<AppEntry> Apps() {
+ static List<AppEntry> cachedApps;
+ public static void InvalidateAppCache() { cachedApps = null; UwpManager.InvalidateCache(); }
+ public static List<AppEntry> Apps(bool forceRefresh = false) {
+  if (cachedApps != null && !forceRefresh && !Testing) return cachedApps;
   var items=new List<AppEntry>();
   foreach(var hive in new[]{RegistryHive.CurrentUser,RegistryHive.LocalMachine}) foreach(var view in new[]{RegistryView.Registry64,RegistryView.Registry32}) {
    using(var root=RegistryKey.OpenBaseKey(hive,view)) using(var parent=root.OpenSubKey(Uninstall)) {
@@ -56,7 +59,7 @@ static partial class Engine {
     }}catch(System.Security.SecurityException){}catch(UnauthorizedAccessException){}
    }
   }
-  RawEntries=items;var unique=Deduplicate(items);DuplicateCount=items.Count-unique.Count;foreach(var app in unique)Catalog.Enrich(app);if(!Testing){try{var uwp=UwpManager.GetInstalledApps();unique.AddRange(uwp);}catch{}}return unique;
+  RawEntries=items;var unique=Deduplicate(items);DuplicateCount=items.Count-unique.Count;foreach(var app in unique)Catalog.Enrich(app);if(!Testing){try{var uwp=UwpManager.GetInstalledApps(forceRefresh);unique.AddRange(uwp);}catch{}}if(!Testing)cachedApps=unique;return unique;
  }
  public static bool Present(AppEntry a) { if(a.IsUwp)return UwpManager.IsPackageInstalled(a.PackageFullName); using(var r=RegistryKey.OpenBaseKey(a.Hive,a.View))using(var k=r.OpenSubKey(a.Key))return k!=null; }
  public static bool Within(string path,string parent) { return path.Equals(parent,StringComparison.OrdinalIgnoreCase)||path.StartsWith(parent.TrimEnd('\\')+"\\",StringComparison.OrdinalIgnoreCase); }

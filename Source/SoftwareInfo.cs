@@ -14,8 +14,10 @@ using Microsoft.Win32;
 
 public partial class AppEntry {
  public string DisplayIcon, InstalledOn, Website;
- public long EstimatedBytes; public bool SystemComponent, MeasuredFromDisk;
- public bool IsUwp; public string PackageFullName;
+ public long EstimatedBytes; public bool SystemComponent, MeasuredFromDisk;
+
+ public bool IsUwp; public string PackageFullName;
+
  public string AppType { get { return IsUwp ? "UWP (Store)" : "Win32 (Desktop)"; } }
  public int Number {get;set;}
  [XmlIgnore] public List<AppEntry> Sources=new List<AppEntry>();
@@ -66,7 +68,7 @@ static class Catalog {
    d.Caution=true;d.Protected=true;d.Level="Driver / bảo mật — chỉ xem";d.Category="Thành phần hệ thống / driver";d.Reason="Tên gói cho thấy khả năng liên quan driver hoặc bảo mật; chưa đủ dữ liệu để gỡ an toàn. Bản này chặn thao tác gỡ trực tiếp.";
   }
   if(a.SystemComponent){d.Caution=true;if(!d.Protected)d.Level="Thành phần phụ — gỡ riêng";d.Reason="SystemComponent=1 chỉ là cờ ẩn trong danh sách Windows, không chứng minh đây là thành phần hệ điều hành. Chỉ dùng bộ gỡ chính thức; cần kiểm tra phụ thuộc.";if(p.Contains("microsoft")&&(n.StartsWith("windows ")||n.Contains("servicing stack")||n.Contains("security update"))){d.Protected=true;d.Level="Windows cốt lõi — chỉ xem";}}
-  if(a.EstimatedBytes<=0&&!String.IsNullOrWhiteSpace(a.Location)&&Directory.Exists(a.Location)){try{long total=0;foreach(var file in Directory.EnumerateFiles(a.Location,"*",SearchOption.AllDirectories)){try{var fi=new FileInfo(file);if((fi.Attributes&(FileAttributes.ReparsePoint|FileAttributes.System))==0)total+=fi.Length;}catch{}}if(total>0){a.EstimatedBytes=total;a.MeasuredFromDisk=true;}}catch{}}
+  if(a.EstimatedBytes<=0&&!String.IsNullOrWhiteSpace(a.Location)&&Directory.Exists(a.Location)){try{long total=0;int fCount=0;foreach(var file in Directory.EnumerateFiles(a.Location,"*",SearchOption.AllDirectories)){try{var fi=new FileInfo(file);if((fi.Attributes&(FileAttributes.ReparsePoint|FileAttributes.System))==0)total+=fi.Length;if(++fCount>2500)break;}catch{}}if(total>0){a.EstimatedBytes=total;a.MeasuredFromDisk=true;}}catch{}}
   a.Advice=d;
  }
 }
@@ -81,6 +83,9 @@ static partial class Engine {
 static class Icons {
  [DllImport("shell32.dll",CharSet=CharSet.Unicode)]static extern uint ExtractIconEx(string file,int index,IntPtr[] large,IntPtr[] small,uint count);
  [DllImport("user32.dll")]static extern bool DestroyIcon(IntPtr h);
+ static ImageSource fallbackIcon;
+ static readonly object iconSync=new object();
+ public static ImageSource Fallback{get{if(fallbackIcon!=null)return fallbackIcon;lock(iconSync){if(fallbackIcon==null){var fb=Imaging.CreateBitmapSourceFromHIcon(System.Drawing.SystemIcons.Application.Handle,Int32Rect.Empty,BitmapSizeOptions.FromWidthAndHeight(28,28));fb.Freeze();fallbackIcon=fb;}return fallbackIcon;}}}
  public static ImageSource ForApp(AppEntry a){
   if(a.IsUwp){
    string iconPath=UwpManager.FindUwpIcon(a.Location);
@@ -98,7 +103,7 @@ static class Icons {
     }catch{}
    }
   }
-  IntPtr h=IntPtr.Zero;try{string path=Engine.KnownExecutable(a);int index=0;string raw=a.DisplayIcon??"";int comma=raw.LastIndexOf(',');if(comma>0)Int32.TryParse(raw.Substring(comma+1),out index);var icons=new IntPtr[1];if(path!="")ExtractIconEx(path,index,icons,null,1);h=icons[0];if(h!=IntPtr.Zero){var bmp=Imaging.CreateBitmapSourceFromHIcon(h,Int32Rect.Empty,BitmapSizeOptions.FromWidthAndHeight(28,28));bmp.Freeze();return bmp;}}catch{}finally{if(h!=IntPtr.Zero)DestroyIcon(h);}var fallback=Imaging.CreateBitmapSourceFromHIcon(System.Drawing.SystemIcons.Application.Handle,Int32Rect.Empty,BitmapSizeOptions.FromWidthAndHeight(28,28));fallback.Freeze();return fallback;}
+  IntPtr h=IntPtr.Zero;try{string path=Engine.KnownExecutable(a);int index=0;string raw=a.DisplayIcon??"";int comma=raw.LastIndexOf(',');if(comma>0)Int32.TryParse(raw.Substring(comma+1),out index);var icons=new IntPtr[1];if(path!="")ExtractIconEx(path,index,icons,null,1);h=icons[0];if(h!=IntPtr.Zero){var bmp=Imaging.CreateBitmapSourceFromHIcon(h,Int32Rect.Empty,BitmapSizeOptions.FromWidthAndHeight(28,28));bmp.Freeze();return bmp;}}catch{}finally{if(h!=IntPtr.Zero)DestroyIcon(h);}return Fallback;}
 }
 static class SignatureCheck {
  [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)]struct FileInfoNative{public uint Size;public IntPtr Path,File,Subject;}

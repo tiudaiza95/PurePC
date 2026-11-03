@@ -66,7 +66,10 @@ public static class UwpManager {
         return false;
     }
 
-    public static List<AppEntry> GetInstalledApps() {
+    static List<AppEntry> cachedUwp;
+    public static void InvalidateCache() { cachedUwp = null; }
+    public static List<AppEntry> GetInstalledApps(bool forceRefresh = false) {
+        if (cachedUwp != null && !forceRefresh) return cachedUwp;
         var apps = new List<AppEntry>();
         try {
             string cmd = "Get-AppxPackage | Where-Object { -not $_.NonRemovable -and -not $_.IsFramework } | ForEach-Object { ($_.Name, $_.Publisher, $_.Version, $_.InstallLocation, $_.PackageFullName) -join '|||' }";
@@ -112,8 +115,9 @@ public static class UwpManager {
                     if (!string.IsNullOrEmpty(loc) && Directory.Exists(loc)) {
                         try {
                             long total = 0;
+                            int fCount = 0;
                             foreach (var f in Directory.EnumerateFiles(loc, "*", SearchOption.AllDirectories)) {
-                                try { total += new FileInfo(f).Length; } catch {}
+                                try { total += new FileInfo(f).Length; if (++fCount > 2500) break; } catch {}
                             }
                             if (total > 0) {
                                 entry.EstimatedBytes = total;
@@ -138,11 +142,14 @@ public static class UwpManager {
                 proc.WaitForExit(5000);
             }
         } catch {}
+        cachedUwp = apps;
         return apps;
     }
 
     public static bool IsPackageInstalled(string packageFullName) {
         if (string.IsNullOrEmpty(packageFullName)) return false;
+        InvalidateCache();
+        Engine.InvalidateAppCache();
         try {
             var psi = new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"if (Get-AppxPackage -Package '" + packageFullName + "') { 'YES' }\"") {
                 CreateNoWindow = true,
