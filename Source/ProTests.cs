@@ -71,6 +71,11 @@ static class ProTests {
    Check(true,"Engine.InvalidateAppCache succeeds");
    UwpManager.InvalidateCache();
    Check(true,"UwpManager.InvalidateCache succeeds");
+   Check(Engine.AppVersion == "1.2", "Centralized AppVersion matches 1.2");
+   Check(StartupItem.EstimateImpact("\"C:\\Program Files\\Discord\\app.exe\"", "Discord") == "Cao", "Quoted impact check");
+   Check(!UwpManager.IsPackageInstalled(""), "IsPackageInstalled handles empty name");
+   long optFreed = SystemPerformance.OptimizeMemory();
+   Check(optFreed >= 0, "SystemPerformance.OptimizeMemory executes without leaking");
   return count;
  }
 }

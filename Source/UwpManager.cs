@@ -139,7 +139,7 @@ public static class UwpManager {
 
                     apps.Add(entry);
                 }
-                proc.WaitForExit(5000);
+                if (!proc.WaitForExit(5000)) { try { proc.Kill(); } catch {} }
             }
         } catch {}
         cachedUwp = apps;
@@ -148,8 +148,6 @@ public static class UwpManager {
 
     public static bool IsPackageInstalled(string packageFullName) {
         if (string.IsNullOrEmpty(packageFullName)) return false;
-        InvalidateCache();
-        Engine.InvalidateAppCache();
         try {
             var psi = new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"if (Get-AppxPackage -Package '" + packageFullName + "') { 'YES' }\"") {
                 CreateNoWindow = true,
@@ -176,8 +174,10 @@ public static class UwpManager {
             };
             using (var proc = Process.Start(psi)) {
                 if (proc == null) return false;
-                proc.WaitForExit(30000);
-                return proc.ExitCode == 0;
+                if (!proc.WaitForExit(30000)) { try { proc.Kill(); } catch {} return false; }
+                bool success = proc.ExitCode == 0;
+                if (success) { InvalidateCache(); Engine.InvalidateAppCache(); }
+                return success;
             }
         } catch {
             return false;

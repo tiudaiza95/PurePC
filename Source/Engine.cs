@@ -14,9 +14,9 @@ using Microsoft.VisualBasic.FileIO;
 public partial class AppEntry {
  public string Name, Publisher, Command, Location, Key, Version;
  public string Title { get { return Name; } }
- public string Vendor { get { return String.IsNullOrEmpty(Publisher) ? "Không có nhà phát hành" : Publisher; } }
+ public string Vendor { get { return String.IsNullOrEmpty(Publisher) ? I18n.T("Không có nhà phát hành") : Publisher; } }
  public string Release { get { return String.IsNullOrEmpty(Version) ? "—" : Version; } }
- public string Scope { get { return Hive==RegistryHive.CurrentUser ? "Cá nhân" : "Toàn máy"; } }
+ public string Scope { get { return Hive==RegistryHive.CurrentUser ? I18n.T("Cá nhân") : I18n.T("Toàn máy"); } }
  
  public RegistryHive Hive; public RegistryView View;
  public string Id { get { return Hive+"|"+View+"|"+Key; } }
@@ -24,11 +24,12 @@ public partial class AppEntry {
 partial class Remnant {
  public bool Selected {get;set;}
  public string DisplayPath { get { return (IsRegistry ? "HKCU\\" : "")+Path; } }
- public string Kind { get { return IsRegistry?"Registry · chỉ xem":"Thư mục · có thể chứa dữ liệu"; } }
+ public string Kind { get { return IsRegistry?I18n.T("Registry · chỉ xem"):I18n.T("Thư mục · có thể chứa dữ liệu"); } }
  public string Path; public bool IsRegistry; public RegistryHive Hive; public RegistryView View;
  public override string ToString() { return (IsRegistry ? "Registry: " : "Thư mục: ")+Path; }
 }
 static partial class Engine {
+ public const string AppVersion = "1.2";
  public const string Uninstall = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
  public static string Data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SachGon");
  public static bool Testing;

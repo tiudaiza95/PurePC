@@ -26,7 +26,7 @@ partial class DesktopApp {
   using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SachGon.Icon.png")){var image=new BitmapImage();image.BeginInit();image.StreamSource=stream;image.CacheOption=BitmapCacheOption.OnLoad;image.EndInit();image.Freeze();C<Image>("BrandImage").Source=image;window.Icon=image;}
   foreach(string nav in new[]{"Apps","Temp","Large","Startup","History"}){string name=nav;C<RadioButton>("Nav"+nav).Checked+=(s,e)=>Navigate(name);}
   C<TextBox>("Search").TextChanged+=(s,e)=>Filter();
-  C<DataGrid>("AppsGrid").SelectionChanged+=(s,e)=>{if(busy)return;var a=C<DataGrid>("AppsGrid").SelectedItem as AppEntry;if(a==null)return;target=a;remnants.Clear();BindRemnants();Text("SelectedApp",a.Name);Text("SelectedHint",a.Scope+"  ·  "+a.Release+"  ·  "+a.Vendor);State();};
+  C<DataGrid>("AppsGrid").SelectionChanged+=(s,e)=>{if(busy)return;var a=C<DataGrid>("AppsGrid").SelectedItem as AppEntry;if(a==null)return;target=a;remnants.Clear();BindRemnants();Text("SelectedApp",a.Name);State();};
   AsyncClick("RefreshApps",async()=>{await Reload();Text("Status","Danh sách đã cập nhật. Không xóa ứng dụng khi lọc dòng trùng.");});
   AsyncClick("Uninstall",UninstallSelected);
   AsyncClick("ScanRemnants",async()=>{if(target==null)return;remnants=await Task.Run(()=>Engine.Scan(target));BindRemnants();Text("Status",remnants.Count==0?"Không thấy phần dư trong phạm vi quét. Không đồng nghĩa đã sạch 100%.":"Tìm thấy "+remnants.Count+" mục. Hãy kiểm tra đường dẫn và chọn trước khi dọn.");});

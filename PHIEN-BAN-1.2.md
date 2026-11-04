@@ -2,8 +2,8 @@
 
 > **Phiên bản**: `1.2.0.0` (Bản nâng cấp Tối ưu hóa Hiệu năng & Khởi động Tức thì - High Performance & Instant Launch)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
-> **Trạng thái kiểm thử**: PASS 103/103 Unit Checks  
-> **Mã băm SHA-256**: `8ABC6CBC85AC25660818F6D89B7D26C400326C2FE0A45F1CD8563817FE16E65B`  
+> **Trạng thái kiểm thử**: PASS 114/114 Unit Checks  
+> **Mã băm SHA-256**: `EC39009C9B26BFABD81E99834E0FFF5337E67208FD93F98F4C8F0A1DD4D72302`  
 > **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`  
 > **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/DonDepPC](https://github.com/tiudaiza95/DonDepPC)
 
@@ -25,7 +25,7 @@ Phiên bản **1.2.0.0** tập trung vào đột phá về **Tối ưu hóa hi�
 +-----------------------------------------------------------------------------------------------+
 |   • Giảm 66% Syscalls duyệt tệp bằng DirectoryInfo.EnumerateFileSystemInfos()                 |
 |   • Giảm 60% RAM giao diện nhờ cơ chế Row Virtualization Recycling                            |
-|   • Đạt chuẩn tuyệt đối 103/103 Unit Checks tự động                                           |
+|   • Đạt chuẩn tuyệt đối 114/114 Unit Checks tự động                                           |
 |   • An toàn dữ liệu 100%: Ưu tiên Thùng rác & tự động sao lưu Registry UTF-16LE              |
 +-----------------------------------------------------------------------------------------------+
 ```
@@ -75,6 +75,6 @@ Phiên bản **1.2.0.0** tập trung vào đột phá về **Tối ưu hóa hi�
 ## 🔒 Kiểm tra & Đảm bảo Chất lượng (QA)
 
 - **Biên dịch**: 64-bit Native C# 7.3 / .NET Framework 4.8.
-- **Unit Checks**: 103/103 bài kiểm tra nội bộ tự động đạt **PASS** 100% (`--self-test`).
+- **Unit Checks**: 114/114 bài kiểm tra nội bộ tự động đạt **PASS** 100% (`--self-test`).
 - **Khởi chạy thực tế**: Đã kiểm tra khởi động trơn tru không lỗi trên cả 2 ngôn ngữ Tiếng Việt và English.
 - **An toàn tuyệt đối**: Mọi thao tác dọn dẹp hệ thống đều ưu tiên chuyển vào Thùng rác Windows và tự động xuất bản sao Registry `.reg` (UTF-16LE) trước khi xử lý.

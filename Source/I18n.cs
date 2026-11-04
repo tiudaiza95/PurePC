@@ -157,6 +157,19 @@ static class I18n {
    Add("Dọn Thùng rác", "Empty Recycle Bin");
    Add("Bạn có chắc chắn muốn dọn sạch toàn bộ Thùng rác (Recycle Bin)?", "Are you sure you want to empty the Recycle Bin completely?");
    Add("Đã làm sạch Thùng rác thành công!", "Recycle Bin emptied successfully!");
+   Add("Cá nhân", "Current User");
+   Add("Toàn máy", "Machine-wide");
+   Add("Không có nhà phát hành", "No Publisher");
+   Add("Registry · chỉ xem", "Registry · view only");
+   Add("Thư mục · có thể chứa dữ liệu", "Folder · may contain data");
+   Add("Tiếng Việt (Mặc định)", "Vietnamese (Default)");
+   Add("Cài đặt & Tiện ích chuyên sâu · Dọn Dẹp PC 1.2", "Advanced Settings & Utilities · DonDepPC 1.2");
+   Add("⚡ Hàng đợi Gỡ cài đặt hàng loạt (Batch Uninstall) · Dọn Dẹp PC 1.2", "⚡ Batch Uninstall Queue · DonDepPC 1.2");
+   Add("Giám sát & Theo dõi Cài đặt mới (Setup Monitor) · Dọn Dẹp PC 1.2", "Setup Monitor & Complete Uninstall · DonDepPC 1.2");
+   Add("Dọn dẹp Registry thông minh & An toàn · Dọn Dẹp PC 1.2", "Smart & Safe Registry Cleaner · DonDepPC 1.2");
+   Add("Quản lý Dịch vụ bên thứ ba (Third-party Services) · Dọn Dẹp PC 1.2", "Third-Party Services Manager · DonDepPC 1.2");
+   Add("Quản lý Tiện ích mở rộng Trình duyệt (Browser Extensions) · Dọn Dẹp PC 1.2", "Browser Extensions Manager · DonDepPC 1.2");
+
   Add("Tích hợp 4 trong 1: Tàn dư gỡ cài đặt · Tệp dung lượng lớn (>100MB) · Tệp trùng lặp · Lối tắt hỏng", "4-in-1: Leftovers · Large files (>100MB) · Duplicates · Broken shortcuts");
   Add("🔗 Lối tắt hỏng", "🔗 Broken Shortcuts");
   Add("Dọn lối tắt đã chọn", "Clean Selected Shortcuts");
