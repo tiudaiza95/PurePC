@@ -84,7 +84,7 @@ public static class SystemPerformance {
   } catch { return false; }
  }
 
- public static bool EmptyRecycleBin(IntPtr hwnd) {
+ public static bool EmptyRecycleBin(IntPtr hwnd = default(IntPtr)) {
   try {
    return SHEmptyRecycleBin(hwnd, null, 7) == 0;
   } catch { return false; }

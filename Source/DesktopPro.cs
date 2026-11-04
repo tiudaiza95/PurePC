@@ -147,7 +147,19 @@ partial class DesktopApp {
    Directory.CreateDirectory(path);
    Process.Start(new ProcessStartInfo("explorer.exe",Maintenance.Quote(path)){UseShellExecute=true});
   }));
-  toolBtns.Children.Add(ActionButton(I18n.T("🗑️ Mở Thùng rác Windows"),()=>C<Button>("OpenRecycle").RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
+  toolBtns.Children.Add(ActionButton(I18n.T("⚡ Tối ưu Database SQLite"),()=>{dialog.Close();OpenSqliteOptimizerDialog();}));
+   toolBtns.Children.Add(ActionButton(I18n.T("🔥 Hủy tệp an toàn (Shredder)"),()=>{dialog.Close();OpenFileShredderDialog();}));
+   toolBtns.Children.Add(ActionButton(I18n.T("⚡ Làm sạch DNS Cache"),()=>{
+    SystemPerformance.FlushDnsCache();
+    MessageBox.Show(I18n.T("Đã làm sạch DNS Resolver Cache thành công!"),I18n.T("Làm sạch DNS Cache"),MessageBoxButton.OK,MessageBoxImage.Information);
+   }));
+   toolBtns.Children.Add(ActionButton(I18n.T("🗑️ Dọn sạch Thùng rác"),()=>{
+    if(MessageBox.Show(I18n.T("Bạn có chắc chắn muốn dọn sạch toàn bộ Thùng rác (Recycle Bin)?"),I18n.T("Dọn Thùng rác"),MessageBoxButton.YesNo,MessageBoxImage.Question)==MessageBoxResult.Yes){
+     SystemPerformance.EmptyRecycleBin();
+     MessageBox.Show(I18n.T("Đã làm sạch Thùng rác thành công!"),I18n.T("Dọn Thùng rác"),MessageBoxButton.OK,MessageBoxImage.Information);
+    }
+   }));
+   toolBtns.Children.Add(ActionButton(I18n.T("🗑️ Mở Thùng rác Windows"),()=>C<Button>("OpenRecycle").RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
   toolBtns.Children.Add(ActionButton(I18n.T("📝 Mở tệp Nhật ký"),()=>C<Button>("OpenLog").RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
   toolBtns.Children.Add(ActionButton(I18n.T("💾 Công cụ Disk Cleanup"),()=>OpenNative("cleanmgr.exe")));
   toolBtns.Children.Add(ActionButton(I18n.T("⚡ Tối ưu ổ đĩa Defrag"),()=>OpenNative("dfrgui.exe")));
@@ -652,6 +664,166 @@ partial class DesktopApp {
   }));
   btnRow.Children.Add(ActionButton("🔄 Làm mới",loadExts));
   loadExts();
+  dialog.ShowDialog();
+ }
+
+
+ void OpenSqliteOptimizerDialog(){
+  var dialog=new Window{
+   Title=I18n.T("Tối ưu hóa Database Trình duyệt (SQLite Vacuum) · Dọn Dẹp PC 1.2"),
+   Owner=window,Width=880,Height=580,MinWidth=700,MinHeight=450,
+   WindowStartupLocation=WindowStartupLocation.CenterOwner,
+   Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty,"Ink");
+  var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
+  var header=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
+  header.Children.Add(Label(I18n.T("TỐI ƯU HÓA & THU GỌN DATABASE TRÌNH DUYỆT (SQLITE VACUUM)"),19,true));
+  header.Children.Add(Label(I18n.T("Chạy thuật toán VACUUM và REINDEX trên các tệp cơ sở dữ liệu (History, Cookies, Web Data, Places) của Chrome, Edge, Cốc Cốc, Brave, Firefox để dọn sạch phân mảnh, thu nhỏ dung lượng và tăng tốc mở trình duyệt.\n★ Khuyến nghị: Đóng các trình duyệt web trước khi tối ưu để tệp không bị khóa."),12));
+
+  var bottom=new StackPanel{Margin=new Thickness(0,12,0,0)};DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
+  var btnRow=new WrapPanel();bottom.Children.Add(btnRow);
+  var statusText=Label(I18n.T("Sẵn sàng phân tích cơ sở dữ liệu trình duyệt."),12);
+  statusText.Margin=new Thickness(0,0,0,6);bottom.Children.Insert(0,statusText);
+
+  var lb=new ListBox{MinHeight=200};
+  lb.SetResourceReference(Control.BackgroundProperty,"Panel");
+  lb.SetResourceReference(Control.ForegroundProperty,"Ink");
+  root.Children.Add(lb);
+
+  var dbs=SqliteOptimizer.FindBrowserDatabases();
+  foreach(var p in dbs){
+   try{
+    long sz=new FileInfo(p).Length;
+    lb.Items.Add(Path.GetFileName(Path.GetDirectoryName(p)) + "\\" + Path.GetFileName(p) + " (" + Features.Size(sz) + ") — " + p);
+   }catch{
+    lb.Items.Add(p);
+   }
+  }
+  statusText.Text=I18n.T("Đã tìm thấy ") + dbs.Count + I18n.T(" tệp database SQLite trình duyệt.");
+
+  bool isBusy=false;
+  btnRow.Children.Add(ActionButton(I18n.T("⚡ Bắt đầu Tối ưu hóa (Vacuum)"),async()=>{
+   if(isBusy)return;
+   isBusy=true;
+   statusText.Text=I18n.T("Đang tiến hành tối ưu hóa các cơ sở dữ liệu...");
+   int count=0;long freedTotal=0;
+   await Task.Run(()=>{
+    foreach(var p in dbs){
+     long freed;
+     if(SqliteOptimizer.Vacuum(p,out freed)){
+      count++;freedTotal+=freed;
+     }
+    }
+   });
+   statusText.Text=I18n.T("Hoàn tất! Đã tối ưu thành công ") + count + " / " + dbs.Count + I18n.T(" database, thu gọn được ") + Features.Size(freedTotal) + ".";
+   MessageBox.Show(dialog, statusText.Text, I18n.T("Tối ưu Database SQLite"), MessageBoxButton.OK, MessageBoxImage.Information);
+   isBusy=false;
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Đóng"),()=>dialog.Close()));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenFileShredderDialog(){
+  var dialog=new Window{
+   Title=I18n.T("Hủy tệp & Thư mục an toàn (File Shredder) · Dọn Dẹp PC 1.2"),
+   Owner=window,Width=880,Height=600,MinWidth=720,MinHeight=480,
+   WindowStartupLocation=WindowStartupLocation.CenterOwner,
+   Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty,"Ink");
+  var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
+  var header=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
+  header.Children.Add(Label(I18n.T("HỦY TỆP AN TOÀN & XÓA VĨNH VIỄN (SECURE FILE SHREDDER)"),19,true));
+  header.Children.Add(Label(I18n.T("Ghi đè bit dữ liệu nhiều lượt (Zero, One, Random) trước khi xóa nhằm ngăn chặn hoàn toàn khả năng phục hồi dữ liệu bằng phần mềm cứu hộ."),12));
+
+  var warnCard=new Border{Background=new SolidColorBrush(Color.FromArgb(30,230,70,50)),CornerRadius=new CornerRadius(10),Padding=new Thickness(12),Margin=new Thickness(0,8,0,4)};
+  warnCard.Child=Label(I18n.T("⚡ CẢNH BÁO: Dữ liệu sau khi hủy sẽ bị XÓA VĨNH VIỄN và KHÔNG THỂ KHÔI PHỤC kể cả bằng phần mềm cứu dữ liệu chuyên nghiệp. Hãy kiểm tra kỹ đường dẫn tệp trước khi thực hiện."),12,true);
+  header.Children.Add(warnCard);
+
+  var bottom=new StackPanel{Margin=new Thickness(0,12,0,0)};DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
+  
+  var optRow=new WrapPanel{Margin=new Thickness(0,0,0,8)};bottom.Children.Add(optRow);
+  var rb1Pass=new RadioButton{Content=I18n.T("Nhanh (1 lượt - Ghi đè Zero)"),Margin=new Thickness(0,0,16,0)};
+  rb1Pass.SetResourceReference(Control.ForegroundProperty,"Ink");
+  var rb3Pass=new RadioButton{Content=I18n.T("Tiêu chuẩn DoD 5220.22-M (3 lượt - Zero, One, Random)"),IsChecked=true,Margin=new Thickness(0,0,16,0)};
+  rb3Pass.SetResourceReference(Control.ForegroundProperty,"Ink");
+  optRow.Children.Add(rb1Pass);optRow.Children.Add(rb3Pass);
+
+  var statusText=Label(I18n.T("Danh sách trống. Thêm tệp hoặc thư mục cần hủy vào bảng."),12);
+  statusText.Margin=new Thickness(0,0,0,8);bottom.Children.Add(statusText);
+
+  var btnRow=new WrapPanel();bottom.Children.Add(btnRow);
+
+  var itemsList=new List<string>();
+  var lb=new ListBox{MinHeight=180};
+  lb.SetResourceReference(Control.BackgroundProperty,"Panel");
+  lb.SetResourceReference(Control.ForegroundProperty,"Ink");
+  root.Children.Add(lb);
+
+  Action updateList=()=>{
+   lb.Items.Clear();
+   foreach(var s in itemsList)lb.Items.Add(s);
+   statusText.Text=I18n.T("Đã chọn ") + itemsList.Count + I18n.T(" mục cần hủy.");
+  };
+
+  var topBtns=new WrapPanel{Margin=new Thickness(0,6,0,8)};
+  header.Children.Add(topBtns);
+  topBtns.Children.Add(ActionButton(I18n.T("📄 Thêm tệp..."),()=>{
+   var ofd=new Microsoft.Win32.OpenFileDialog{Multiselect=true,Title=I18n.T("Chọn tệp cần hủy vĩnh viễn")};
+   if(ofd.ShowDialog(dialog)==true){
+    foreach(var f in ofd.FileNames)if(!itemsList.Contains(f)&&!FileShredder.IsProtected(f))itemsList.Add(f);
+    updateList();
+   }
+  }));
+  topBtns.Children.Add(ActionButton(I18n.T("📁 Thêm thư mục..."),()=>{
+   using(var fbd=new System.Windows.Forms.FolderBrowserDialog{Description=I18n.T("Chọn thư mục cần hủy vĩnh viễn")}){
+    if(fbd.ShowDialog()==System.Windows.Forms.DialogResult.OK){
+     string sel=fbd.SelectedPath;
+     if(!itemsList.Contains(sel)&&!FileShredder.IsProtected(sel))itemsList.Add(sel);
+     updateList();
+    }
+   }
+  }));
+  topBtns.Children.Add(ActionButton(I18n.T("❌ Xóa mục đã chọn"),()=>{
+   if(lb.SelectedItem!=null){itemsList.Remove(lb.SelectedItem.ToString());updateList();}
+  }));
+  topBtns.Children.Add(ActionButton(I18n.T("🧹 Xóa toàn bộ danh sách"),()=>{
+   itemsList.Clear();updateList();
+  }));
+
+  bool isShredding=false;
+  btnRow.Children.Add(ActionButton(I18n.T("🔥 TIẾN HÀNH HỦY VĨNH VIỄN"),async()=>{
+   if(isShredding)return;
+   if(itemsList.Count==0){
+    MessageBox.Show(dialog,I18n.T("Vui lòng thêm ít nhất một tệp hoặc thư mục cần hủy."),I18n.T("Thông báo"),MessageBoxButton.OK,MessageBoxImage.Warning);
+    return;
+   }
+   if(MessageBox.Show(dialog,I18n.T("BẠN CÓ CHẮC CHẮN MUỐN HỦY VĨNH VIỄN ") + itemsList.Count + I18n.T(" MỤC ĐÃ CHỌN?\n\nDữ liệu sẽ bị ghi đè và XÓA HOÀN TOÀN. Thao tác này KHÔNG THỂ HOÀN TÁC!"),I18n.T("Xác nhận hủy dữ liệu"),MessageBoxButton.YesNo,MessageBoxImage.Stop)!=MessageBoxResult.Yes)return;
+
+   isShredding=true;
+   int passes=rb1Pass.IsChecked==true?1:3;
+   statusText.Text=I18n.T("Đang tiến hành hủy an toàn dữ liệu...");
+   int done=0;
+   await Task.Run(()=>{
+    foreach(var path in itemsList){
+     try{
+      if(Directory.Exists(path))FileShredder.ShredDirectory(path,passes);
+      else if(File.Exists(path))FileShredder.ShredFile(path,passes);
+      done++;
+     }catch{}
+    }
+   });
+   itemsList.Clear();updateList();
+   statusText.Text=I18n.T("ĐÃ HỦY VĨNH VIỄN THÀNH CÔNG ") + done + I18n.T(" MỤC!");
+   MessageBox.Show(dialog,statusText.Text,I18n.T("Hoàn tất hủy tệp"),MessageBoxButton.OK,MessageBoxImage.Information);
+   isShredding=false;
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Đóng"),()=>dialog.Close()));
+
   dialog.ShowDialog();
  }
 

@@ -1,9 +1,9 @@
 # Nhật ký phát hành Phiên bản 1.2 · Dọn Dẹp PC (DonDepPC Pro Max)
 
-> **Phiên bản**: `1.2.0.0` (Bản nâng cấp Tối ưu hóa Hiệu năng & Khởi động Tức thì - High Performance & Instant Launch)  
+> **Phiên bản**: `1.2.0.0` (Bản nâng cấp Tối ưu hóa Hiệu năng, Tốc độ Khởi động & Bảo mật - High Performance & Security Upgrade)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
-> **Trạng thái kiểm thử**: PASS 114/114 Unit Checks  
-> **Mã băm SHA-256**: `EC39009C9B26BFABD81E99834E0FFF5337E67208FD93F98F4C8F0A1DD4D72302`  
+> **Trạng thái kiểm thử**: PASS 118/118 Unit Checks  
+> **Mã băm SHA-256**: `59394572428526806A98348BD9A7D205C61E3EEA72F3C7787005892054C6D2E0`  
 > **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`  
 > **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/DonDepPC](https://github.com/tiudaiza95/DonDepPC)
 
@@ -11,22 +11,23 @@
 
 ## 🌟 Tổng quan Cột mốc Phiên bản 1.2
 
-Phiên bản **1.2.0.0** tập trung vào đột phá về **Tối ưu hóa hiệu năng toàn diện**, **Tốc độ khởi động siêu tốc** và trải nghiệm mượt mà không độ trễ, đồng thời bổ sung các công cụ bảo trì hệ thống và mạng chuyên nghiệp:
+Phiên bản **1.2.0.0** tập trung vào đột phá về **Tối ưu hóa hiệu năng toàn diện**, **Tốc độ khởi động siêu tốc**, trải nghiệm mượt mà không độ trễ, đồng thời bổ sung hai công cụ cốt lõi lấy cảm hứng từ BleachBit: **Tối ưu Database SQLite** và **Hủy tệp an toàn chống khôi phục (File Shredder)**:
 
 ```
 +-----------------------------------------------------------------------------------------------+
 |                                  DỌN DẸP PC PRO MAX v1.2                                     |
 |                                                                                               |
-|   [INSTANT LAUNCH & CACHING]    [STARTUP IMPACT ANALYZER]       [DNS & RECYCLE BIN TOOLS]     |
-|   • Khởi động tức thì (<0.1s)   • Phân tích tác động khởi động  • Win32 DnsFlushResolverCache |
-|   • Đọc Registry Hardware <40ms • Phân loại Cao/Trung bình/Thấp • Làm sạch DNS Cache 0.5ms    |
-|   • In-memory App & UWP Cache   • Tích hợp cột hiển thị song ngữ• Dọn sạch Thùng rác 1-Click  |
-|   • Virtualization DataGrid 60fps• Tối ưu thời gian bật máy     • Tự động tích hợp Quét 1-Click|
+|   [INSTANT LAUNCH & CACHING]    [STARTUP IMPACT ANALYZER]       [SQLITE & SHREDDER TOOLS]     |
+|   • Khởi động tức thì (<0.1s)   • Phân tích tác động khởi động  • Win32 winsqlite3.dll VACUUM |
+|   • Đọc Registry Hardware <40ms • Phân loại Cao/Trung bình/Thấp • Thu gọn database trình duyệt|
+|   • In-memory App & UWP Cache   • Tích hợp cột hiển thị song ngữ• Hủy tệp 3-Pass DoD 5220.22-M|
+|   • Virtualization DataGrid 60fps• Tối ưu thời gian bật máy     • Chống khôi phục dữ liệu     |
 +-----------------------------------------------------------------------------------------------+
+|   • Làm sạch DNS Resolver Cache 0.5ms & Dọn sạch Thùng rác nhanh 1-Click                      |
 |   • Giảm 66% Syscalls duyệt tệp bằng DirectoryInfo.EnumerateFileSystemInfos()                 |
 |   • Giảm 60% RAM giao diện nhờ cơ chế Row Virtualization Recycling                            |
-|   • Đạt chuẩn tuyệt đối 114/114 Unit Checks tự động                                           |
-|   • An toàn dữ liệu 100%: Ưu tiên Thùng rác & tự động sao lưu Registry UTF-16LE              |
+|   • Đạt chuẩn tuyệt đối 118/118 Unit Checks tự động                                           |
+|   • An toàn dữ liệu 100%: Tự động sao lưu Registry UTF-16LE, bảo vệ tệp hệ thống Windows     |
 +-----------------------------------------------------------------------------------------------+
 ```
 
@@ -70,11 +71,25 @@ Phiên bản **1.2.0.0** tập trung vào đột phá về **Tối ưu hóa hi�
 - Chỉ tạo các phần tử thị giác cho các dòng hiển thị trên màn hình (~15 dòng), tái sử dụng các container trực quan khi cuộn.
 - Tiết kiệm hơn 60% RAM cho giao diện và duy trì tốc độ khung hình 60fps mượt mà tuyệt đối khi cuộn danh sách hàng trăm phần mềm.
 
+### 8. ⚡ Tối ưu hóa Database SQLite Trình duyệt (SQLite Vacuum & Reindex) - MỚI!
+- Tích hợp gọi trực tiếp thư viện native `winsqlite3.dll` có sẵn trong Windows 10/11 mà không cần thư viện bên thứ ba.
+- Tự động quét và chạy lệnh `VACUUM` và `REINDEX` trên tất cả các cơ sở dữ liệu SQLite của Google Chrome, Microsoft Edge, Cốc Cốc, Brave, Opera và Mozilla Firefox (History, Cookies, Web Data, Places, Favicons...).
+- Khắc phục triệt để tình trạng phân mảnh database nội bộ của trình duyệt, thu nhỏ dung lượng đĩa và giúp trình duyệt mở nhanh hơn đáng kể.
+- Tích hợp đồng thời trong tác vụ **Quét & Tối ưu 1-Click** và cửa sổ quản lý riêng trong **Lối tắt Tiện ích**.
+
+### 9. 🔥 Hủy tệp An toàn & Xóa vĩnh viễn (Secure File Shredder) - MỚI!
+- Cho phép người dùng chọn tệp hoặc toàn bộ thư mục nhạy cảm muốn xóa vĩnh viễn không để lại dấu vết.
+- Hỗ trợ 2 chế độ hủy:
+  - **Nhanh (1 lượt)**: Ghi đè toàn bộ tệp bằng byte 0x00 (Zero fill).
+  - **Tiêu chuẩn DoD 5220.22-M (3 lượt)**: Ghi đè tuần tự Zero (0x00), One (0xFF) và mã hóa ngẫu nhiên Cryptographic (`RNGCryptoServiceProvider`).
+- Cơ chế cắt ngắn tệp về 0 bytes và **đổi tên tệp ngẫu nhiên** trong MFT (Master File Table) trước khi xóa bỏ, ngăn chặn hoàn toàn khả năng phục hồi dữ liệu bằng bất kỳ phần mềm cứu hộ số nào.
+- Bộ lọc an toàn chặn tuyệt đối việc xóa nhầm các thư mục hệ thống Windows, Program Files hoặc phân vùng gốc.
+
 ---
 
 ## 🔒 Kiểm tra & Đảm bảo Chất lượng (QA)
 
 - **Biên dịch**: 64-bit Native C# 7.3 / .NET Framework 4.8.
-- **Unit Checks**: 114/114 bài kiểm tra nội bộ tự động đạt **PASS** 100% (`--self-test`).
+- **Unit Checks**: **118/118 bài kiểm tra nội bộ tự động** đều đạt **PASS** 100% (`--self-test`).
 - **Khởi chạy thực tế**: Đã kiểm tra khởi động trơn tru không lỗi trên cả 2 ngôn ngữ Tiếng Việt và English.
-- **An toàn tuyệt đối**: Mọi thao tác dọn dẹp hệ thống đều ưu tiên chuyển vào Thùng rác Windows và tự động xuất bản sao Registry `.reg` (UTF-16LE) trước khi xử lý.
+- **An toàn tuyệt đối**: Mọi thao tác dọn dẹp hệ thống thông thường đều ưu tiên chuyển vào Thùng rác Windows và tự động xuất bản sao Registry `.reg` (UTF-16LE) trước khi xử lý. Công cụ hủy tệp có cảnh báo an toàn rõ ràng và yêu cầu xác nhận kép từ người dùng.

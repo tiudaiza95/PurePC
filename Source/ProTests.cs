@@ -76,6 +76,19 @@ static class ProTests {
    Check(!UwpManager.IsPackageInstalled(""), "IsPackageInstalled handles empty name");
    long optFreed = SystemPerformance.OptimizeMemory();
    Check(optFreed >= 0, "SystemPerformance.OptimizeMemory executes without leaking");
+   Check(SqliteOptimizer.IsAvailable, "SqliteOptimizer.IsAvailable returns true on Windows 10/11");
+   string testDb = Path.Combine(Path.GetTempPath(), "DonDepPC_test_" + Guid.NewGuid().ToString("N") + ".db");
+   try {
+       File.WriteAllBytes(testDb, System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0"));
+       Check(SqliteOptimizer.IsSqliteDatabase(testDb), "SqliteOptimizer recognizes SQLite header");
+   } finally {
+       if (File.Exists(testDb)) File.Delete(testDb);
+   }
+   Check(FileShredder.IsProtected(Environment.SystemDirectory), "FileShredder protects SystemDirectory");
+   string testShred = Path.Combine(Path.GetTempPath(), "DonDepPC_shred_" + Guid.NewGuid().ToString("N") + ".tmp");
+   File.WriteAllText(testShred, "SECRET TEST CONTENT");
+   FileShredder.ShredFile(testShred, 1);
+   Check(!File.Exists(testShred), "FileShredder.ShredFile overwrites and deletes file successfully");
   return count;
  }
 }

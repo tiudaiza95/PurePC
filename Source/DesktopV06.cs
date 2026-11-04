@@ -187,6 +187,8 @@ partial class DesktopApp {
     junkStatus.Text="Đang tối ưu giải phóng RAM đệm & làm sạch DNS Cache…";
     long freedRam=await Task.Run(()=>SystemPerformance.OptimizeMemory());
     bool dnsOk=await Task.Run(()=>SystemPerformance.FlushDnsCache());
+    int optDbs=0;long freedDbBytes=0;
+    try{optDbs=await Task.Run(()=>SqliteOptimizer.OptimizeAll(out optDbs,out freedDbBytes));}catch{}
     junkStatus.Text="Đang quét tệp tạm (%TEMP%), cache trình duyệt & tệp rác…";
     var found=await Task.Run(()=>JunkOverview.Scan(false,token,progress));
     junkReport=found;
@@ -202,8 +204,9 @@ partial class DesktopApp {
     if(score<30)score=30;
     string healthStatus=score>=85?"RẤT TỐT":(score>=65?"KHÁ - NÊN TỐI ƯU":"CẦN DỌN DẸP NGAY");
     string ramMsg=freedRam>0?"Đã giải phóng "+Features.Size(freedRam)+" RAM. ":"";string dnsMsg=dnsOk?"Đã làm mới bộ nhớ đệm DNS mạng. ":"";
+    string dbMsg=optDbs>0?"Đã thu gọn "+optDbs+" database trình duyệt ("+Features.Size(freedDbBytes)+"). ":"";
     string chromeNotice=chkChrome.IsChecked!=true?" (Đã bỏ qua cache Chrome)":"";
-    junkStatus.Text="★ SỨC KHỎE: "+score+"/100 ("+healthStatus+")"+chromeNotice+"\n"+ramMsg+dnsMsg+"Phát hiện "+chosen.Count+" mục tệp tạm/rác ("+Features.Size(junkBytes)+"). Bấm 'Dọn mục đã chọn' để hoàn tất!";
+    junkStatus.Text="★ SỨC KHỎE: "+score+"/100 ("+healthStatus+")"+chromeNotice+"\n"+ramMsg+dnsMsg+dbMsg+"Phát hiện "+chosen.Count+" mục tệp tạm/rác ("+Features.Size(junkBytes)+"). Bấm 'Dọn mục đã chọn' để hoàn tất!";
     Text("Status","Đã quét toàn diện: Sức khỏe "+score+"/100 · "+Features.Size(junkBytes)+" rác · "+Features.Size(freedRam)+" RAM tối ưu.");
     Engine.Log("SMART_CARE score="+score+" freedRam="+freedRam+" junk="+junkBytes);
    });
