@@ -50,7 +50,7 @@ partial class DesktopApp {
    return;
   }
   var dialog=new Window{
-   Title=I18n.T("Cài đặt & Tiện ích chuyên sâu · Dọn Dẹp PC 1.2"),
+   Title=I18n.T("Cài đặt & Tiện ích chuyên sâu · PurePC 1.2"),
    Owner=window,
    Width=800,
    Height=540,
@@ -174,7 +174,7 @@ partial class DesktopApp {
   tab3.Content=t3Panel;
 
   var aboutCard=new StackPanel();
-  aboutCard.Children.Add(Label(I18n.T("Dọn Dẹp PC Pro Max · Phiên bản 1.2 Chính thức"),15,true));
+  aboutCard.Children.Add(Label(I18n.T("PurePC Pro Max · Phiên bản 1.2 Chính thức"),15,true));
   aboutCard.Children.Add(Label("Mô hình kết hợp hoàn hảo giữa:\n• CCleaner: Dọn tệp tạm, tối ưu RAM, dọn Registry và quản lý tiện ích trình duyệt.\n• IObit Uninstaller: Gỡ cài đặt chuyên sâu, gỡ hàng loạt và dọn sạch tàn dư rác 1-click.\n• Driver & System Tools: Giám sát phần cứng và bảo trì ổ đĩa chuyên sâu.\n\nCam kết an toàn tuyệt đối, minh bạch 100% dữ liệu và bảo vệ quyền riêng tư.",12));
   
   var githubRow=new WrapPanel{Margin=new Thickness(0,10,0,0)};
@@ -293,7 +293,7 @@ partial class DesktopApp {
  }
 
  void OpenServicesDialog(){
-  var dialog=new Window{Title=I18n.T("Quản lý Dịch vụ bên thứ ba (Third-party Services) · Dọn Dẹp PC 1.2"),Owner=window,Width=920,Height=640,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  var dialog=new Window{Title=I18n.T("Quản lý Dịch vụ bên thứ ba (Third-party Services) · PurePC 1.2"),Owner=window,Width=920,Height=640,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
   dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.SetResourceReference(Window.ForegroundProperty,"Ink");EnableEscapeClose(dialog);
   var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
   var header=new StackPanel{Margin=new Thickness(0,0,0,14)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
@@ -385,7 +385,7 @@ partial class DesktopApp {
    MessageBox.Show(window,"Tất cả các mục bạn chọn đều là thành phần bảo vệ của hệ thống; không thể gỡ bỏ.","Cảnh báo",MessageBoxButton.OK,MessageBoxImage.Warning);
    return;
   }
-  var queueDialog=new Window{Title=I18n.T("⚡ Hàng đợi Gỡ cài đặt hàng loạt (Batch Uninstall) · Dọn Dẹp PC 1.2"),Owner=window,Width=780,Height=540,MinWidth=650,MinHeight=420,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  var queueDialog=new Window{Title=I18n.T("⚡ Hàng đợi Gỡ cài đặt hàng loạt (Batch Uninstall) · PurePC 1.2"),Owner=window,Width=780,Height=540,MinWidth=650,MinHeight=420,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
   queueDialog.SetResourceReference(Window.BackgroundProperty,"Canvas");queueDialog.SetResourceReference(Window.ForegroundProperty,"Ink");
   var root=new DockPanel{Margin=new Thickness(20)};queueDialog.Content=root;
   var top=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(top,Dock.Top);root.Children.Add(top);
@@ -441,7 +441,7 @@ partial class DesktopApp {
 
  void OpenSetupMonitorDialog(){
   var dialog=new Window{
-   Title=I18n.T("Giám sát & Theo dõi Cài đặt mới (Setup Monitor) · Dọn Dẹp PC 1.2"),
+   Title=I18n.T("Giám sát & Theo dõi Cài đặt mới (Setup Monitor) · PurePC 1.2"),
    Owner=window,Width=920,Height=650,MinWidth=750,MinHeight=500,
    WindowStartupLocation=WindowStartupLocation.CenterOwner,
    Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13
@@ -556,7 +556,7 @@ partial class DesktopApp {
  }
 
  void OpenRegistryCleanerDialog(){
-  var dialog=new Window{Title=I18n.T("Dọn dẹp Registry thông minh & An toàn · Dọn Dẹp PC 1.2"),Owner=window,Width=960,Height=650,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  var dialog=new Window{Title=I18n.T("Dọn dẹp Registry thông minh & An toàn · PurePC 1.2"),Owner=window,Width=960,Height=650,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
   dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.SetResourceReference(Window.ForegroundProperty,"Ink");EnableEscapeClose(dialog);
   var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
   var header=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
@@ -606,7 +606,7 @@ partial class DesktopApp {
  }
 
  void OpenBrowserExtensionsDialog(){
-  var dialog=new Window{Title=I18n.T("Quản lý Tiện ích mở rộng Trình duyệt (Browser Extensions) · Dọn Dẹp PC 1.2"),Owner=window,Width=920,Height=620,MinWidth=750,MinHeight=460,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  var dialog=new Window{Title=I18n.T("Quản lý Tiện ích mở rộng Trình duyệt (Browser Extensions) · PurePC 1.2"),Owner=window,Width=920,Height=620,MinWidth=750,MinHeight=460,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
   dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.SetResourceReference(Window.ForegroundProperty,"Ink");EnableEscapeClose(dialog);
   var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
   var header=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
@@ -671,7 +671,7 @@ partial class DesktopApp {
 
  void OpenSqliteOptimizerDialog(){
   var dialog=new Window{
-   Title=I18n.T("Tối ưu hóa Database Trình duyệt (SQLite Vacuum) · Dọn Dẹp PC 1.2"),
+   Title=I18n.T("Tối ưu hóa Database Trình duyệt (SQLite Vacuum) · PurePC 1.2"),
    Owner=window,Width=880,Height=580,MinWidth=700,MinHeight=450,
    WindowStartupLocation=WindowStartupLocation.CenterOwner,
    Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13
@@ -729,7 +729,7 @@ partial class DesktopApp {
 
  void OpenFileShredderDialog(){
   var dialog=new Window{
-   Title=I18n.T("Hủy tệp & Thư mục an toàn (File Shredder) · Dọn Dẹp PC 1.2"),
+   Title=I18n.T("Hủy tệp & Thư mục an toàn (File Shredder) · PurePC 1.2"),
    Owner=window,Width=880,Height=600,MinWidth=720,MinHeight=480,
    WindowStartupLocation=WindowStartupLocation.CenterOwner,
    Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13
@@ -829,7 +829,7 @@ partial class DesktopApp {
  }
 
  void OpenUwpManagerDialog(){
-  var dialog=new Window{Title=I18n.T("Gỡ ứng dụng mặc định Windows (UWP Bloatware) · Dọn Dẹp PC 1.2"),Owner=window,Width=960,Height=650,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  var dialog=new Window{Title=I18n.T("Gỡ ứng dụng mặc định Windows (UWP Bloatware) · PurePC 1.2"),Owner=window,Width=960,Height=650,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
   dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.SetResourceReference(Window.ForegroundProperty,"Ink");EnableEscapeClose(dialog);
   
   var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;

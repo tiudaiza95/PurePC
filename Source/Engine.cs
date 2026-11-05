@@ -31,14 +31,22 @@ partial class Remnant {
 static partial class Engine {
  public const string AppVersion = "1.2";
  public const string Uninstall = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
- public static string Data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SachGon");
+ public static string Data = GetAppDataPath();
+ static string GetAppDataPath() {
+  string p = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PurePC");
+  string oldP = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SachGon");
+  if (!Directory.Exists(p) && Directory.Exists(oldP)) {
+   try { Directory.CreateDirectory(p); foreach(var f in Directory.GetFiles(oldP)) File.Copy(f, Path.Combine(p, Path.GetFileName(f)), true); } catch {}
+  }
+  return p;
+ }
  public static bool Testing;
  public static void Log(string s) { if(Testing)return; Directory.CreateDirectory(Data); File.AppendAllText(Path.Combine(Data,"activity.log"),DateTime.Now.ToString("s")+" "+s+Environment.NewLine,Encoding.UTF8); }
  public static void Remember(AppEntry a) { Directory.CreateDirectory(Data); using(var f=File.Create(Path.Combine(Data,"last-app.xml")))new System.Xml.Serialization.XmlSerializer(typeof(AppEntry)).Serialize(f,a); RememberHistory(a); }
  public static AppEntry Recall() { try { using(var f=File.OpenRead(Path.Combine(Data,"last-app.xml")))return (AppEntry)new System.Xml.Serialization.XmlSerializer(typeof(AppEntry)).Deserialize(f); }catch{return null;} }
  public static string Norm(string s) { return Regex.Replace((s??"").ToLowerInvariant(),@"[^\p{L}\p{Nd}]",""); }
  public static string[] AppNames(AppEntry a) { string plain=a.Name??""; if(!String.IsNullOrWhiteSpace(a.Version))plain=Regex.Replace(plain,@"\s+\(?"+Regex.Escape(a.Version)+@"\)?$","").Trim();return new[]{a.Name,plain}.Where(Specific).Select(Norm).Distinct().ToArray(); }
- public static bool Specific(string s) { string n=Norm(s); return n.Length>=4 && !new[]{"data","temp","user","logs","apps","cache","caches","software","programfiles","windows","microsoft","commonfiles","application","applications","programs","users","desktop","downloads","documents","appdata","local","roaming","packages","google","mozilla","adobe","steam","shared","system","system32","sachgon","dondeppc"}.Contains(n); }
+ public static bool Specific(string s) { string n=Norm(s); return n.Length>=4 && !new[]{"data","temp","user","logs","apps","cache","caches","software","programfiles","windows","microsoft","commonfiles","application","applications","programs","users","desktop","downloads","documents","appdata","local","roaming","packages","google","mozilla","adobe","steam","shared","system","system32","sachgon","dondeppc","purepc"}.Contains(n); }
  public static int DuplicateCount;
  public static List<AppEntry> Deduplicate(IEnumerable<AppEntry> entries) {
   // HKCU Uninstall is shared by WOW64 views. Collapse only identical registry identities and metadata.

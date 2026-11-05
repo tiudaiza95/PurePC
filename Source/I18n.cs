@@ -183,9 +183,9 @@ static class I18n {
   Add("NHÓM", "CLASS");
 
   // Version 1.0 & 1.1 & About
-  Add("Dọn Dẹp PC Pro Max · Phiên bản 1.0 Chính thức", "DonDepPC Pro Max · Official Version 1.0");
-  Add("Dọn Dẹp PC Pro Max · Phiên bản 1.1 Chính thức", "DonDepPC Pro Max · Official Version 1.1");
-   Add("Dọn Dẹp PC Pro Max · Phiên bản 1.2 Chính thức", "DonDepPC Pro Max · Official Version 1.2");
+  Add("PurePC Pro Max · Phiên bản 1.0 Chính thức", "PurePC Pro Max · Official Version 1.0");
+  Add("PurePC Pro Max · Phiên bản 1.1 Chính thức", "PurePC Pro Max · Official Version 1.1");
+   Add("PurePC Pro Max · Phiên bản 1.2 Chính thức", "PurePC Pro Max · Official Version 1.2");
    Add("TÁC ĐỘNG", "IMPACT");
    Add("Tác động", "Impact");
    Add("Cao", "High");
@@ -204,15 +204,15 @@ static class I18n {
    Add("Registry · chỉ xem", "Registry · view only");
    Add("Thư mục · có thể chứa dữ liệu", "Folder · may contain data");
    Add("Tiếng Việt (Mặc định)", "Vietnamese (Default)");
-   Add("Cài đặt & Tiện ích chuyên sâu · Dọn Dẹp PC 1.2", "Advanced Settings & Utilities · DonDepPC 1.2");
-   Add("⚡ Hàng đợi Gỡ cài đặt hàng loạt (Batch Uninstall) · Dọn Dẹp PC 1.2", "⚡ Batch Uninstall Queue · DonDepPC 1.2");
-   Add("Giám sát & Theo dõi Cài đặt mới (Setup Monitor) · Dọn Dẹp PC 1.2", "Setup Monitor & Complete Uninstall · DonDepPC 1.2");
-   Add("Dọn dẹp Registry thông minh & An toàn · Dọn Dẹp PC 1.2", "Smart & Safe Registry Cleaner · DonDepPC 1.2");
-   Add("Quản lý Dịch vụ bên thứ ba (Third-party Services) · Dọn Dẹp PC 1.2", "Third-Party Services Manager · DonDepPC 1.2");
-   Add("Quản lý Tiện ích mở rộng Trình duyệt (Browser Extensions) · Dọn Dẹp PC 1.2", "Browser Extensions Manager · DonDepPC 1.2");
+   Add("Cài đặt & Tiện ích chuyên sâu · PurePC 1.2", "Advanced Settings & Utilities · PurePC 1.2");
+   Add("⚡ Hàng đợi Gỡ cài đặt hàng loạt (Batch Uninstall) · PurePC 1.2", "⚡ Batch Uninstall Queue · PurePC 1.2");
+   Add("Giám sát & Theo dõi Cài đặt mới (Setup Monitor) · PurePC 1.2", "Setup Monitor & Complete Uninstall · PurePC 1.2");
+   Add("Dọn dẹp Registry thông minh & An toàn · PurePC 1.2", "Smart & Safe Registry Cleaner · PurePC 1.2");
+   Add("Quản lý Dịch vụ bên thứ ba (Third-party Services) · PurePC 1.2", "Third-Party Services Manager · PurePC 1.2");
+   Add("Quản lý Tiện ích mở rộng Trình duyệt (Browser Extensions) · PurePC 1.2", "Browser Extensions Manager · PurePC 1.2");
    Add("⚡ Tối ưu Database SQLite", "⚡ Optimize SQLite Databases");
    Add("Tối ưu Database SQLite", "Optimize SQLite Databases");
-   Add("Tối ưu hóa Database Trình duyệt (SQLite Vacuum) · Dọn Dẹp PC 1.2", "Browser Database Optimization (SQLite Vacuum) · DonDepPC 1.2");
+   Add("Tối ưu hóa Database Trình duyệt (SQLite Vacuum) · PurePC 1.2", "Browser Database Optimization (SQLite Vacuum) · PurePC 1.2");
    Add("TỐI ƯU HÓA & THU GỌN DATABASE TRÌNH DUYỆT (SQLITE VACUUM)", "BROWSER DATABASE OPTIMIZATION & COMPACTION (SQLITE VACUUM)");
    Add("⚡ Bắt đầu Tối ưu hóa (Vacuum)", "⚡ Start Optimization (Vacuum)");
    Add("Sẵn sàng phân tích cơ sở dữ liệu trình duyệt.", "Ready to analyze browser databases.");
@@ -221,7 +221,7 @@ static class I18n {
    Add(" tệp database SQLite trình duyệt.", " browser SQLite database files.");
    Add(" database, thu gọn được ", " databases, reclaimed ");
    Add("🔥 Hủy tệp an toàn (Shredder)", "🔥 Secure File Shredder");
-   Add("Hủy tệp & Thư mục an toàn (File Shredder) · Dọn Dẹp PC 1.2", "Secure File & Folder Shredder · DonDepPC 1.2");
+   Add("Hủy tệp & Thư mục an toàn (File Shredder) · PurePC 1.2", "Secure File & Folder Shredder · PurePC 1.2");
    Add("HỦY TỆP AN TOÀN & XÓA VĨNH VIỄN (SECURE FILE SHREDDER)", "SECURE FILE SHREDDER & PERMANENT DELETION");
    Add("Ghi đè bit dữ liệu nhiều lượt (Zero, One, Random) trước khi xóa nhằm ngăn chặn hoàn toàn khả năng phục hồi dữ liệu bằng phần mềm cứu hộ.", "Overwrites bit data multiple passes (Zero, One, Random) before deletion to completely prevent data recovery by forensic tools.");
    Add("⚡ CẢNH BÁO: Dữ liệu sau khi hủy sẽ bị XÓA VĨNH VIỄN và KHÔNG THỂ KHÔI PHỤC kể cả bằng phần mềm cứu dữ liệu chuyên nghiệp. Hãy kiểm tra kỹ đường dẫn tệp trước khi thực hiện.", "⚡ WARNING: Data will be PERMANENTLY DESTROYED and CANNOT BE RECOVERED even by professional data recovery software. Please verify file paths carefully.");

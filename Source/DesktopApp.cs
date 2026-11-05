@@ -19,8 +19,8 @@ partial class DesktopApp {
  void Text(string name,string text){C<TextBlock>(name).Text=text;}
  void Click(string name,Action action){C<Button>(name).Click+=(s,e)=>{try{action();}catch(Exception ex){Error(ex);}};}
  void AsyncClick(string name,Func<Task> action){C<Button>(name).Click+=async(s,e)=>await Work(action);}
- void Error(Exception ex){lastState="●  Có lỗi";Text("Status",ex.Message);MessageBox.Show(window,ex.Message,"Dọn Dẹp PC",MessageBoxButton.OK,MessageBoxImage.Information);}
- bool Confirm(string message){return MessageBox.Show(window,message,"Dọn Dẹp PC · Xác nhận",MessageBoxButton.OKCancel,MessageBoxImage.Question)==MessageBoxResult.OK;}
+ void Error(Exception ex){lastState="●  Có lỗi";Text("Status",ex.Message);MessageBox.Show(window,ex.Message,"PurePC",MessageBoxButton.OK,MessageBoxImage.Information);}
+ bool Confirm(string message){return MessageBox.Show(window,message,"PurePC · Xác nhận",MessageBoxButton.OKCancel,MessageBoxImage.Question)==MessageBoxResult.OK;}
  public Window Build(){
   using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SachGon.MainWindow.xaml"))window=(Window)XamlReader.Load(stream);
   using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("SachGon.Icon.png")){var image=new BitmapImage();image.BeginInit();image.StreamSource=stream;image.CacheOption=BitmapCacheOption.OnLoad;image.EndInit();image.Freeze();C<Image>("BrandImage").Source=image;window.Icon=image;}
@@ -46,7 +46,7 @@ partial class DesktopApp {
   AsyncClick("ToggleStartup",async()=>{
    var item=C<DataGrid>("StartupGrid").SelectedItem as StartupItem;if(item==null){Text("Status","Chọn một mục khởi động trước.");return;}
    if(!Confirm((item.Disabled?"Khôi phục":"Tắt")+" mục Run của "+item.Name+"?\nThao tác chỉ thay đổi đăng ký khởi động của tài khoản hiện tại. Windows có thể quản lý thêm quyền khởi động trong Cài đặt."))return;
-   Features.Toggle(item);LoadStartup();Text("Status","Đã cập nhật mục Run. Bạn có thể bật lại mục do Dọn Dẹp PC đã tắt.");await Task.FromResult(0);
+   Features.Toggle(item);LoadStartup();Text("Status","Đã cập nhật mục Run. Bạn có thể bật lại mục do PurePC đã tắt.");await Task.FromResult(0);
   });
   Click("OpenBackups",()=>{string dir=Path.Combine(Engine.Data,"Registry-backups");Directory.CreateDirectory(dir);Process.Start(new ProcessStartInfo(dir){UseShellExecute=true});});
   Click("OpenRecycle",()=>Process.Start(new ProcessStartInfo("explorer.exe","shell:RecycleBinFolder"){UseShellExecute=true}));
@@ -182,7 +182,7 @@ static class Program {
    if(args.Contains("--diagnose-v04")){Diagnostics04.Run();return 0;}
    if(args.Contains("--audit")){var apps=Engine.Apps();File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"duplicate-audit.txt"),new[]{"Desktop apps: "+apps.Count,"Duplicate shared-view rows hidden: "+Engine.DuplicateCount,"No application or registry entry deleted."}.Concat(apps.Where(x=>x.Name.IndexOf("Zalo",StringComparison.OrdinalIgnoreCase)>=0||x.Name.IndexOf("CapCut",StringComparison.OrdinalIgnoreCase)>=0).Select(x=>x.Name+" | "+x.Version+" | "+x.Hive+" | "+x.Command)));return 0;}
    if(args.Contains("--scheduled-scan")){Maintenance.ScheduledScan();return 0;}
-   var app=new Application();if(args.Contains("--preview")){Engine.Testing=true;}if(args.Contains("--preview")){var desktop=new DesktopApp();var w=desktop.Build();var timer=new System.Windows.Threading.DispatcherTimer();timer.Interval=TimeSpan.FromSeconds(1);timer.Tick+=(s,e)=>{timer.Stop();try{desktop.Preview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Preview"));app.Shutdown(0);}catch(Exception ex){File.WriteAllText(Path.Combine(Path.GetTempPath(),"SachGon-error.txt"),ex.ToString());app.Shutdown(1);}};timer.Start();return app.Run(w);}app.DispatcherUnhandledException+=(s,e)=>{MessageBox.Show(e.Exception.Message,"Dọn Dẹp PC");e.Handled=true;};return app.Run(new DesktopApp().Build());
-  }catch(Exception ex){File.WriteAllText(Path.Combine(Path.GetTempPath(),"SachGon-error.txt"),ex.ToString());if(!args.Contains("--self-test"))MessageBox.Show(ex.Message,"Dọn Dẹp PC");return 1;}
+   var app=new Application();if(args.Contains("--preview")){Engine.Testing=true;}if(args.Contains("--preview")){var desktop=new DesktopApp();var w=desktop.Build();var timer=new System.Windows.Threading.DispatcherTimer();timer.Interval=TimeSpan.FromSeconds(1);timer.Tick+=(s,e)=>{timer.Stop();try{desktop.Preview(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Preview"));app.Shutdown(0);}catch(Exception ex){File.WriteAllText(Path.Combine(Path.GetTempPath(),"SachGon-error.txt"),ex.ToString());app.Shutdown(1);}};timer.Start();return app.Run(w);}app.DispatcherUnhandledException+=(s,e)=>{MessageBox.Show(e.Exception.Message,"PurePC");e.Handled=true;};return app.Run(new DesktopApp().Build());
+  }catch(Exception ex){File.WriteAllText(Path.Combine(Path.GetTempPath(),"SachGon-error.txt"),ex.ToString());if(!args.Contains("--self-test"))MessageBox.Show(ex.Message,"PurePC");return 1;}
  }
 }

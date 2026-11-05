@@ -1,105 +1,128 @@
-# Dọn Dẹp PC (DonDepPC Pro Max v1.2)
+# PurePC (v1.2 Pro Max)
 
-Ứng dụng dọn dẹp hệ thống, tối ưu hiệu năng và gỡ cài đặt chuyên sâu mã nguồn mở dành cho Windows.  
-Được thiết kế kết hợp hoàn hảo những ưu điểm vượt trội của **CCleaner Professional**, **IObit Uninstaller Pro**, **Revo Uninstaller** và khả năng bảo mật của **BleachBit**, bổ sung các công cụ bảo trì ổ đĩa, phân tích khởi động, tối ưu SQLite và hủy tệp an toàn.
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6?logo=windows)](https://github.com/tiudaiza95/PurePC)
+[![Framework](https://img.shields.io/badge/.NET-Framework%204.8-512BD4?logo=dotnet)](https://github.com/tiudaiza95/PurePC)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Self--Test-145%2F145%20PASS-brightgreen)](self-test.txt)
+[![UI Engine](https://img.shields.io/badge/UI-Native%20WPF%20%28Hardware%20Accelerated%29-ff69b4)](Preview/)
+[![Language](https://img.shields.io/badge/Languages-English%20%7C%20Ti%E1%BA%BFng%20Vi%E1%BB%87t-blue)]()
 
-![DonDepPC Icon](DonDepPC.png)
+> **PurePC** is a modern, transparent, lightweight, and bloatware-free Windows system care, deep cleaner, and performance optimization suite.  
+> Combines the uninstall precision of **Revo/IObit Uninstaller**, the transparency of **BleachBit**, the deep cleaning of **CCleaner Professional**, and system tuning comparable to **ISLC & Process Lasso** — engineered in 100% native C# WPF with zero external runtime dependencies.
 
----
-
-## 🌟 Tính năng nổi bật trong Phiên bản 1.2 (Mới nhất)
-
-1. **Khởi động Tức thì & Tối ưu Hiệu năng Toàn diện**:
-   - Tốc độ khởi động vào Dashboard siêu tốc (<0.1s), nạp ứng dụng ngầm mượt mà không làm đơ giao diện.
-   - Thay thế WMI quét thiết bị bằng đọc trực tiếp Registry Hardware (<40ms), nhanh hơn 100 lần so với bản cũ.
-   - Tích hợp bộ đệm thông minh in-memory cho ứng dụng Win32 và Windows Store UWP; tìm kiếm, lọc và phân loại phản hồi tức thì 0.00ms.
-   - Giảm 66% số lần gọi hệ thống (syscalls) khi quét tệp rác bằng cơ chế `DirectoryInfo.EnumerateFileSystemInfos()`.
-   - Giảm 60% RAM giao diện nhờ kích hoạt Virtualization Mode Recycling trên toàn bộ bảng dữ liệu DataGrid.
-
-2. **⚡ Tối ưu hóa Database SQLite Trình duyệt (SQLite Vacuum) (MỚI)**:
-   - Sử dụng thư viện native `winsqlite3.dll` có sẵn trong Windows 10/11.
-   - Chạy thuật toán `VACUUM` và `REINDEX` trên toàn bộ database của Chrome, Edge, Cốc Cốc, Brave, Opera, Firefox (History, Cookies, Places, Favicons...).
-   - Thu nhỏ dung lượng database và tăng tốc độ khởi động trình duyệt. Tự động chạy trong tác vụ Quét & Tối ưu 1-Click hoặc chạy độc lập.
-
-3. **🔥 Hủy tệp An toàn & Xóa vĩnh viễn (Secure File Shredder) (MỚI)**:
-   - Tiêu chuẩn quân sự DoD 5220.22-M: Ghi đè bit dữ liệu nhiều lượt (Zero, One, Cryptographic Random) trước khi xóa.
-   - Xóa sạch dấu vết tên tệp trong MFT bằng thuật toán đổi tên ngẫu nhiên. Chống phục hồi dữ liệu 100%.
-   - Hỗ trợ hủy tệp đơn lẻ hoặc toàn bộ thư mục nhạy cảm với bộ lọc khóa an toàn ngăn xóa tệp hệ thống Windows.
-
-4. **Bộ Phân tích Tác động Khởi động (Startup Impact Analyzer)**:
-   - Tự động đánh giá và hiển thị mức độ tác động của từng phần mềm lên thời gian bật máy: **Cao (High)**, **Trung bình (Medium)**, **Thấp (Low)**.
-   - Hỗ trợ hiển thị song ngữ trực quan (Tiếng Việt & English).
-   - Dễ dàng tắt bỏ các ứng dụng gây chậm máy khi khởi động mà không làm mất bản quyền hay gỡ cài đặt.
-
-5. **Làm sạch DNS Cache 1-Click (Flush DNS Cache)**:
-   - Gọi trực tiếp Win32 API native `DnsFlushResolverCache` từ `dnsapi.dll` trong 0.5ms.
-   - Xóa sạch bộ nhớ đệm phân giải tên miền DNS giúp tăng tốc độ mạng và sửa lỗi không tải được trang web.
-   - Tích hợp tự động trong tác vụ **Quét & Tối ưu 1-Click** tại Dashboard và nút riêng trong trung tâm Tiện ích.
-
-6. **Dọn sạch Thùng rác Nhanh (Empty Recycle Bin)**:
-   - Tích hợp gọi API Win32 `SHEmptyRecycleBin` từ `shell32.dll`.
-   - 1-Click làm sạch toàn bộ Thùng rác hệ thống trực tiếp từ bảng Lối tắt Tiện ích.
-
-7. **Quản lý & Gỡ bỏ Ứng dụng Windows Store (UWP Apps)**:
-   - Tự động nhận diện và liệt kê tất cả các ứng dụng cài từ Microsoft Store và ứng dụng hệ thống Windows.
-   - Trích xuất biểu tượng chính thức sắc nét từ thư mục gói ứng dụng.
-   - Bộ lọc chuyên dụng: Lọc riêng `Ứng dụng Windows Store (UWP)` hoặc `Ứng dụng máy tính (Win32)`.
-   - Gỡ bỏ sạch sẽ, an toàn bằng lệnh PowerShell nền không cần can thiệp phức tạp.
-
-8. **Công cụ Giám sát Cài đặt Mới (Setup Monitor / Snapshot Tracker)**:
-   - Chụp ảnh snapshot trạng thái hệ thống trước khi cài đặt phần mềm mới (< 0.5s).
-   - Tự động đối chiếu sau khi cài đặt để ghi nhận chính xác 100% mọi tệp tin, thư mục và khóa Registry phát sinh.
-   - Hỗ trợ **Gỡ bỏ triệt để 100% (Clean Uninstall)**: Xóa sạch toàn bộ tàn dư được ghi trong snapshot.
-
-9. **Quét chuyên sâu 4-trong-1 & Lối tắt hỏng (Deep Clean)**:
-   - Bổ sung công cụ phát hiện và dọn dẹp **Lối tắt hỏng (Broken Shortcuts)** trên Desktop và Start Menu.
-   - Quét tàn dư gỡ cài đặt và khóa mồ côi.
-   - Phân tích tệp dung lượng lớn (>100MB) trên toàn bộ máy tính.
-   - Tìm kiếm và đối chiếu tệp trùng lặp nội dung chuẩn mã băm SHA-256.
-
-10. **Biểu đồ Sóng Tài nguyên Thời gian thực (Sparkline Waves)**:
-    - Vẽ đường cong sóng tài nguyên chuyển động mượt mà cho **MỨC DÙNG CPU** và **BỘ NHỚ RAM**.
-    - Lưu trữ 22 mẫu đo gần nhất với đồ họa vector native siêu nhẹ, phong cách hiện đại.
-
-11. **Chăm sóc & Quản lý ổ đĩa toàn diện**:
-    - Tích hợp 6 công cụ mạnh mẽ: Dọn dung lượng Windows, Tối ưu ổ đĩa Defrag/Trim, Kiểm tra lỗi hệ thống tập tin (chkdsk), Quản lý phân vùng, Phân tích chiếm dụng ổ C:, Quản lý tệp ngủ đông (Hibernate) & Nén Compact OS.
-
-12. **Driver từ đúng nhà sản xuất**:
-    - Kiểm kê phần cứng máy tính và trạng thái thiết bị.
-    - **📄 Xuất báo cáo Driver**: Xuất danh sách toàn bộ driver thiết bị ra tệp TXT trên Desktop chỉ với 1-Click.
-    - Dẫn link tải driver từ đúng trang chủ chính thức của hãng, cài đặt gói INF an toàn sau khi đã tự động sao lưu.
-
-13. **Đa ngôn ngữ & Giao diện hiện đại**:
-    - Hỗ trợ chuyển đổi mượt mà giữa **Tiếng Việt** và **English (US)**.
-    - Hỗ trợ Chế độ Sáng / Tối (Dark Mode) và Thu gọn / Mở rộng thanh bên.
+![PurePC Dashboard Preview](Preview/Health-Dark.png)
 
 ---
 
-## 🛡️ Cam kết An toàn Tuyệt đối
+## 🚀 Key Highlights & Architectural Advantages
 
-- **100% An toàn dữ liệu**: Mọi thao tác dọn dẹp thông thường đều đưa vào Thùng rác Windows (Recycle Bin), cho phép hoàn tác bất kỳ lúc nào.
-- **Tự động sao lưu Registry**: Luôn tạo tệp `.reg` (UTF-16LE chuẩn Windows) trong thư mục `%LOCALAPPDATA%\Programs\DonDepPC\Data\Registry-backups\` trước khi sửa đổi bất kỳ khóa nào.
-- **Chặn xóa nhầm**: Khóa an toàn ngăn xóa tệp hệ thống, tệp đang được tiến trình khác sử dụng, và ngăn gỡ nhầm các thành phần cốt lõi của Windows.
-- **Hoạt động Offline 100%**: Không gửi dữ liệu người dùng hay danh sách phần mềm lên Internet.
+* **⚡ Ultra-Fast & Zero Lag**: Starts in <0.1s. Reads hardware specs in <40ms via direct Registry parsing instead of slow WMI queries.
+* **🔒 100% Transparent & Safe**: Prioritizes the Windows Recycle Bin for all file deletions. Every Registry optimization automatically creates an undoable `.reg` backup in `%LOCALAPPDATA%\PurePC\Data\Registry-backups\`.
+* **🧠 Working Set & Kernel Standby List Memory Purge (ISLC-grade)**: Trims process working sets via `EmptyWorkingSet` and clears kernel cached standby memory via Win32 `NtSetSystemInformation(SystemMemoryListInformation)`.
+* **🎮 Game Booster & Latency Tuner**: Disables network throttling (`NetworkThrottlingIndex`), tunes TCP ACK frequency / Nagle algorithm, and activates the Windows Ultimate Performance power plan.
+* **⚡ Browser SQLite Vacuum & Reindex**: Built-in native `winsqlite3.dll` engine vacuums and rebuilds database indices for Chrome, Edge, Brave, Cốc Cốc, and Firefox.
+* **🔥 DoD 5220.22-M File Shredder**: 3-pass multi-pattern cryptographic data overwriting with MFT filename obfuscation for unrecoverable secure file destruction.
+* **💻 Developer & AI Cache Cleaner**: First-class detection and cleaning for developer caches including `node_modules`, npm, pip, PyTorch, Hugging Face model cache, Cargo, Gradle, Docker, and Go build caches.
+* **⚡ SSD TRIM & Re-TRIM Optimizer**: Direct query of NTFS/ReFS TRIM behavior and asynchronous execution of SSD cell optimization.
+* **🧱 WinSxS & Component Store DISM Analyzer**: Analyzes Windows Update backups and safely reclaims gigabytes of disk space using Microsoft DISM APIs.
+* **🖱️ Shell Context Menu Manager**: Disables or restores third-party Windows Explorer right-click shell extensions without corrupting registry entries.
+* **🌐 Offline & Private**: Zero telemetry, zero analytics tracking, zero background ads, zero third-party bundleware.
 
 ---
 
-## 📥 Cài đặt & Sử dụng
+## 📸 Screenshots & UI Showcase
 
-1. Tải bản phát hành mới nhất tại mục [Releases](https://github.com/tiudaiza95/DonDepPC/releases).
-2. Chạy tệp `DonDepPC.exe` trực tiếp (không cần cài đặt rườm rà).
-3. Biểu tượng Desktop: `Dọn Dẹp PC.lnk`.
+| Dashboard & Real-time Monitor | Pro Utilities Hub (20 Tools) |
+| :---: | :---: |
+| ![Health Overview](Preview/Health-Dark.png) | ![Pro Tools](Preview/Tools-Dark.png) |
+
+| Deep Clean (5-in-1 Engine) | Startup Manager & Recommendations |
+| :---: | :---: |
+| ![Deep Clean](Preview/Deep-Dark.png) | ![Startup Manager](Preview/Startup-Dark.png) |
 
 ---
 
-## 🛠️ Biên dịch từ Mã nguồn
+## 🛠️ Module Breakdown (8 Built-in Centers)
 
-Yêu cầu: Windows 10/11 64-bit, .NET Framework 4.8.
+1. **Overview (Dashboard)**: Real-time CPU, RAM, Disk, Network traffic (↓/↑), Battery health, and Uptime with smooth vector sparklines.
+2. **App Manager & Uninstaller**: Dual Win32 & UWP support, batch uninstall queue, deep leftover scanner, and install snapshot tracking.
+3. **Deep Clean**: 5-in-1 scanner for uninstall remnants, large files (>100MB), SHA-256 byte-by-byte duplicate detector, broken `.lnk` shortcuts, and Dev/AI caches.
+4. **Startup Optimizer**: Evaluates boot impact (High/Medium/Low) with smart recommendation tags (`[🛡️ System - Keep]`, `[⚡ Recommended Disable]`, `[○ Disabled]`).
+5. **Disk Care Center**: Windows Disk Cleanup, defrag/TRIM, online filesystem check (`chkdsk`), partition management, folder space visualizer, and Compact OS compression.
+6. **Pro Utilities Hub**: 20 advanced utilities organized into 5 categories with real-time `Ctrl+F` search.
+7. **Driver & Hardware Inventory**: Official manufacturer device auditing, hardware status, and one-click TXT driver reporting.
+8. **Audit Log & History**: Full audit trail of every cleaned file, backed-up registry key, and system adjustment.
 
+---
+
+## ⌨️ Universal Keyboard Shortcuts
+
+* **`Ctrl + F`**: Instant focus on Search box in Apps or Pro Tools.
+* **`F5`**: Refresh real-time system metrics, process data, or scan views.
+* **`Esc`**: Close modal dialogs or clear filters.
+* **`Ctrl + 1` .. `Ctrl + 8`**: Rapidly jump across modules:
+  * `Ctrl + 1`: Dashboard (Overview)
+  * `Ctrl + 2`: Applications Manager
+  * `Ctrl + 3`: Deep Clean
+  * `Ctrl + 4`: Startup Optimizer
+  * `Ctrl + 5`: Disk Care Center
+  * `Ctrl + 6`: Pro Utilities Hub
+  * `Ctrl + 7`: Driver & Hardware Inventory
+  * `Ctrl + 8`: History & Logs
+
+---
+
+## 📥 Download & Quick Start
+
+1. Download the latest release from the [Releases](https://github.com/tiudaiza95/PurePC/releases) page.
+2. Run `PurePC.exe` directly (Single portable executable, no installer needed).
+
+---
+
+## 🔨 Building from Source
+
+### Prerequisites
+* Windows 10 or 11 (64-bit)
+* .NET Framework 4.8 (Included in Windows 10/11)
+* PowerShell 5.1+
+
+### Compile & Verify
 ```powershell
-# Chạy script build tự động
-.\Source\build.ps1
+# Clone the repository
+git clone https://github.com/tiudaiza95/PurePC.git
+cd PurePC
 
-# Chạy kiểm thử tự động
-.\DonDepPC.exe --self-test
+# Compile using native C# compiler
+powershell -ExecutionPolicy Bypass -File .\Source\build.ps1
+
+# Run the automated verification suite (145 checks)
+.\PurePC.exe --self-test
+
+# Generate updated UI screenshot previews
+.\PurePC.exe --preview
 ```
+
+---
+
+<details>
+<summary>🇻🇳 <b>Xem giới thiệu bằng Tiếng Việt (Bản tóm tắt)</b></summary>
+
+### PurePC (DonDepPC Pro Max v1.2) - Phần mềm Tối ưu hóa & Chăm sóc Windows Toàn diện
+
+**PurePC** là công cụ chăm sóc, dọn dẹp hệ thống và tối ưu hóa hiệu năng máy tính Windows mã nguồn mở, hiện đại, an toàn và hoàn toàn không quảng cáo hay phần mềm rác.
+
+#### Điểm nổi bật:
+* **Khởi động tức thì (<0.1s)**, đọc trực tiếp cấu hình phần cứng không phụ thuộc WMI chậm chạp.
+* **Quét dọn chuyên sâu 5 trong 1**: Tàn dư phần mềm, tệp lớn >100MB, tệp trùng khớp mã SHA-256, lối tắt hỏng và bộ nhớ đệm lập trình & mô hình AI (Python, pip, npm, PyTorch, Hugging Face...).
+* **Giải phóng RAM chuyên sâu & Xóa bộ nhớ đệm Standby List cấp kernel** (tương tự ISLC).
+* **Bộ tăng tốc Game**: Giảm ping, tắt bóp băng thông mạng (Nagle / Throttling) và kích hoạt Ultimate Performance.
+* **20 công cụ nâng cao**: Hủy tệp an toàn DoD 5220.22-M, Tối ưu SQLite, Dọn Registry, Gỡ UWP Bloatware, Quản lý tiện ích trình duyệt, Menu chuột phải, Tối ưu TRIM SSD, Sửa lỗi hệ thống SFC / DISM...
+* **Cam kết an toàn tuyệt đối**: Ưu tiên Thùng rác, tự động tạo file sao lưu Registry `.reg` trước mọi thao tác, chạy Offline 100%.
+
+</details>
+
+---
+
+## 📄 License
+
+Distributed under the [MIT License](LICENSE). Built with ❤️ for users and developers worldwide.

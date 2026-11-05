@@ -13,7 +13,7 @@ using System.Windows.Media;
 partial class DesktopApp {
  void OpenRamOptimizerDialog() {
   var dialog = new Window {
-   Title = I18n.T("Bộ Tối Ưu RAM Chuyên Sâu & Quản Lý Tiến Trình · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Bộ Tối Ưu RAM Chuyên Sâu & Quản Lý Tiến Trình · PurePC 1.2"),
    Owner = window, Width = 960, Height = 650, MinWidth = 780, MinHeight = 500,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -111,7 +111,7 @@ partial class DesktopApp {
 
  void OpenDevAiCleanerDialog() {
   var dialog = new Window {
-   Title = I18n.T("Dọn dẹp Rác Lập Trình & Mô Hình AI Chuyên Sâu · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Dọn dẹp Rác Lập Trình & Mô Hình AI Chuyên Sâu · PurePC 1.2"),
    Owner = window, Width = 980, Height = 650, MinWidth = 780, MinHeight = 500,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -205,7 +205,7 @@ partial class DesktopApp {
 
  void OpenComponentStoreDialog() {
   var dialog = new Window {
-   Title = I18n.T("Phân tích & Tối ưu WinSxS (Windows Component Store) · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Phân tích & Tối ưu WinSxS (Windows Component Store) · PurePC 1.2"),
    Owner = window, Width = 880, Height = 600, MinWidth = 720, MinHeight = 460,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -334,7 +334,7 @@ partial class DesktopApp {
 
  void OpenGameBoosterDialog() {
   var dialog = new Window {
-   Title = I18n.T("Tăng tốc Game & Giảm Độ Trễ Mạng (Low-Latency Booster) · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Tăng tốc Game & Giảm Độ Trễ Mạng (Low-Latency Booster) · PurePC 1.2"),
    Owner = window, Width = 840, Height = 560, MinWidth = 700, MinHeight = 440,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -425,7 +425,7 @@ partial class DesktopApp {
     MessageBox.Show(dialog, "Đã kích hoạt bộ tối ưu Game & độ trễ mạng thành công!\nKhởi động lại một số game để nhận hiệu quả cao nhất.", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
    } else {
     statusText.Text = "Áp dụng tối ưu có cảnh báo hoặc cần quyền Administrator.";
-    MessageBox.Show(dialog, "Không thể ghi một số khóa Registry. Hãy thử mở lại Dọn Dẹp PC bằng quyền Run as Administrator.", "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
+    MessageBox.Show(dialog, "Không thể ghi một số khóa Registry. Hãy thử mở lại PurePC bằng quyền Run as Administrator.", "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
    }
   });
   btnBoost.Style = (Style)window.Resources["Primary"];
@@ -447,7 +447,7 @@ partial class DesktopApp {
 
  void OpenPrivacyShieldDialog() {
   var dialog = new Window {
-   Title = I18n.T("Bảo vệ Quyền Riêng Tư & Tắt Telemetry · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Bảo vệ Quyền Riêng Tư & Tắt Telemetry · PurePC 1.2"),
    Owner = window, Width = 840, Height = 580, MinWidth = 700, MinHeight = 440,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -576,7 +576,7 @@ partial class DesktopApp {
 
  void OpenSystemRepairDialog() {
   var dialog = new Window {
-   Title = I18n.T("Sửa Lỗi Tệp Hệ Thống & Phục Hồi Windows (SFC & DISM) · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Sửa Lỗi Tệp Hệ Thống & Phục Hồi Windows (SFC & DISM) · PurePC 1.2"),
    Owner = window, Width = 920, Height = 620, MinWidth = 720, MinHeight = 460,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -685,7 +685,7 @@ partial class DesktopApp {
 
  void OpenContextMenuDialog() {
   var dialog = new Window {
-   Title = I18n.T("Quản Lý Menu Chuột Phải (Context Menu Manager) · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Quản Lý Menu Chuột Phải (Context Menu Manager) · PurePC 1.2"),
    Owner = window, Width = 960, Height = 640, MinWidth = 780, MinHeight = 480,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -762,7 +762,7 @@ partial class DesktopApp {
 
  void OpenSsdTrimDialog() {
   var dialog = new Window {
-   Title = I18n.T("Tối Ưu Hóa & Kích Hoạt TRIM SSD · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Tối Ưu Hóa & Kích Hoạt TRIM SSD · PurePC 1.2"),
    Owner = window, Width = 840, Height = 580, MinWidth = 700, MinHeight = 440,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -880,7 +880,7 @@ partial class DesktopApp {
 
  void OpenFolderSpaceDialog() {
   var dialog = new Window {
-   Title = I18n.T("Phân Tích Trực Quan Dung Lượng Thư Mục · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Phân Tích Trực Quan Dung Lượng Thư Mục · PurePC 1.2"),
    Owner = window, Width = 960, Height = 640, MinWidth = 780, MinHeight = 480,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
@@ -963,7 +963,7 @@ partial class DesktopApp {
 
  void OpenWindowsUpdateCleanerDialog() {
   var dialog = new Window {
-   Title = I18n.T("Dọn Dẹp & Khắc Phục Lỗi Windows Update Cache · Dọn Dẹp PC 1.2"),
+   Title = I18n.T("Dọn Dẹp & Khắc Phục Lỗi Windows Update Cache · PurePC 1.2"),
    Owner = window, Width = 840, Height = 560, MinWidth = 700, MinHeight = 440,
    WindowStartupLocation = WindowStartupLocation.CenterOwner,
    Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
