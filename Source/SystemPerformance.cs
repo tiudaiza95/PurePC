@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
@@ -20,6 +21,14 @@ public class MEMORYSTATUSEX {
  public MEMORYSTATUSEX() { dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX)); }
 }
 
+public class DiskDriveMetrics {
+ public string Name { get; set; }
+ public string VolumeLabel { get; set; }
+ public long Total { get; set; }
+ public long Free { get; set; }
+ public double Percent { get; set; }
+}
+
 public class SystemMetrics {
  public double CpuUsage { get; set; }
  public ulong TotalRam { get; set; }
@@ -28,6 +37,7 @@ public class SystemMetrics {
  public long DiskTotal { get; set; }
  public long DiskFree { get; set; }
  public double DiskPercent { get; set; }
+ public List<DiskDriveMetrics> Drives { get; set; }
 }
 
 public static class SystemPerformance {
@@ -162,15 +172,25 @@ public static class SystemPerformance {
   m.TotalRam = mem.ullTotalPhys;
   m.UsedRam = mem.ullTotalPhys > mem.ullAvailPhys ? (mem.ullTotalPhys - mem.ullAvailPhys) : 0;
   m.RamPercent = mem.dwMemoryLoad;
+  m.Drives = new List<DiskDriveMetrics>();
   try {
-   var drive = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory));
-   if (drive.IsReady) {
-    m.DiskTotal = drive.TotalSize;
-    m.DiskFree = drive.AvailableFreeSpace;
-    long used = drive.TotalSize - drive.AvailableFreeSpace;
-    m.DiskPercent = drive.TotalSize > 0 ? (double)used * 100.0 / drive.TotalSize : 0;
+   foreach (var d in DriveInfo.GetDrives()) {
+    if (d.IsReady && (d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Removable)) {
+     long total = d.TotalSize;
+     long free = d.AvailableFreeSpace;
+     long used = total - free;
+     double pct = total > 0 ? (double)used * 100.0 / total : 0;
+     string label = !String.IsNullOrEmpty(d.VolumeLabel) ? d.VolumeLabel : (d.Name.StartsWith("C", StringComparison.OrdinalIgnoreCase) ? "Hệ thống" : "Dữ liệu");
+     m.Drives.Add(new DiskDriveMetrics { Name = d.Name, VolumeLabel = label, Total = total, Free = free, Percent = pct });
+    }
    }
   } catch {}
+  var sysDrive = m.Drives.FirstOrDefault(x => x.Name.StartsWith("C", StringComparison.OrdinalIgnoreCase)) ?? m.Drives.FirstOrDefault();
+  if (sysDrive != null) {
+   m.DiskTotal = sysDrive.Total;
+   m.DiskFree = sysDrive.Free;
+   m.DiskPercent = sysDrive.Percent;
+  }
   return m;
  }
 

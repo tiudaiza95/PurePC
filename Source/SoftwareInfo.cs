@@ -20,6 +20,7 @@ public partial class AppEntry {
 
  public string AppType { get { return IsUwp ? "UWP (Store)" : "Win32 (Desktop)"; } }
  public int Number {get;set;}
+ public bool Selected {get;set;}
  [XmlIgnore] public List<AppEntry> Sources=new List<AppEntry>();
  [XmlIgnore] public Advisory Advice;
  [XmlIgnore] ImageSource icon;

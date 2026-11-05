@@ -242,10 +242,19 @@ partial class DesktopApp {
     deepGrid.ItemsSource=null;deepGrid.ItemsSource=deepItems;
     updateTabUI();
 
-    Text("Status","[2/4] Đang phân tích tệp dung lượng lớn trong thư mục người dùng…");
+    Text("Status","[2/4] Đang phân tích tệp dung lượng lớn (>100MB) trên các ổ đĩa…");
     string userDir=Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     int skipped=0;bool limited=false;
     var allFiles=await Task.Run(()=>AnalysisTools.Walk(userDir,token,progress,out skipped,out limited,AnalysisTools.IsJunkOrSystemCacheDir));
+    foreach(var d in DriveInfo.GetDrives()){
+     if(d.IsReady&&d.DriveType==DriveType.Fixed&&!d.RootDirectory.FullName.StartsWith("C",StringComparison.OrdinalIgnoreCase)){
+      try{
+       int dSkip=0;bool dLim=false;
+       var dFiles=await Task.Run(()=>AnalysisTools.Walk(d.RootDirectory.FullName,token,progress,out dSkip,out dLim,AnalysisTools.IsJunkOrSystemCacheDir));
+       allFiles.AddRange(dFiles);skipped+=dSkip;
+      }catch{}
+     }
+    }
     files=allFiles.Where(x=>x.Size>=100L*1024*1024).OrderByDescending(x=>x.Size).Take(300).ToList();
     largeGrid.ItemsSource=null;largeGrid.ItemsSource=files;
     updateTabUI();

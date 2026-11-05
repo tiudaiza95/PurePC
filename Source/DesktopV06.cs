@@ -111,12 +111,14 @@ partial class DesktopApp {
   var ramBox=new StackPanel();ramBox.Children.Add(ramTitle);ramBox.Children.Add(ramVal);ramBox.Children.Add(ramBar);ramBox.Children.Add(ramWave);ramBox.Children.Add(ramSub);
   var ramCard=Card(ramBox);ramCard.Margin=new Thickness(3,0,3,0);ramCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(ramCard,1);perfGrid.Children.Add(ramCard);
 
-  // Ô 3: Ổ C:
-  var diskTitle=Label(I18n.T("Ổ ĐĨA C: (HỆ THỐNG)"),14,true);diskTitle.HorizontalAlignment=HorizontalAlignment.Center;
-  var diskVal=Label("…",28,true);diskVal.HorizontalAlignment=HorizontalAlignment.Center;diskVal.Margin=new Thickness(0,4,0,4);
+  // Ô 3: Ổ ĐĨA (Hỗ trợ đa phân vùng C:, D:,...)
+  int selectedDriveIdx=0;
+  var diskTitle=Label(I18n.T("Ổ ĐĨA HỆ THỐNG & DỮ LIỆU"),14,true);diskTitle.HorizontalAlignment=HorizontalAlignment.Center;
+  var driveChips=new WrapPanel{HorizontalAlignment=HorizontalAlignment.Center,Margin=new Thickness(0,2,0,2)};
+  var diskVal=Label("…",28,true);diskVal.HorizontalAlignment=HorizontalAlignment.Center;diskVal.Margin=new Thickness(0,2,0,2);
   var diskBar=new ProgressBar{Height=8,Margin=new Thickness(0,6,0,6),Maximum=100};
   var diskSub=Label(I18n.T("Ổ đĩa hệ thống"),12);diskSub.SetResourceReference(TextBlock.ForegroundProperty,"Muted");diskSub.HorizontalAlignment=HorizontalAlignment.Center;
-  var diskBox=new StackPanel();diskBox.Children.Add(diskTitle);diskBox.Children.Add(diskVal);diskBox.Children.Add(diskBar);diskBox.Children.Add(diskSub);
+  var diskBox=new StackPanel();diskBox.Children.Add(diskTitle);diskBox.Children.Add(driveChips);diskBox.Children.Add(diskVal);diskBox.Children.Add(diskBar);diskBox.Children.Add(diskSub);
   var diskCard=Card(diskBox);diskCard.Margin=new Thickness(6,0,0,0);diskCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(diskCard,2);perfGrid.Children.Add(diskCard);
 
   mainStack.Children.Add(perfGrid);
@@ -161,7 +163,34 @@ partial class DesktopApp {
    var m=SystemPerformance.Sample();
    cpuVal.Text=m.CpuUsage.ToString("0.0")+"%";cpuBar.Value=m.CpuUsage;cpuSub.Text=I18n.T("Xung nhịp & tiến trình Windows");
    ramVal.Text=m.RamPercent+"%";ramBar.Value=m.RamPercent;ramSub.Text=Features.Size((long)m.UsedRam)+" / "+Features.Size((long)m.TotalRam);
-   diskVal.Text=Features.Size(m.DiskFree)+" "+I18n.T("trống");diskBar.Value=m.DiskPercent;diskSub.Text=I18n.T("Tổng")+" "+Features.Size(m.DiskTotal)+" · "+I18n.T("đã dùng")+" "+m.DiskPercent.ToString("0.0")+"%";
+   if(m.Drives!=null&&m.Drives.Count>1){
+    driveChips.Visibility=Visibility.Visible;
+    if(driveChips.Children.Count!=m.Drives.Count){
+     driveChips.Children.Clear();
+     for(int idx=0;idx<m.Drives.Count;idx++){
+      int dIdx=idx;
+      var d=m.Drives[idx];
+      var btnChip=new Button{Content="Ổ "+d.Name.TrimEnd('\\'),Padding=new Thickness(7,2,7,2),Margin=new Thickness(2,0,2,0),FontSize=11};
+      btnChip.Click+=(s,e)=>{selectedDriveIdx=dIdx;if(onHealthPerfTick!=null)onHealthPerfTick();};
+      driveChips.Children.Add(btnChip);
+     }
+    }
+    for(int idx=0;idx<driveChips.Children.Count;idx++){
+     var btn=(Button)driveChips.Children[idx];
+     btn.Style=idx==selectedDriveIdx?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
+    }
+   } else {
+    driveChips.Visibility=Visibility.Collapsed;
+   }
+   var activeDrive=(m.Drives!=null&&selectedDriveIdx>=0&&selectedDriveIdx<m.Drives.Count)?m.Drives[selectedDriveIdx]:null;
+   long dTotal=activeDrive!=null?activeDrive.Total:m.DiskTotal;
+   long dFree=activeDrive!=null?activeDrive.Free:m.DiskFree;
+   double dPct=activeDrive!=null?activeDrive.Percent:m.DiskPercent;
+   string dName=activeDrive!=null?("Ổ ĐĨA "+activeDrive.Name.TrimEnd('\\')+" ("+activeDrive.VolumeLabel.ToUpper()+")"):I18n.T("Ổ ĐĨA C: (HỆ THỐNG)");
+   diskTitle.Text=dName;
+   diskVal.Text=Features.Size(dFree)+" "+I18n.T("trống");
+   diskBar.Value=dPct;
+   diskSub.Text=I18n.T("Tổng")+" "+Features.Size(dTotal)+" · "+I18n.T("đã dùng")+" "+dPct.ToString("0.0")+"%";
    drawWave(cpuWave,cpuPts,m.CpuUsage,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245));
    drawWave(ramWave,ramPts,(double)m.RamPercent,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105));
   };

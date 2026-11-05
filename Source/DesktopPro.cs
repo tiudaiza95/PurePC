@@ -827,4 +827,82 @@ partial class DesktopApp {
   dialog.ShowDialog();
  }
 
+ void OpenUwpManagerDialog(){
+  var dialog=new Window{Title=I18n.T("Gỡ ứng dụng mặc định Windows (UWP Bloatware) · Dọn Dẹp PC 1.2"),Owner=window,Width=960,Height=650,MinWidth=750,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.SetResourceReference(Window.ForegroundProperty,"Ink");
+  dialog.PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Escape){dialog.Close();e.Handled=true;}};
+  var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
+  var header=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
+  header.Children.Add(Label("QUẢN LÝ & GỠ ỨNG DỤNG MẶC ĐỊNH WINDOWS (UWP BLOATWARE)",19,true));
+  header.Children.Add(Label("Gỡ bỏ tận gốc các ứng dụng Universal cài sẵn không cần thiết (Xbox, Cortana, Bản đồ, Tin tức, Thời tiết, Dev Home,...) để giải phóng bộ nhớ và tăng tốc máy tính.\n★ Các thành phần cốt lõi của hệ thống (như Microsoft Store) được bảo vệ tuyệt đối.",12));
+
+  var bottom=new StackPanel{Margin=new Thickness(0,12,0,0)};DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
+  var btnRow=new WrapPanel();bottom.Children.Add(btnRow);
+  var statusText=Label("Đang tải danh sách ứng dụng UWP đã cài đặt…",12);
+  statusText.Margin=new Thickness(0,0,0,6);
+  bottom.Children.Insert(0,statusText);
+
+  var grid=new DataGrid{IsReadOnly=true,AutoGenerateColumns=false,RowHeight=Double.NaN,MinRowHeight=40};
+  root.Children.Add(grid);
+  AddChecks(grid,"Selected");
+  AddColumn(grid,"TÊN ỨNG DỤNG","Name",280);
+  AddColumn(grid,"NHÀ PHÁT HÀNH","Vendor",180);
+  AddColumn(grid,"PHIÊN BẢN","Release",130);
+  AddColumn(grid,"DUNG LƯỢNG","SizeLabel",110);
+  AddColumn(grid,"LOẠI","AppType",140);
+
+  List<AppEntry> uwpApps=new List<AppEntry>();
+  Action loadUwp=()=>{
+   btnRow.IsEnabled=false;statusText.Text="Đang kiểm tra các gói Appx/UWP đã cài đặt…";
+   Task.Run(()=>{
+    return UwpManager.GetInstalledApps(true);
+   }).ContinueWith(t=>{
+    window.Dispatcher.Invoke(()=>{
+     uwpApps=t.Result;
+     grid.ItemsSource=null;grid.ItemsSource=uwpApps;
+     statusText.Text="Đã tìm thấy "+uwpApps.Count+" ứng dụng UWP trên máy ("+uwpApps.Count(x=>!UwpManager.IsProtected(x.PackageFullName))+" ứng dụng có thể gỡ bỏ an toàn).";
+     btnRow.IsEnabled=true;
+    });
+   });
+  };
+  loadUwp();
+
+  var btnRemove=ActionButton("🗑️ Gỡ các ứng dụng đã chọn",async()=>{
+   var chosen=uwpApps.Where(x=>x.Selected&&!UwpManager.IsProtected(x.PackageFullName)).ToList();
+   if(chosen.Count==0){MessageBox.Show(dialog,"Vui lòng chọn ít nhất 1 ứng dụng có thể gỡ bỏ.","Thông báo");return;}
+   if(!Confirm("Gỡ bỏ hoàn toàn "+chosen.Count+" ứng dụng Store/UWP đã chọn khỏi tài khoản Windows của bạn?\n\n"+String.Join("\n",chosen.Take(6).Select(x=>"• "+x.Name))))return;
+   btnRow.IsEnabled=false;
+   try {
+     int done=0,failed=0;
+     foreach(var app in chosen){
+      statusText.Text="Đang gỡ bỏ: "+app.Name+"…";
+      bool ok=await Task.Run(()=>UwpManager.RemovePackage(app.PackageFullName));
+      if(ok){done++;uwpApps.Remove(app);}else failed++;
+     }
+     grid.ItemsSource=null;grid.ItemsSource=uwpApps;
+     statusText.Text="Đã gỡ bỏ thành công "+done+" ứng dụng ("+failed+" thất bại).";
+     try{System.Media.SystemSounds.Asterisk.Play();}catch{}
+     MessageBox.Show(dialog,"Đã gỡ bỏ thành công "+done+" ứng dụng UWP!","Hoàn tất",MessageBoxButton.OK,MessageBoxImage.Information);
+     Engine.InvalidateAppCache();
+   } catch(Exception ex) {
+     Error(ex);
+   } finally {
+     btnRow.IsEnabled=true;
+   }
+  });
+  btnRemove.Style=(Style)window.Resources["Primary"];btnRow.Children.Add(btnRemove);
+
+  btnRow.Children.Add(ActionButton("Chọn tất cả có thể gỡ",()=>{
+   foreach(var item in uwpApps)item.Selected=!UwpManager.IsProtected(item.PackageFullName);
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton("Bỏ chọn",()=>{
+   foreach(var item in uwpApps)item.Selected=false;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton("Làm mới",loadUwp));
+
+  dialog.ShowDialog();
+ }
+
 }

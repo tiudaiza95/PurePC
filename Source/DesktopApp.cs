@@ -69,7 +69,18 @@ partial class DesktopApp {
   foreach(string gridName in new[]{"AppsGrid","RemnantsGrid","FilesGrid","StartupGrid"})foreach(var col in C<DataGrid>(gridName).Columns.OfType<DataGridTextColumn>()){
    var style=new Style(typeof(TextBlock));style.Setters.Add(new Setter(TextBlock.TextTrimmingProperty,TextTrimming.CharacterEllipsis));style.Setters.Add(new Setter(TextBlock.ToolTipProperty,new System.Windows.Data.Binding("Text"){RelativeSource=new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.Self)}));col.ElementStyle=style;
   }
-  BuildPro();I18n.Init();ApplyLanguage();State();return window;
+  BuildPro();
+  Click("ToggleLang",ToggleLanguage);
+  window.PreviewKeyDown+=(s,e)=>{
+   if(e.Key==System.Windows.Input.Key.F5){
+    if(page=="Health"&&onHealthPerfTick!=null)onHealthPerfTick();
+    else if(page=="Apps")C<Button>("RefreshApps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    else if(page=="Startup")LoadStartup();
+    else if(page=="History")LoadHistory();
+    e.Handled=true;
+   }
+  };
+  I18n.Init();ApplyLanguage();State();return window;
  }
  public void Preview(string folder){PreviewPro(folder);}
  async Task Reload(){apps=await Task.Run(()=>Engine.Apps());Text("AppCount",apps.Count.ToString());Text("DuplicateCount",Engine.DuplicateCount.ToString());try{var drive=new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory));Text("DiskFree",Features.Size(drive.AvailableFreeSpace));Text("DriveLabel","DUNG LƯỢNG TRỐNG · "+drive.Name.TrimEnd('\\'));}catch{Text("DiskFree","—");}Filter();}
@@ -83,6 +94,7 @@ partial class DesktopApp {
   if(C<RadioButton>("NavDiskTools")!=null)C<RadioButton>("NavDiskTools").Content=I18n.T("Công cụ ổ đĩa");
   if(C<RadioButton>("NavDrivers")!=null)C<RadioButton>("NavDrivers").Content=I18n.T("Driver & thiết bị");
   if(C<RadioButton>("NavHistory")!=null)C<RadioButton>("NavHistory").Content=I18n.T("Nhật ký");
+  if(C<RadioButton>("NavTools")!=null)C<RadioButton>("NavTools").Content=I18n.T("Công cụ Pro");
 
   if(C<Button>("Uninstall")!=null)C<Button>("Uninstall").Content=I18n.T("Gỡ mục đã chọn");
   if(C<Button>("ForceUninstall")!=null)C<Button>("ForceUninstall").Content=I18n.T("⚡ Gỡ cưỡng chế");
@@ -120,7 +132,18 @@ partial class DesktopApp {
  void LoadHistory(){string path=Path.Combine(Engine.Data,"activity.log");if(!File.Exists(path)){C<TextBox>("HistoryText").Text="Chưa có thao tác dọn hoặc thay đổi nào được ghi nhận.";return;}var queue=new Queue<string>();foreach(string line in File.ReadLines(path)){queue.Enqueue(line);if(queue.Count>150)queue.Dequeue();}C<TextBox>("HistoryText").Text=String.Join(Environment.NewLine,queue.Reverse());}
  void State(){StatePro();foreach(string name in new[]{"NavApps","NavTemp","NavLarge","NavStartup","NavHistory","RefreshApps","Search","AppsGrid","RemnantsGrid","ScanFiles","SelectFiles","CleanFiles","FilesGrid","ToggleStartup","RefreshStartup","StartupGrid","WindowsStartup","OpenFileLocation","OpenBackups","OpenRecycle","OpenLog","RefreshHistory","SetupMonitorBtn"})C<Control>(name).IsEnabled=!busy;
   C<Button>("Uninstall").IsEnabled=!busy&&target!=null&&!target.Protected&&!String.IsNullOrWhiteSpace(target.Command);C<Button>("ScanRemnants").IsEnabled=!busy&&target!=null;C<Button>("CleanRemnants").IsEnabled=!busy&&remnants.Any(x=>x.CanClean);Text("ReadyLabel",busy?"●  Đang xử lý":lastState);}
- async Task Work(Func<Task> action){if(busy)return;busy=true;State();var elapsed=System.Diagnostics.Stopwatch.StartNew();var heartbeat=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};heartbeat.Tick+=(s,e)=>Text("ReadyLabel","Đang xử lý · "+elapsed.Elapsed.ToString(@"mm\:ss"));C<ProgressBar>("BusyProgress").Visibility=Visibility.Visible;heartbeat.Start();Text("Status","Đang xử lý…");try{await action();lastState="●  Hoàn tất";}catch(OperationCanceledException){lastState="●  Đã dừng";Text("Status","Đã dừng quét; chưa thay đổi tệp nào.");}catch(Exception ex){Error(ex);}finally{heartbeat.Stop();C<ProgressBar>("BusyProgress").Visibility=Visibility.Collapsed;busy=false;State();}}
+ async Task Work(Func<Task> action){if(busy)return;busy=true;State();var elapsed=System.Diagnostics.Stopwatch.StartNew();var heartbeat=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};heartbeat.Tick+=(s,e)=>Text("ReadyLabel","Đang xử lý · "+elapsed.Elapsed.ToString(@"mm\:ss"));C<ProgressBar>("BusyProgress").Visibility=Visibility.Visible;heartbeat.Start();Text("Status","Đang xử lý…");try{await action();lastState="●  Hoàn tất";try{System.Media.SystemSounds.Asterisk.Play();}catch{}}catch(OperationCanceledException){lastState="●  Đã dừng";Text("Status","Đã dừng quét; chưa thay đổi tệp nào.");}catch(Exception ex){Error(ex);}finally{heartbeat.Stop();C<ProgressBar>("BusyProgress").Visibility=Visibility.Collapsed;busy=false;State();}}
+ void ToggleLanguage(){
+  string next=I18n.Lang=="vi"?"en":"vi";
+  I18n.Save(next);
+  ApplyLanguage();
+  if(page=="Health")BuildHealth();
+  else if(page=="Tools")BuildTools();
+  else if(page=="Deep")BuildDeepPage();
+  else if(page=="DiskTools")BuildDiskTools();
+  else if(page=="Drivers")BuildDriverPage();
+  else Navigate(page);
+ }
  class Owner:System.Windows.Forms.IWin32Window{public IntPtr Handle{get;private set;}public Owner(IntPtr h){Handle=h;}}
 }
 static class Program {

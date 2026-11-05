@@ -42,7 +42,21 @@ static class AnalysisTools {
     if(Directory.Exists(path))roots.Add(new CleanupRoot{Name=opName+" · "+cache,Path=path,Process="opera"});
    }
   }
-  string code=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"Code");foreach(string cache in new[]{"Cache","Code Cache","CachedData"})if(Directory.Exists(System.IO.Path.Combine(code,cache)))roots.Add(new CleanupRoot{Name="Visual Studio Code · "+cache,Path=System.IO.Path.Combine(code,cache),Process="Code"});roots.Add(new CleanupRoot{Name="Báo cáo ứng dụng bị lỗi · CrashDumps",Path=System.IO.Path.Combine(local,"CrashDumps")});roots.Add(new CleanupRoot{Name="Báo cáo lỗi đã lưu · WER",Path=System.IO.Path.Combine(local,"Microsoft","Windows","WER","ReportArchive")});roots.Add(new CleanupRoot{Name="Báo cáo lỗi chờ gửi · WER",Path=System.IO.Path.Combine(local,"Microsoft","Windows","WER","ReportQueue")});return roots;
+  string code=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"Code");foreach(string cache in new[]{"Cache","Code Cache","CachedData"})if(Directory.Exists(System.IO.Path.Combine(code,cache)))roots.Add(new CleanupRoot{Name="Visual Studio Code · "+cache,Path=System.IO.Path.Combine(code,cache),Process="Code"});roots.Add(new CleanupRoot{Name="Báo cáo ứng dụng bị lỗi · CrashDumps",Path=System.IO.Path.Combine(local,"CrashDumps")});roots.Add(new CleanupRoot{Name="Báo cáo lỗi đã lưu · WER",Path=System.IO.Path.Combine(local,"Microsoft","Windows","WER","ReportArchive")});roots.Add(new CleanupRoot{Name="Báo cáo lỗi chờ gửi · WER",Path=System.IO.Path.Combine(local,"Microsoft","Windows","WER","ReportQueue")});
+  string zaloPath=System.IO.Path.Combine(local,"ZaloPC");
+  if(Directory.Exists(zaloPath)){
+   string zaloTemp=System.IO.Path.Combine(zaloPath,"Temp");
+   if(Directory.Exists(zaloTemp))roots.Add(new CleanupRoot{Name="Zalo PC · Tệp tạm Cache",Path=zaloTemp,Process="Zalo"});
+  }
+  string d3dCache=System.IO.Path.Combine(local,"D3DSCache");
+  if(Directory.Exists(d3dCache))roots.Add(new CleanupRoot{Name="DirectX · Bộ đệm Shader D3D",Path=d3dCache});
+  string nvDx=System.IO.Path.Combine(local,"NVIDIA","DXCache");
+  if(Directory.Exists(nvDx))roots.Add(new CleanupRoot{Name="NVIDIA · Bộ đệm Shader DX",Path=nvDx});
+  string amdDx=System.IO.Path.Combine(local,"AMD","DxCache");
+  if(Directory.Exists(amdDx))roots.Add(new CleanupRoot{Name="AMD · Bộ đệm Shader DX",Path=amdDx});
+  string deliveryOpt=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"SoftwareDistribution","DeliveryOptimization");
+  if(Directory.Exists(deliveryOpt))roots.Add(new CleanupRoot{Name="Windows Update · Delivery Optimization",Path=deliveryOpt});
+  return roots;
  }
  public static bool IsJunkOrSystemCacheDir(string dir){
   string name=System.IO.Path.GetFileName(dir);

@@ -22,9 +22,141 @@ static class Maintenance {
  public static void ScheduledScan(){using(var cancel=new CancellationTokenSource(TimeSpan.FromMinutes(10))){var found=AnalysisTools.Cleanup(AnalysisTools.Roots()[0],cancel.Token,null);string report="Quét theo lịch hoàn tất lúc "+DateTime.Now.ToString("dd/MM/yyyy HH:mm")+"\n"+found.Items.Count+" tệp Temp đủ điều kiện xem trước / "+Features.Size(found.Items.Sum(x=>x.Size))+"\nKhông có tệp nào bị xóa. Mở Dọn Dẹp PC để xem và tự chọn nếu muốn dọn.";Directory.CreateDirectory(Engine.Data);File.WriteAllText(Path.Combine(Engine.Data,"scheduled-last.txt"),report);Engine.Log("SCHEDULE_SCAN "+report.Replace("\n"," | "));MessageBox.Show(report,"Dọn Dẹp PC · Thông báo quét");}}
 }
 partial class DesktopApp {
- void BuildTools(){proHost.Children.Clear();Text("Heading","Cập nhật rõ nguồn. Quét theo lịch.");Text("Subtitle","Chỉ kết nối mạng hoặc tạo lịch khi bạn chủ động xác nhận");var panel=new StackPanel();proHost.Children.Add(new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});var updates=new StackPanel();updates.Children.Add(Label("Software Updater · WinGet",21,true));updates.Children.Add(Label("Dùng nguồn winget của Microsoft. Kiểm tra có thể truy vấn metadata gói qua mạng. Không tự chấp nhận điều khoản nguồn/gói và không cập nhật hàng loạt. Kết quả nguyên bản được hiển thị, gồm mã thoát."));
-  var row=new WrapPanel();toolCheck=WorkButton("Kiểm tra bản cập nhật",async()=>{if(!Confirm("Cho phép WinGet kết nối nguồn winget và đối chiếu phần mềm trên máy để tìm bản cập nhật?\nỨng dụng không tải danh sách lên máy chủ riêng; WinGet có thể gửi metadata truy vấn đến nguồn. Không cài/gỡ trong bước này."))return;await WithScan(async token=>{toolOutput.Text="Đang chờ WinGet…";toolOutput.Text=await Maintenance.Winget("upgrade --source winget --disable-interactivity",token);});Text("Status","WinGet đã kết thúc. Đọc mã thoát và thông báo trước khi quyết định cập nhật.");});row.Children.Add(toolCheck);row.Children.Add(ActionButton("Tài liệu Microsoft",()=>OpenUrl("https://learn.microsoft.com/en-us/windows/package-manager/winget/upgrade")));updates.Children.Add(row);
-  var id=new TextBox{MinWidth=250,Text="",Margin=new Thickness(0,8,0,10)};id.SetResourceReference(Control.BackgroundProperty,"Header");updates.Children.Add(Label("ID chính xác cần cập nhật (ví dụ từ bảng kết quả WinGet):",12));updates.Children.Add(id);toolUpdate=WorkButton("Cập nhật đúng ID này",async()=>{string args=Maintenance.UpdateArgs(id.Text.Trim());if(!Confirm("Cập nhật gói "+id.Text.Trim()+" qua WinGet?\nLưu công việc trước. Bộ cài chính thức có thể yêu cầu quyền hoặc khởi động lại. Thay đổi phiên bản không được ứng dụng đảm bảo hoàn tác."))return;await WithScan(async token=>toolOutput.Text=await Maintenance.Winget(args,token));Text("Status","Đã nhận kết quả từ WinGet; kiểm tra mã thoát/bộ cài để xác nhận.");await Reload();});updates.Children.Add(toolUpdate);toolOutput=new TextBox{IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,Height=210,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalContentAlignment=VerticalAlignment.Top,Text="Chưa kiểm tra trực tuyến.",FontFamily=new System.Windows.Media.FontFamily("Consolas"),FontSize=11};updates.Children.Add(toolOutput);panel.Children.Add(Card(updates));
-  var schedule=new StackPanel();schedule.Children.Add(Label("Lịch quét chỉ đọc",19,true));var status=Label(Maintenance.ScheduleStatus());schedule.Children.Add(status);schedule.Children.Add(Label("Quét Temp mỗi ngày khi tài khoản đăng nhập, ghi báo cáo và thông báo. Không tự dọn, không nâng quyền, không chạy khi máy tắt. Task Scheduler xử lý thời gian theo giờ Windows trên máy."));var time=new TextBox{Text="19:00",Width=90,HorizontalAlignment=HorizontalAlignment.Left};time.SetResourceReference(Control.BackgroundProperty,"Header");schedule.Children.Add(time);var buttons=new WrapPanel{Margin=new Thickness(0,10,0,0)};buttons.Children.Add(ActionButton("Lưu lịch hàng ngày",()=>{if(!Confirm("Tạo/cập nhật tác vụ "+Maintenance.TaskName+" lúc "+time.Text+" mỗi ngày?\nTác vụ chỉ quét và thông báo, không dọn dữ liệu, không yêu cầu Administrator."))return;Maintenance.SetSchedule(time.Text,Process.GetCurrentProcess().MainModule.FileName);status.Text=Maintenance.ScheduleStatus();}));buttons.Children.Add(ActionButton("Xóa lịch của ứng dụng",()=>{if(!Confirm("Xóa duy nhất tác vụ "+Maintenance.TaskName+" do ứng dụng này quản lý?"))return;Maintenance.DeleteSchedule();status.Text=Maintenance.ScheduleStatus();}));schedule.Children.Add(buttons);panel.Children.Add(Card(schedule));
+ void BuildTools(){
+  proHost.Children.Clear();
+  Text("Heading",I18n.T("Trung tâm Tiện ích Pro & Công cụ nâng cao"));
+  Text("Subtitle",I18n.T("Kho công cụ chuyên sâu: Tối ưu CSDL, Hủy tệp an toàn, Dọn Registry, Gỡ UWP và bảo trì Windows"));
+
+  var scroll=new ScrollViewer{VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
+  proHost.Children.Add(scroll);
+  var rootPanel=new StackPanel{Margin=new Thickness(0,0,0,16)};
+  scroll.Content=rootPanel;
+
+  // LƯỚI CARD CÔNG CỤ CHUYÊN SÂU (2 Cột x 5 Hàng)
+  var grid=new Grid{Margin=new Thickness(0,0,0,14)};
+  grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
+  grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
+  for(int r=0;r<5;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+  rootPanel.Children.Add(grid);
+
+  Func<string,string,string,string,Action,Border> createToolCard=(icon,title,desc,btnText,action)=>{
+   var p=new StackPanel();
+   var headerRow=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
+   headerRow.Children.Add(Label(icon+"  ",18,true));
+   headerRow.Children.Add(Label(I18n.T(title),14,true));
+   p.Children.Add(headerRow);
+   var descLabel=Label(I18n.T(desc),11);
+   descLabel.Margin=new Thickness(0,0,0,12);
+   descLabel.MinHeight=32;
+   p.Children.Add(descLabel);
+   var btn=ActionButton(I18n.T(btnText),action);
+   btn.Padding=new Thickness(12,6,12,6);
+   btn.HorizontalAlignment=HorizontalAlignment.Left;
+   p.Children.Add(btn);
+   var card=Card(p);
+   card.Padding=new Thickness(16,14,16,14);
+   return card;
+  };
+
+  // Card 1: SQLite Optimizer
+  var c1=createToolCard("⚡","Tối ưu hóa Database SQLite","Hút bụi chân không (Vacuum) và tái lập chỉ mục (Reindex) CSDL của Chrome, Edge, Firefox, VS Code... tăng tốc mở app.","Mở SQLite Optimizer",OpenSqliteOptimizerDialog);
+  c1.Margin=new Thickness(0,0,5,10);Grid.SetRow(c1,0);Grid.SetColumn(c1,0);grid.Children.Add(c1);
+
+  // Card 2: File Shredder
+  var c2=createToolCard("🔥","Hủy tệp an toàn (File Shredder)","Ghi đè dữ liệu 3 lượt theo chuẩn DoD 5220.22-M và xóa dấu vết MFT, chống khôi phục hoàn toàn.","Mở File Shredder",OpenFileShredderDialog);
+  c2.Margin=new Thickness(5,0,0,10);Grid.SetRow(c2,0);Grid.SetColumn(c2,1);grid.Children.Add(c2);
+
+  // Card 3: Registry Cleaner
+  var c3=createToolCard("🧹","Dọn dẹp Registry thông minh","Quét và làm sạch các khóa Registry mồ côi (CLSID, DLL thiếu, MUI cache rác). Tự động sao lưu .reg.","Mở Dọn Registry",OpenRegistryCleanerDialog);
+  c3.Margin=new Thickness(0,0,5,10);Grid.SetRow(c3,1);Grid.SetColumn(c3,0);grid.Children.Add(c3);
+
+  // Card 4: UWP Bloatware Uninstaller
+  var c4=createToolCard("📦","Gỡ Bloatware Windows 10/11","Gỡ bỏ sạch sẽ các ứng dụng Universal mặc định như Xbox, Cortana, Maps, Thời tiết... Bảo vệ Store.","Mở Gỡ ứng dụng UWP",OpenUwpManagerDialog);
+  c4.Margin=new Thickness(5,0,0,10);Grid.SetRow(c4,1);Grid.SetColumn(c4,1);grid.Children.Add(c4);
+
+  // Card 5: Browser Extensions
+  var c5=createToolCard("🧩","Tiện ích mở rộng trình duyệt","Liệt kê, bật/tắt hoặc gỡ bỏ các Add-on/Extension mở rộng trên Chrome, Edge, Cốc Cốc, Brave, Firefox.","Quản lý tiện ích",OpenBrowserExtensionsDialog);
+  c5.Margin=new Thickness(0,0,5,10);Grid.SetRow(c5,2);Grid.SetColumn(c5,0);grid.Children.Add(c5);
+
+  // Card 6: Services Manager
+  var c6=createToolCard("⚙️","Quản lý Dịch vụ Windows","Kiểm soát các dịch vụ nền của phần mềm bên thứ 3 tự khởi chạy, bảo vệ tuyệt đối dịch vụ Windows cốt lõi.","Quản lý Dịch vụ",OpenServicesDialog);
+  c6.Margin=new Thickness(5,0,0,10);Grid.SetRow(c6,2);Grid.SetColumn(c6,1);grid.Children.Add(c6);
+
+  // Card 7: Setup Monitor
+  var c7=createToolCard("🔍","Giám sát cài đặt ứng dụng","Chụp snapshot hệ thống trước và sau cài đặt để theo dõi 100% tệp và registry đã sinh ra, hỗ trợ gỡ sạch.","Bật Giám sát cài đặt",OpenSetupMonitorDialog);
+  c7.Margin=new Thickness(0,0,5,10);Grid.SetRow(c7,3);Grid.SetColumn(c7,0);grid.Children.Add(c7);
+
+  // Card 8: DNS Flush & Recycle Bin
+  var p8=new StackPanel();
+  var h8=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
+  h8.Children.Add(Label("🚀  ",18,true));h8.Children.Add(Label(I18n.T("Làm sạch DNS & Dọn Thùng rác"),14,true));p8.Children.Add(h8);
+  var d8=Label(I18n.T("Xóa sạch bộ đệm phân giải tên miền (DNS Resolver Cache) và dọn sạch Thùng rác Recycle Bin chỉ với 1 thao tác."),11);
+  d8.Margin=new Thickness(0,0,0,12);d8.MinHeight=32;p8.Children.Add(d8);
+  var row8=new WrapPanel();
+  row8.Children.Add(ActionButton(I18n.T("Làm sạch DNS"),()=>{
+   SystemPerformance.FlushDnsCache();
+   try{System.Media.SystemSounds.Asterisk.Play();}catch{}
+   MessageBox.Show(window,I18n.T("Đã làm sạch DNS Resolver Cache thành công!"),I18n.T("DNS Cache"),MessageBoxButton.OK,MessageBoxImage.Information);
+  }));
+  row8.Children.Add(ActionButton(I18n.T("Dọn Thùng rác"),()=>{
+   if(Confirm(I18n.T("Bạn có chắc chắn muốn dọn sạch toàn bộ Thùng rác (Recycle Bin)?"))){
+    SystemPerformance.EmptyRecycleBin();
+    try{System.Media.SystemSounds.Asterisk.Play();}catch{}
+    MessageBox.Show(window,I18n.T("Đã làm sạch Thùng rác thành công!"),I18n.T("Dọn Thùng rác"),MessageBoxButton.OK,MessageBoxImage.Information);
+   }
+  }));
+  p8.Children.Add(row8);
+  var c8=Card(p8);c8.Padding=new Thickness(16,14,16,14);
+  c8.Margin=new Thickness(5,0,0,10);Grid.SetRow(c8,3);Grid.SetColumn(c8,1);grid.Children.Add(c8);
+
+  // Card 9: WinGet Updater
+  var updates=new StackPanel();
+  var hu=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
+  hu.Children.Add(Label("🔄  ",18,true));hu.Children.Add(Label("Software Updater · WinGet",14,true));updates.Children.Add(hu);
+  updates.Children.Add(Label("Dùng nguồn winget chính thức của Microsoft. Kiểm tra metadata gói qua mạng, cập nhật an toàn từng phần mềm.",11));
+  var rowU=new WrapPanel{Margin=new Thickness(0,8,0,8)};
+  toolCheck=WorkButton("Kiểm tra bản cập nhật",async()=>{
+   if(!Confirm("Cho phép WinGet kết nối nguồn winget và đối chiếu phần mềm trên máy để tìm bản cập nhật?\nỨng dụng không tải danh sách lên máy chủ riêng."))return;
+   await WithScan(async token=>{toolOutput.Text="Đang chờ WinGet…";toolOutput.Text=await Maintenance.Winget("upgrade --source winget --disable-interactivity",token);});
+   Text("Status","WinGet đã kết thúc.");
+  });
+  rowU.Children.Add(toolCheck);
+  rowU.Children.Add(ActionButton("Tài liệu Microsoft",()=>OpenUrl("https://learn.microsoft.com/en-us/windows/package-manager/winget/upgrade")));
+  updates.Children.Add(rowU);
+  var id=new TextBox{MinWidth=220,Text="",Margin=new Thickness(0,4,0,8)};id.SetResourceReference(Control.BackgroundProperty,"Header");
+  updates.Children.Add(Label("ID gói cần cập nhật:",11));updates.Children.Add(id);
+  toolUpdate=WorkButton("Cập nhật gói này",async()=>{
+   string args=Maintenance.UpdateArgs(id.Text.Trim());
+   if(!Confirm("Cập nhật gói "+id.Text.Trim()+" qua WinGet?"))return;
+   await WithScan(async token=>toolOutput.Text=await Maintenance.Winget(args,token));
+   Text("Status","Đã nhận kết quả từ WinGet.");await Reload();
+  });
+  updates.Children.Add(toolUpdate);
+  toolOutput=new TextBox{IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,Height=130,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Text="Chưa kiểm tra trực tuyến.",FontFamily=new System.Windows.Media.FontFamily("Consolas"),FontSize=11,Margin=new Thickness(0,8,0,0)};
+  updates.Children.Add(toolOutput);
+  var c9=Card(updates);c9.Padding=new Thickness(16,14,16,14);
+  c9.Margin=new Thickness(0,0,5,0);Grid.SetRow(c9,4);Grid.SetColumn(c9,0);grid.Children.Add(c9);
+
+  // Card 10: Task Scheduler
+  var schedule=new StackPanel();
+  var hs=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
+  hs.Children.Add(Label("⏰  ",18,true));hs.Children.Add(Label(I18n.T("Lịch quét tự động"),14,true));schedule.Children.Add(hs);
+  var status=Label(Maintenance.ScheduleStatus(),12,true);status.Margin=new Thickness(0,0,0,4);schedule.Children.Add(status);
+  schedule.Children.Add(Label("Tự động quét Temp hàng ngày khi đăng nhập Windows, ghi nhật ký báo cáo. Không tự ý xóa tệp.",11));
+  var time=new TextBox{Text="19:00",Width=80,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(0,8,0,8)};time.SetResourceReference(Control.BackgroundProperty,"Header");schedule.Children.Add(time);
+  var buttons=new WrapPanel();
+  buttons.Children.Add(ActionButton("Lưu lịch hàng ngày",()=>{
+   if(!Confirm("Tạo/cập nhật tác vụ "+Maintenance.TaskName+" lúc "+time.Text+" mỗi ngày?"))return;
+   Maintenance.SetSchedule(time.Text,Process.GetCurrentProcess().MainModule.FileName);
+   status.Text=Maintenance.ScheduleStatus();
+   try{System.Media.SystemSounds.Asterisk.Play();}catch{}
+  }));
+  buttons.Children.Add(ActionButton("Xóa lịch",()=>{
+   if(!Confirm("Xóa tác vụ "+Maintenance.TaskName+"?"))return;
+   Maintenance.DeleteSchedule();status.Text=Maintenance.ScheduleStatus();
+  }));
+  schedule.Children.Add(buttons);
+  var c10=Card(schedule);c10.Padding=new Thickness(16,14,16,14);
+  c10.Margin=new Thickness(5,0,0,0);Grid.SetRow(c10,4);Grid.SetColumn(c10,1);grid.Children.Add(c10);
  }
 }

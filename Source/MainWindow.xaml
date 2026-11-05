@@ -37,14 +37,14 @@
     </StackPanel>
     <Border x:Name="SidebarFoot" DockPanel.Dock="Bottom" Background="{DynamicResource Soft}" CornerRadius="15" Padding="15" Margin="0,20,0,0"><StackPanel><TextBlock Text="Thiết kế để bạn kiểm soát" FontSize="11" FontWeight="SemiBold"/><TextBlock Text="Xem trước mỗi lần dọn.&#10;Không tự xóa dữ liệu." Foreground="{DynamicResource Muted}" FontSize="11" LineHeight="18" Margin="0,6,0,0"/><TextBlock Text="Phiên bản 1.2 · Desktop Pro Max" Foreground="{DynamicResource Muted}" FontSize="10" Margin="0,14,0,0"/></StackPanel></Border>
     <StackPanel>
-     <Button x:Name="ToggleTheme" Content="◐  Sáng / Tối" Margin="0,0,0,8" Padding="10,9"/>
+     <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Button x:Name="ToggleTheme" Content="◐ Giao diện" Margin="0,0,4,0" Padding="6,8"/><Button x:Name="ToggleLang" Content="🌐 VI / EN" Margin="4,0,0,0" Padding="6,8" Grid.Column="1"/></Grid>
      <RadioButton x:Name="NavHealth" GroupName="Nav" Style="{StaticResource Nav}" Content="Tổng quan"/>
      <RadioButton x:Name="NavApps" GroupName="Nav" Style="{StaticResource Nav}" IsChecked="True"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE71D;" Margin="0,2,13,0"/><TextBlock Text="Ứng dụng"/></StackPanel></RadioButton>
      <RadioButton x:Name="NavTemp" Visibility="Collapsed" GroupName="Nav" Style="{StaticResource Nav}"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" Margin="0,2,13,0"/><TextBlock Text="Dọn tệp tạm"/></StackPanel></RadioButton>
      <RadioButton x:Name="NavLarge" Visibility="Collapsed" GroupName="Nav" Style="{StaticResource Nav}"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEDA2;" Margin="0,2,13,0"/><TextBlock Text="Tệp dung lượng lớn"/></StackPanel></RadioButton>
      <RadioButton x:Name="NavStartup" GroupName="Nav" Style="{StaticResource Nav}"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE768;" Margin="0,2,13,0"/><TextBlock Text="Khởi động"/></StackPanel></RadioButton>
      <RadioButton x:Name="NavDuplicates" Visibility="Collapsed" GroupName="Nav" Style="{StaticResource Nav}" Content="Tệp trùng nội dung"/>
-     <RadioButton x:Name="NavTools" Visibility="Collapsed" GroupName="Nav" Style="{StaticResource Nav}" Content="Cập nhật &amp; lịch quét"/>
+     <RadioButton x:Name="NavTools" GroupName="Nav" Style="{StaticResource Nav}"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74C;" Margin="0,2,13,0"/><TextBlock Text="Công cụ Pro"/></StackPanel></RadioButton>
      <RadioButton x:Name="NavHistory" GroupName="Nav" Style="{StaticResource Nav}"><StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE81C;" Margin="0,2,13,0"/><TextBlock Text="Lịch sử &amp; khôi phục"/></StackPanel></RadioButton>
     </StackPanel>
    </DockPanel>
