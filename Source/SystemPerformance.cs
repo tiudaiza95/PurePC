@@ -30,6 +30,16 @@ public class DiskDriveMetrics {
  public double Percent { get; set; }
 }
 
+[StructLayout(LayoutKind.Sequential)]
+public struct SYSTEM_POWER_STATUS {
+ public byte ACLineStatus;
+ public byte BatteryFlag;
+ public byte BatteryLifePercent;
+ public byte SystemStatusFlag;
+ public uint BatteryLifeTime;
+ public uint BatteryFullLifeTime;
+}
+
 public class SystemMetrics {
  public double CpuUsage { get; set; }
  public ulong TotalRam { get; set; }
@@ -41,6 +51,8 @@ public class SystemMetrics {
  public List<DiskDriveMetrics> Drives { get; set; }
  public double NetworkDownKBps { get; set; }
  public double NetworkUpKBps { get; set; }
+ public string UptimeString { get; set; }
+ public string BatteryStatus { get; set; }
 }
 
 public static class SystemPerformance {
@@ -198,6 +210,8 @@ public static class SystemPerformance {
   GetNetworkBandwidth(out netDown, out netUp);
   m.NetworkDownKBps = netDown;
   m.NetworkUpKBps = netUp;
+  m.UptimeString = GetUptimeString();
+  m.BatteryStatus = GetBatteryStatusString();
   return m;
  }
 
@@ -257,5 +271,43 @@ public static class SystemPerformance {
   long freed;
   ProcessMemoryManager.OptimizeAll(out freed);
   return freed;
+ }
+
+ [DllImport("kernel32.dll")]
+ public static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);
+
+ [DllImport("kernel32.dll")]
+ static extern ulong GetTickCount64();
+
+ public static TimeSpan GetSystemUptime() {
+  try {
+   return TimeSpan.FromMilliseconds(GetTickCount64());
+  } catch {
+   return TimeSpan.Zero;
+  }
+ }
+
+ public static string GetUptimeString() {
+  TimeSpan up = GetSystemUptime();
+  if (up.TotalDays >= 1) {
+   return string.Format("{0} ngày {1} giờ {2} phút", (int)up.TotalDays, up.Hours, up.Minutes);
+  }
+  if (up.TotalHours >= 1) {
+   return string.Format("{0} giờ {1} phút", (int)up.TotalHours, up.Minutes);
+  }
+  return string.Format("{0} phút", (int)up.TotalMinutes);
+ }
+
+ public static string GetBatteryStatusString() {
+  try {
+   SYSTEM_POWER_STATUS sps;
+   if (GetSystemPowerStatus(out sps)) {
+    if (sps.BatteryLifePercent != 255) {
+     string state = sps.ACLineStatus == 1 ? "Đang sạc" : "Dùng pin";
+     return string.Format("{0}% ({1})", sps.BatteryLifePercent, state);
+    }
+   }
+  } catch {}
+  return null;
  }
 }

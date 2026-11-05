@@ -39,7 +39,8 @@ partial class DesktopApp {
    {I18n.T("Hệ điều hành"),SystemPerformance.GetOsName()},
    {I18n.T("Bộ vi xử lý (CPU)"),SystemPerformance.GetCpuName()},
    {I18n.T("Card đồ họa (GPU)"),SystemPerformance.GetGpuName()},
-   {I18n.T("Bo mạch chủ"),SystemPerformance.GetBoardName()}
+   {I18n.T("Bo mạch chủ"),SystemPerformance.GetBoardName()},
+   {I18n.T("Thời gian hoạt động"),SystemPerformance.GetUptimeString()}
   };
   for(int i=0;i<specs.GetLength(0);i++){
    specGrid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
@@ -101,6 +102,8 @@ partial class DesktopApp {
   var cpuWave=new Canvas{Height=32,Margin=new Thickness(0,4,0,4),ClipToBounds=true};
   var cpuBox=new StackPanel();cpuBox.Children.Add(cpuTitle);cpuBox.Children.Add(cpuVal);cpuBox.Children.Add(cpuBar);cpuBox.Children.Add(cpuWave);cpuBox.Children.Add(cpuSub);
   var cpuCard=Card(cpuBox);cpuCard.Margin=new Thickness(0,0,6,0);cpuCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(cpuCard,0);perfGrid.Children.Add(cpuCard);
+  cpuCard.Cursor=System.Windows.Input.Cursors.Hand;cpuCard.ToolTip=I18n.T("Bấm để mở Bộ Tăng Tốc Game & Giảm Ping");
+  cpuCard.MouseLeftButtonUp+=(s,e)=>OpenGameBoosterDialog();
 
   // Ô 2: RAM
   var ramTitle=Label(I18n.T("BỘ NHỚ RAM"),14,true);ramTitle.HorizontalAlignment=HorizontalAlignment.Center;
@@ -122,6 +125,8 @@ partial class DesktopApp {
   var diskSub=Label(I18n.T("Ổ đĩa hệ thống"),12);diskSub.SetResourceReference(TextBlock.ForegroundProperty,"Muted");diskSub.HorizontalAlignment=HorizontalAlignment.Center;
   var diskBox=new StackPanel();diskBox.Children.Add(diskTitle);diskBox.Children.Add(driveChips);diskBox.Children.Add(diskVal);diskBox.Children.Add(diskBar);diskBox.Children.Add(diskSub);
   var diskCard=Card(diskBox);diskCard.Margin=new Thickness(6,0,0,0);diskCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(diskCard,2);perfGrid.Children.Add(diskCard);
+  diskCard.Cursor=System.Windows.Input.Cursors.Hand;diskCard.ToolTip=I18n.T("Bấm để mở Quét Chuyên Sâu Toàn Diện");
+  diskCard.MouseLeftButtonUp+=(s,e)=>NavigatePro("Deep");
 
   mainStack.Children.Add(perfGrid);
 
@@ -208,7 +213,8 @@ partial class DesktopApp {
    diskSub.Text=I18n.T("Tổng")+" "+Features.Size(dTotal)+" · "+I18n.T("đã dùng")+" "+dPct.ToString("0.0")+"%";
    string downStr=m.NetworkDownKBps>=1024.0?(m.NetworkDownKBps/1024.0).ToString("0.0")+" MB/s":m.NetworkDownKBps.ToString("0")+" KB/s";
    string upStr=m.NetworkUpKBps>=1024.0?(m.NetworkUpKBps/1024.0).ToString("0.0")+" MB/s":m.NetworkUpKBps.ToString("0")+" KB/s";
-   netBadge.Text=string.Format("🌐 Lưu lượng mạng thời gian thực: ↓ {0}  ·  ↑ {1}",downStr,upStr);
+   string battStr=!string.IsNullOrEmpty(m.BatteryStatus)?("  ·  🔋 "+I18n.T("Pin")+": "+m.BatteryStatus):"";
+   netBadge.Text=string.Format("🌐 {0}: ↓ {1}  ·  ↑ {2}  ·  ⏱️ {3}: {4}{5}",I18n.T("Lưu lượng mạng"),downStr,upStr,I18n.T("Hoạt động"),m.UptimeString,battStr);
    drawWave(cpuWave,cpuPts,m.CpuUsage,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245),true);
    drawWave(ramWave,ramPts,(double)m.RamPercent,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105),true);
   };

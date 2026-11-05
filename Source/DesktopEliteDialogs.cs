@@ -443,4 +443,242 @@ partial class DesktopApp {
 
   dialog.ShowDialog();
  }
+
+ void OpenPrivacyShieldDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Bảo vệ Quyền Riêng Tư & Tắt Telemetry · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 840, Height = 580, MinWidth = 700, MinHeight = 440,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("KHIÊN BẢO VỆ QUYỀN RIÊNG TƯ & TẮT THEO DÕI (PRIVACY SHIELD)"), 19, true));
+  header.Children.Add(Label(I18n.T("Vô hiệu hóa toàn bộ cơ chế thu thập dữ liệu chẩn đoán (Diagnostic Data Telemetry), tắt dịch vụ DiagTrack, chặn quảng cáo và tìm kiếm Bing trong Start Menu, đồng thời dọn sạch lịch sử hoạt động và tài liệu mở gần đây."), 12));
+
+  var statusBox = new StackPanel();
+  var lblTelem = Label("…", 13, true);
+  var lblBing = Label("…", 13, true);
+  var lblAd = Label("…", 13, true);
+  var lblAct = Label("…", 13, true);
+
+  Action updateStatus = () => {
+   var st = PrivacyOptimizer.GetStatus();
+   lblTelem.Text = st.IsTelemetryDisabled ? "✓ Đã vô hiệu hóa (Telemetry=0)" : "● Mặc định Windows (Thu thập dữ liệu chẩn đoán)";
+   lblTelem.Foreground = st.IsTelemetryDisabled ? Brushes.MediumSeaGreen : Brushes.Orange;
+
+   lblBing.Text = st.IsBingSearchDisabled ? "✓ Đã tắt (Menu Start sạch sẽ, không quảng cáo)" : "● Mặc định Windows (Tìm kiếm web và gợi ý Bing)";
+   lblBing.Foreground = st.IsBingSearchDisabled ? Brushes.MediumSeaGreen : Brushes.Orange;
+
+   lblAd.Text = st.IsAdvertisingIdDisabled ? "✓ Đã tắt (Không theo dõi quảng cáo cá nhân)" : "● Mặc định Windows (Bật Advertising ID)";
+   lblAd.Foreground = st.IsAdvertisingIdDisabled ? Brushes.MediumSeaGreen : Brushes.Orange;
+
+   lblAct.Text = st.IsActivityHistoryDisabled ? "✓ Đã tắt (Không lưu và tải lên Timeline)" : "● Mặc định Windows (Theo dõi lịch sử ứng dụng)";
+   lblAct.Foreground = st.IsActivityHistoryDisabled ? Brushes.MediumSeaGreen : Brushes.Orange;
+  };
+  updateStatus();
+
+  var sGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition());
+  for (int i = 0; i < 4; i++) sGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+  var r1 = Label("Thu thập Telemetry Windows:", 12); r1.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r2 = Label("Tìm kiếm Bing Start Menu:", 12); r2.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r3 = Label("Mã nhận dạng quảng cáo:", 12); r3.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r4 = Label("Lịch sử Timeline / Hoạt động:", 12); r4.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+
+  Grid.SetRow(r1, 0); Grid.SetColumn(r1, 0); sGrid.Children.Add(r1);
+  Grid.SetRow(lblTelem, 0); Grid.SetColumn(lblTelem, 1); sGrid.Children.Add(lblTelem);
+  Grid.SetRow(r2, 1); Grid.SetColumn(r2, 0); sGrid.Children.Add(r2);
+  Grid.SetRow(lblBing, 1); Grid.SetColumn(lblBing, 1); sGrid.Children.Add(lblBing);
+  Grid.SetRow(r3, 2); Grid.SetColumn(r3, 0); sGrid.Children.Add(r3);
+  Grid.SetRow(lblAd, 2); Grid.SetColumn(lblAd, 1); sGrid.Children.Add(lblAd);
+  Grid.SetRow(r4, 3); Grid.SetColumn(r4, 0); sGrid.Children.Add(r4);
+  Grid.SetRow(lblAct, 3); Grid.SetColumn(lblAct, 1); sGrid.Children.Add(lblAct);
+
+  statusBox.Children.Add(sGrid);
+  var cardStatus = Card(statusBox);
+  cardStatus.Padding = new Thickness(14, 10, 14, 10);
+  header.Children.Add(cardStatus);
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Chọn 'Kích hoạt Bảo vệ Riêng tư' để tắt toàn bộ cơ chế theo dõi của Windows."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var logBox = new TextBox {
+   IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   FontFamily = new FontFamily("Consolas"), FontSize = 11,
+   Margin = new Thickness(0, 4, 0, 0),
+   Text = "Chi tiết các thiết lập bảo vệ quyền riêng tư sẽ hiển thị tại đây…"
+  };
+  logBox.SetResourceReference(Control.BackgroundProperty, "Header");
+  logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
+  root.Children.Add(logBox);
+
+  var btnHarden = ActionButton(I18n.T("🛡️ Kích hoạt Bảo vệ Riêng tư (Harden Privacy)"), () => {
+   string report;
+   bool ok = PrivacyOptimizer.ApplyHardening(out report);
+   logBox.Text = report;
+   updateStatus();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   if (ok) {
+    statusText.Text = "Đã tăng cường bảo vệ quyền riêng tư thành công!";
+    MessageBox.Show(dialog, "Đã tắt thành công Telemetry, dịch vụ DiagTrack và tìm kiếm Bing quảng cáo!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } else {
+    statusText.Text = "Áp dụng có cảnh báo hoặc cần quyền Administrator.";
+    MessageBox.Show(dialog, "Một số chính sách Group Policy cần quyền Administrator để áp dụng.", "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
+   }
+  });
+  btnHarden.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnHarden);
+
+  btnRow.Children.Add(ActionButton(I18n.T("🧹 Dọn lịch sử Explorer & Run MRU"), () => {
+   string report;
+   int cleared = PrivacyOptimizer.ClearExplorerMruHistory(out report);
+   logBox.Text = report;
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   statusText.Text = string.Format("Đã dọn sạch {0} vị trí lịch sử mở tệp gần đây.", cleared);
+   MessageBox.Show(dialog, "Đã dọn sạch lịch sử RecentDocs, Run MRU và thanh địa chỉ Explorer!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+  }));
+
+  btnRow.Children.Add(ActionButton(I18n.T("🔄 Khôi phục mặc định Windows"), () => {
+   if (!Confirm("Khôi phục toàn bộ thiết lập quyền riêng tư về mặc định Windows?")) return;
+   string report;
+   PrivacyOptimizer.RestoreDefaults(out report);
+   logBox.Text = report;
+   updateStatus();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   statusText.Text = "Đã khôi phục thiết lập mặc định Windows.";
+   MessageBox.Show(dialog, "Đã khôi phục thiết lập quyền riêng tư về mặc định của Windows!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+  }));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenSystemRepairDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Sửa Lỗi Tệp Hệ Thống & Phục Hồi Windows (SFC & DISM) · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 920, Height = 620, MinWidth = 720, MinHeight = 460,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("SỬA LỖI TỆP HỆ THỐNG & PHỤC HỒI WINDOWS (SFC & DISM)"), 19, true));
+  header.Children.Add(Label(I18n.T("Tự động quét, chẩn đoán và thay thế các tệp tin hệ thống Windows bị hỏng hóc hoặc thiếu sót bằng bản sao lưu sạch từ Microsoft Component Store, đồng thời hỗ trợ đặt lại toàn diện ngăn xếp mạng TCP/IP & Winsock."), 12));
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Chọn tác vụ sửa chữa: Quét SFC Scannow, Phục hồi DISM hoặc Đặt lại ngăn xếp mạng."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var logBox = new TextBox {
+   IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   FontFamily = new FontFamily("Consolas"), FontSize = 11,
+   Margin = new Thickness(0, 4, 0, 0),
+   Text = "Nhật ký sửa chữa hệ thống Windows sẵn sàng..."
+  };
+  logBox.SetResourceReference(Control.BackgroundProperty, "Header");
+  logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
+  root.Children.Add(logBox);
+
+  var btnSfc = ActionButton(I18n.T("🛠️ Quét & Sửa tệp hệ thống (SFC Scannow)"), async () => {
+   if (!Confirm("Khởi chạy System File Checker (sfc /scannow)?\nQuá trình sẽ kiểm tra toàn bộ tệp DLL/EXE hệ thống và mất từ 3 đến 10 phút.")) return;
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang chạy sfc /scannow… Vui lòng không tắt ứng dụng…";
+   logBox.Text = "Bắt đầu quét kiểm tra và sửa lỗi tệp hệ thống qua SFC…\r\n";
+   try {
+    int code = await SystemRepair.RunSfcScanAsync(line => {
+     window.Dispatcher.Invoke(new Action(() => {
+      logBox.AppendText(line + "\r\n");
+      logBox.ScrollToEnd();
+     }));
+    }, CancellationToken.None);
+    statusText.Text = string.Format("Quét SFC kết thúc với mã thoát: {0}.", code);
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    MessageBox.Show(dialog, "Đã hoàn tất quá trình quét sửa lỗi tệp hệ thống SFC!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi chạy SFC: " + ex.Message;
+    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnSfc.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnSfc);
+
+  var btnDism = ActionButton(I18n.T("⚡ Phục hồi kho ảnh Windows (DISM RestoreHealth)"), async () => {
+   if (!Confirm("Khởi chạy DISM /Online /Cleanup-Image /RestoreHealth?\nQuá trình sẽ kết nối Windows Update và phục hồi toàn bộ kho ảnh hệ thống.")) return;
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang chạy DISM /RestoreHealth… Vui lòng chờ…";
+   logBox.Text = "Bắt đầu phục hồi kho ảnh hệ thống Windows qua DISM RestoreHealth…\r\n";
+   try {
+    int code = await SystemRepair.RunDismRestoreHealthAsync(line => {
+     window.Dispatcher.Invoke(new Action(() => {
+      logBox.AppendText(line + "\r\n");
+      logBox.ScrollToEnd();
+     }));
+    }, CancellationToken.None);
+    statusText.Text = string.Format("DISM RestoreHealth kết thúc với mã thoát: {0}.", code);
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    MessageBox.Show(dialog, "Đã hoàn tất quá trình phục hồi kho ảnh Windows DISM!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi chạy DISM: " + ex.Message;
+    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnRow.Children.Add(btnDism);
+
+  btnRow.Children.Add(ActionButton(I18n.T("🌐 Đặt lại mạng TCP/IP & Winsock"), () => {
+   if (!Confirm("Khôi phục và thiết lập lại toàn bộ cấu hình mạng Winsock & TCP/IP?\nBạn nên khởi động lại máy tính sau khi hoàn tất.")) return;
+   string rep;
+   SystemRepair.ResetNetworkStack(out rep);
+   logBox.Text = rep;
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   statusText.Text = "Đã thiết lập lại ngăn xếp mạng TCP/IP & Winsock thành công.";
+   MessageBox.Show(dialog, "Đã thiết lập lại cấu hình mạng Winsock & TCP/IP thành công!\nHãy khởi động lại máy tính để thay đổi có hiệu lực đầy đủ.", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+  }));
+
+  btnRow.Children.Add(ActionButton(I18n.T("Sao chép nhật ký"), () => {
+   try { Clipboard.SetText(logBox.Text); MessageBox.Show(dialog, "Đã sao chép nhật ký vào Clipboard!", "Thông báo"); } catch {}
+  }));
+
+  dialog.ShowDialog();
+ }
 }

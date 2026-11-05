@@ -36,7 +36,7 @@ partial class DesktopApp {
   var grid=new Grid{Margin=new Thickness(0,0,0,14)};
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
-  for(int r=0;r<7;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+  for(int r=0;r<8;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
   rootPanel.Children.Add(grid);
 
   Func<string,string,string,string,Action,Border> createToolCard=(icon,title,desc,btnText,action)=>{
@@ -170,10 +170,18 @@ partial class DesktopApp {
 
   // Card 13: WinSxS & Component Store Optimizer
   var c13=createToolCard("🧱","Tối ưu kho WinSxS (DISM)","Phân tích và thu hồi các gói cập nhật Windows Update cũ qua công cụ Microsoft DISM chính thức.","Mở Tối ưu WinSxS",OpenComponentStoreDialog);
-  c13.Margin=new Thickness(0,0,5,0);Grid.SetRow(c13,6);Grid.SetColumn(c13,0);grid.Children.Add(c13);
+  c13.Margin=new Thickness(0,0,5,10);Grid.SetRow(c13,6);Grid.SetColumn(c13,0);grid.Children.Add(c13);
 
   // Card 14: Intelligent RAM Optimizer
   var c14=createToolCard("🧠","Bộ Tối ưu RAM Chuyên sâu","Thu dọn Working Set của các tiến trình bằng API Win32, giải phóng bộ nhớ RAM mà không tắt ứng dụng.","Mở Tối ưu RAM",OpenRamOptimizerDialog);
-  c14.Margin=new Thickness(5,0,0,0);Grid.SetRow(c14,6);Grid.SetColumn(c14,1);grid.Children.Add(c14);
+  c14.Margin=new Thickness(5,0,0,10);Grid.SetRow(c14,6);Grid.SetColumn(c14,1);grid.Children.Add(c14);
+
+  // Card 15: Privacy & Telemetry Shield
+  var c15=createToolCard("🛡️","Bảo vệ Riêng tư & Tắt Telemetry","Tắt thu thập dữ liệu chẩn đoán (DiagTrack), chặn quảng cáo và tìm kiếm Bing trong Start Menu.","Mở Privacy Shield",OpenPrivacyShieldDialog);
+  c15.Margin=new Thickness(0,0,5,0);Grid.SetRow(c15,7);Grid.SetColumn(c15,0);grid.Children.Add(c15);
+
+  // Card 16: System File Checker & DISM Repair
+  var c16=createToolCard("🛠️","Sửa lỗi tệp hệ thống & DISM","Quét SFC Scannow, phục hồi kho ảnh Windows DISM RestoreHealth và đặt lại ngăn xếp mạng TCP/IP.","Mở Sửa lỗi Windows",OpenSystemRepairDialog);
+  c16.Margin=new Thickness(5,0,0,0);Grid.SetRow(c16,7);Grid.SetColumn(c16,1);grid.Children.Add(c16);
  }
 }

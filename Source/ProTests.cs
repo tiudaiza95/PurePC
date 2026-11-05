@@ -111,6 +111,14 @@ static class ProTests {
    Check(parsedDism.CleanupRecommended, "DISM analysis parses CleanupRecommended flag");
    var gameStatus = GameBooster.GetStatus();
    Check(gameStatus != null, "GameBooster.GetStatus executes without exception");
+   
+   // Privacy Shield, System Repair and Hardware Telemetry tests
+   var privStatus = PrivacyOptimizer.GetStatus();
+   Check(privStatus != null, "PrivacyOptimizer.GetStatus executes without exception");
+   Check(SystemRepair.IsSfcAvailable, "SystemRepair finds sfc.exe in System32");
+   Check(SystemRepair.IsDismAvailable, "SystemRepair finds dism.exe in System32");
+   Check(SystemPerformance.GetSystemUptime().TotalSeconds > 0, "SystemPerformance.GetSystemUptime reports positive uptime");
+   Check(!string.IsNullOrEmpty(SystemPerformance.GetUptimeString()), "SystemPerformance.GetUptimeString returns non-empty string");
   return count;
  }
 }

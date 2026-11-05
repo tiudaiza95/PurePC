@@ -287,6 +287,31 @@ static class I18n {
   Add("⚡ Thu dọn RAM toàn bộ tiến trình (Deep Compact)", "⚡ Deep Compact RAM for All Processes");
   Add("🧹 Dọn các tiến trình đã chọn", "🧹 Trim Selected Processes");
   Add("🌐 Lưu lượng mạng thời gian thực: ↓ 0 KB/s · ↑ 0 KB/s", "🌐 Real-time Network Traffic: ↓ 0 KB/s · ↑ 0 KB/s");
+
+  // Elite 2.5 Privacy & System Repair Translations
+  Add("Bảo vệ Riêng tư & Tắt Telemetry", "Privacy & Telemetry Shield");
+  Add("Tắt thu thập dữ liệu chẩn đoán (DiagTrack), chặn quảng cáo và tìm kiếm Bing trong Start Menu.", "Disable diagnostic telemetry (DiagTrack), block advertising ID and Start Menu Bing search.");
+  Add("Mở Privacy Shield", "Open Privacy Shield");
+  Add("KHIÊN BẢO VỆ QUYỀN RIÊNG TƯ & TẮT THEO DÕI (PRIVACY SHIELD)", "PRIVACY & TELEMETRY SHIELD");
+  Add("🛡️ Kích hoạt Bảo vệ Riêng tư (Harden Privacy)", "🛡️ Harden Privacy Protection");
+  Add("🧹 Dọn lịch sử Explorer & Run MRU", "🧹 Clear Explorer & Run MRU History");
+
+  Add("Sửa lỗi tệp hệ thống & DISM", "System File Checker & DISM Repair");
+  Add("Quét SFC Scannow, phục hồi kho ảnh Windows DISM RestoreHealth và đặt lại ngăn xếp mạng TCP/IP.", "Run SFC Scannow, restore Windows image via DISM RestoreHealth and reset TCP/IP network stack.");
+  Add("Mở Sửa lỗi Windows", "Open Windows Repair");
+  Add("SỬA LỖI TỆP HỆ THỐNG & PHỤC HỒI WINDOWS (SFC & DISM)", "SYSTEM FILE CHECKER & WINDOWS REPAIR (SFC & DISM)");
+  Add("🛠️ Quét & Sửa tệp hệ thống (SFC Scannow)", "🛠️ Scan & Repair System Files (SFC Scannow)");
+  Add("⚡ Phục hồi kho ảnh Windows (DISM RestoreHealth)", "⚡ Restore Windows Image (DISM RestoreHealth)");
+  Add("🌐 Đặt lại mạng TCP/IP & Winsock", "🌐 Reset TCP/IP & Winsock Stack");
+
+  Add("Thời gian hoạt động", "System Uptime");
+  Add("Hoạt động", "Uptime");
+  Add("Pin", "Battery");
+  Add("Lưu lượng mạng", "Network Traffic");
+
+  Add("💻 Rác Lập trình & AI", "💻 Dev & AI Caches");
+  Add("Dọn rác Dev & AI đã chọn", "Clean Selected Dev & AI Caches");
+  Add("Tích hợp 5 trong 1: Tàn dư gỡ cài đặt · Tệp dung lượng lớn (>100MB) · Tệp trùng lặp · Lối tắt hỏng · Rác Lập trình & AI", "5-in-1: Leftover remnants · Large files (>100MB) · Duplicate content · Broken shortcuts · Dev & AI Caches");
  }
 
  public static void Init() {

@@ -1,4 +1,4 @@
-PASS: 131 checks.
+PASS: 136 checks.
 Deduplication, path boundaries, temp age and read-only guards, cancellation, startup backup and restore tested.
 Startup mutations only used an isolated synthetic registry branch, never the real Run key. Additional tests cover sourced advisory, grouping, cleanup scope, SHA-256, cancellation and updater argument validation.
 No installed applications removed.

@@ -13,6 +13,7 @@ partial class DesktopApp {
  List<DeepItem> deepItems=new List<DeepItem>();
  List<DriverRecord> driverRecords=new List<DriverRecord>();
  List<BrokenShortcut> brokenShortcuts=new List<BrokenShortcut>();
+ List<DevAiCacheItem> devAiItems=new List<DevAiCacheItem>();
  DataGrid driversGrid;
  TextBlock driverStatus;
 
@@ -129,7 +130,7 @@ partial class DesktopApp {
 
  void BuildDeepPage(){
   Text("Heading",I18n.T("Quét chuyên sâu toàn diện hệ thống"));
-  Text("Subtitle",I18n.T("Tích hợp 4 trong 1: Tàn dư gỡ cài đặt · Tệp dung lượng lớn (>100MB) · Tệp trùng lặp · Lối tắt hỏng"));
+  Text("Subtitle",I18n.T("Tích hợp 5 trong 1: Tàn dư gỡ cài đặt · Tệp dung lượng lớn (>100MB) · Tệp trùng lặp · Lối tắt hỏng · Rác Lập trình & AI"));
   var dock=new DockPanel();
   proHost.Children.Add(dock);
 
@@ -145,11 +146,13 @@ partial class DesktopApp {
   var btnTabLarge=ActionButton(I18n.T("📦 Tệp dung lượng lớn")+" ("+files.Count+")",()=>{});
   var btnTabDup=ActionButton(I18n.T("📑 Tệp trùng lặp")+" ("+(duplicateFiles==null?0:duplicateFiles.Count)+")",()=>{});
   var btnTabShort=ActionButton(I18n.T("🔗 Lối tắt hỏng")+" ("+brokenShortcuts.Count+")",()=>{});
+  var btnTabDev=ActionButton(I18n.T("💻 Rác Lập trình & AI")+" ("+devAiItems.Count+")",()=>{});
 
   modeRow.Children.Add(btnTabDeep);
   modeRow.Children.Add(btnTabLarge);
   modeRow.Children.Add(btnTabDup);
   modeRow.Children.Add(btnTabShort);
+  modeRow.Children.Add(btnTabDev);
 
   // 3 Grid tương ứng
   var deepGrid=new DataGrid{IsReadOnly=true,ItemsSource=deepItems};
@@ -180,10 +183,19 @@ partial class DesktopApp {
 
   var contentHolder=new Grid();
   dock.Children.Add(contentHolder);
+  var devAiGrid=new DataGrid{IsReadOnly=true,ItemsSource=devAiItems};
+  AddChecks(devAiGrid,"Selected");
+  AddColumn(devAiGrid,"PHÂN LOẠI","Category",180);
+  AddColumn(devAiGrid,"CÔNG CỤ / NỀN TẢNG","ToolName",170);
+  AddColumn(devAiGrid,"SỐ TỆP","FileCount",80);
+  AddColumn(devAiGrid,"DUNG LƯỢNG RÁC","SizeLabel",130);
+  AddColumn(devAiGrid,"ĐƯỜNG DẪN THƯ MỤC","Path",360);
+
   contentHolder.Children.Add(deepGrid);
   contentHolder.Children.Add(largeGrid);
   contentHolder.Children.Add(dupGrid);
   contentHolder.Children.Add(shortGrid);
+  contentHolder.Children.Add(devAiGrid);
 
   var emptyCard=Card(new StackPanel());
   emptyCard.HorizontalAlignment=HorizontalAlignment.Center;
@@ -204,11 +216,13 @@ partial class DesktopApp {
    btnTabLarge.Content=I18n.T("📦 Tệp dung lượng lớn")+" ("+files.Count+")";
    btnTabDup.Content=I18n.T("📑 Tệp trùng lặp")+" ("+(duplicateFiles==null?0:duplicateFiles.Count)+")";
    btnTabShort.Content=I18n.T("🔗 Lối tắt hỏng")+" ("+brokenShortcuts.Count+")";
+   btnTabDev.Content=I18n.T("💻 Rác Lập trình & AI")+" ("+devAiItems.Count+")";
    btnTabDeep.Style=currentTab==0?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
    btnTabLarge.Style=currentTab==1?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
    btnTabDup.Style=currentTab==2?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
    btnTabShort.Style=currentTab==3?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
-   int curCount=currentTab==0?deepItems.Count:(currentTab==1?files.Count:(currentTab==2?(duplicateFiles==null?0:duplicateFiles.Count):brokenShortcuts.Count));
+   btnTabDev.Style=currentTab==4?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
+   int curCount=currentTab==0?deepItems.Count:(currentTab==1?files.Count:(currentTab==2?(duplicateFiles==null?0:duplicateFiles.Count):(currentTab==3?brokenShortcuts.Count:devAiItems.Count)));
    emptyCard.Visibility=curCount==0?Visibility.Visible:Visibility.Collapsed;
    if(curCount==0){
     emptyText.Text=hasScanned
@@ -220,6 +234,7 @@ partial class DesktopApp {
    largeGrid.Visibility=(currentTab==1&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
    dupGrid.Visibility=(currentTab==2&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
    shortGrid.Visibility=(currentTab==3&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
+   devAiGrid.Visibility=(currentTab==4&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
   };
   updateTabUI();
 
@@ -227,6 +242,7 @@ partial class DesktopApp {
   btnTabLarge.Click+=(s,e)=>{currentTab=1;updateTabUI();};
   btnTabDup.Click+=(s,e)=>{currentTab=2;updateTabUI();};
   btnTabShort.Click+=(s,e)=>{currentTab=3;updateTabUI();};
+  btnTabDev.Click+=(s,e)=>{currentTab=4;updateTabUI();};
 
   // Nút hành động
   var actionRow=new WrapPanel{Margin=new Thickness(0,0,0,10)};
@@ -265,12 +281,17 @@ partial class DesktopApp {
     dupGrid.ItemsSource=null;dupGrid.ItemsSource=duplicateFiles;
     updateTabUI();
 
-    Text("Status","[4/4] Đang quét các lối tắt (.lnk) bị hỏng trên Desktop & Start Menu…");
+    Text("Status","[4/5] Đang quét các lối tắt (.lnk) bị hỏng trên Desktop & Start Menu…");
     brokenShortcuts=await Task.Run(()=>ShortcutCleaner.Scan());
     shortGrid.ItemsSource=null;shortGrid.ItemsSource=brokenShortcuts;
     updateTabUI();
 
-    Text("Status","Quét toàn diện hoàn tất: "+deepItems.Count+" tàn dư · "+files.Count+" tệp lớn · "+(duplicateFiles==null?0:duplicateFiles.Count)+" tệp trùng · "+brokenShortcuts.Count+" lối tắt hỏng.");
+    Text("Status","[5/5] Đang kiểm tra các kho đệm lập trình & mô hình AI…");
+    devAiItems=await Task.Run(()=>DevAiCacheCleaner.ScanAll(token,null));
+    devAiGrid.ItemsSource=null;devAiGrid.ItemsSource=devAiItems;
+    updateTabUI();
+
+    Text("Status","Quét toàn diện hoàn tất: "+deepItems.Count+" tàn dư · "+files.Count+" tệp lớn · "+(duplicateFiles==null?0:duplicateFiles.Count)+" tệp trùng · "+brokenShortcuts.Count+" lối tắt · "+devAiItems.Count+" rác Dev/AI.");
    });
   });
   btnScanAll.Style=(Style)window.Resources["Primary"];
@@ -297,6 +318,21 @@ partial class DesktopApp {
 
   // Nút dọn tệp lớn
   actionRow.Children.Add(WorkButton(I18n.T("Dọn tệp lớn đã chọn"),DeleteLargeFiles));
+
+  // Nút dọn rác Dev & AI
+  actionRow.Children.Add(WorkButton(I18n.T("Dọn rác Dev & AI đã chọn"),async()=>{ await Task.Yield();
+   var chosen=devAiItems.Where(x=>x.Selected).ToList();
+   if(chosen.Count==0){Text("Status","Chưa chọn kho bộ đệm nào.");return;}
+   long total=chosen.Sum(x=>x.Bytes);
+   if(!Confirm("Dọn sạch "+chosen.Count+" thư mục bộ đệm lập trình & AI ("+Features.Size(total)+")?\nToàn bộ tệp sẽ được chuyển vào Thùng rác để đảm bảo an toàn."))return;
+   int done=0;
+   foreach(var item in chosen){
+    if(DevAiCacheCleaner.Clean(item,true)){done++;devAiItems.Remove(item);}
+   }
+   devAiGrid.ItemsSource=null;devAiGrid.ItemsSource=devAiItems;
+   updateTabUI();
+   Text("Status","Đã dọn sạch "+done+" mục bộ đệm lập trình & AI.");
+  }));
 
   // Nút dọn lối tắt hỏng
   actionRow.Children.Add(WorkButton(I18n.T("Dọn lối tắt đã chọn"),async()=>{ await Task.Yield();
