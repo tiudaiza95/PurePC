@@ -36,7 +36,7 @@ partial class DesktopApp {
   var grid=new Grid{Margin=new Thickness(0,0,0,14)};
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
-  for(int r=0;r<8;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+  for(int r=0;r<10;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
   rootPanel.Children.Add(grid);
 
   Func<string,string,string,string,Action,Border> createToolCard=(icon,title,desc,btnText,action)=>{
@@ -178,10 +178,26 @@ partial class DesktopApp {
 
   // Card 15: Privacy & Telemetry Shield
   var c15=createToolCard("🛡️","Bảo vệ Riêng tư & Tắt Telemetry","Tắt thu thập dữ liệu chẩn đoán (DiagTrack), chặn quảng cáo và tìm kiếm Bing trong Start Menu.","Mở Privacy Shield",OpenPrivacyShieldDialog);
-  c15.Margin=new Thickness(0,0,5,0);Grid.SetRow(c15,7);Grid.SetColumn(c15,0);grid.Children.Add(c15);
+  c15.Margin=new Thickness(0,0,5,10);Grid.SetRow(c15,7);Grid.SetColumn(c15,0);grid.Children.Add(c15);
 
   // Card 16: System File Checker & DISM Repair
   var c16=createToolCard("🛠️","Sửa lỗi tệp hệ thống & DISM","Quét SFC Scannow, phục hồi kho ảnh Windows DISM RestoreHealth và đặt lại ngăn xếp mạng TCP/IP.","Mở Sửa lỗi Windows",OpenSystemRepairDialog);
-  c16.Margin=new Thickness(5,0,0,0);Grid.SetRow(c16,7);Grid.SetColumn(c16,1);grid.Children.Add(c16);
+  c16.Margin=new Thickness(5,0,0,10);Grid.SetRow(c16,7);Grid.SetColumn(c16,1);grid.Children.Add(c16);
+
+  // Card 17: Context Menu Manager
+  var c17=createToolCard("🖱️","Menu Chuột phải (Context Menu)","Tắt hoặc bật lại các menu mở rộng bên thứ 3 trong menu chuột phải File Explorer, chống giật đơ.","Quản lý Menu chuột phải",OpenContextMenuDialog);
+  c17.Margin=new Thickness(0,0,5,10);Grid.SetRow(c17,8);Grid.SetColumn(c17,0);grid.Children.Add(c17);
+
+  // Card 18: SSD TRIM Optimizer
+  var c18=createToolCard("⚡","Tối ưu hóa & Kích hoạt TRIM SSD","Kiểm tra trạng thái TRIM và phát tín hiệu Re-TRIM cho chip điều khiển SSD duy trì tốc độ và tuổi thọ.","Tối ưu TRIM SSD",OpenSsdTrimDialog);
+  c18.Margin=new Thickness(5,0,0,10);Grid.SetRow(c18,8);Grid.SetColumn(c18,1);grid.Children.Add(c18);
+
+  // Card 19: Folder Space Visualizer
+  var c19=createToolCard("📊","Phân tích Dung lượng Thư mục","Đo lường và xếp hạng trực quan các thư mục chiếm nhiều dung lượng nhất trên ổ đĩa C:\\ hoặc D:\\.","Phân tích Dung lượng",OpenFolderSpaceDialog);
+  c19.Margin=new Thickness(0,0,5,0);Grid.SetRow(c19,9);Grid.SetColumn(c19,0);grid.Children.Add(c19);
+
+  // Card 20: Windows Update Cache Cleaner
+  var c20=createToolCard("🧹","Dọn Windows Update Cache","Dọn sạch các bản cập nhật tải về bị lỗi trong SoftwareDistribution\\Download và khởi động lại dịch vụ.","Dọn Update Cache",OpenWindowsUpdateCleanerDialog);
+  c20.Margin=new Thickness(5,0,0,0);Grid.SetRow(c20,9);Grid.SetColumn(c20,1);grid.Children.Add(c20);
  }
 }

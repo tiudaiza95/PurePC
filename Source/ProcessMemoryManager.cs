@@ -31,6 +31,12 @@ public static class ProcessMemoryManager {
     const uint PROCESS_SET_QUOTA = 0x0100;
     const uint PROCESS_QUERY_INFORMATION = 0x0400;
 
+    [DllImport("ntdll.dll")]
+    static extern int NtSetSystemInformation(int SystemInformationClass, ref int SystemInformation, int SystemInformationLength);
+
+    const int SystemMemoryListInformation = 80;
+    const int MemoryPurgeStandbyList = 4;
+
     public static bool TrimProcess(int pid) {
         if (pid <= 4) return false;
         IntPtr hProc = IntPtr.Zero;
@@ -62,6 +68,10 @@ public static class ProcessMemoryManager {
                     }
                 } catch {}
             }
+            try {
+                int cmd = MemoryPurgeStandbyList;
+                NtSetSystemInformation(SystemMemoryListInformation, ref cmd, sizeof(int));
+            } catch {}
             GC.Collect();
             GC.WaitForPendingFinalizers();
             var memAfter = SystemPerformance.GetMemory();

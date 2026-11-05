@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -678,6 +679,387 @@ partial class DesktopApp {
   btnRow.Children.Add(ActionButton(I18n.T("Sao chép nhật ký"), () => {
    try { Clipboard.SetText(logBox.Text); MessageBox.Show(dialog, "Đã sao chép nhật ký vào Clipboard!", "Thông báo"); } catch {}
   }));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenContextMenuDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Quản Lý Menu Chuột Phải (Context Menu Manager) · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 960, Height = 640, MinWidth = 780, MinHeight = 480,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("QUẢN LÝ MENU CHUỘT PHẢI (SHELL CONTEXT MENU HANDLERS)"), 19, true));
+  header.Children.Add(Label(I18n.T("Vô hiệu hóa hoặc bật lại các menu mở rộng bên thứ 3 trong menu chuột phải File Explorer (WinRAR, 7-Zip, Notepad++, Git, VS Code, v.v.).\n★ Giúp menu chuột phải phản hồi tức thì, loại bỏ tình trạng đơ giật khi nhấp chuột phải."), 12));
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Đang tải danh sách menu chuột phải..."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var grid = new DataGrid { IsReadOnly = true, AutoGenerateColumns = false, RowHeight = Double.NaN, MinRowHeight = 36 };
+  root.Children.Add(grid);
+  AddChecks(grid, "Selected");
+  AddColumn(grid, "TÊN MENU / TIỆN ÍCH", "Name", 220);
+  AddColumn(grid, "VỊ TRÍ ÁP DỤNG", "Location", 200);
+  AddColumn(grid, "TRẠNG THÁI", "StatusLabel", 140);
+  AddColumn(grid, "CLSID / GUID", "Clsid", 320);
+
+  List<ContextMenuItem> items = new List<ContextMenuItem>();
+  Action loadItems = () => {
+   items = ContextMenuManager.Scan();
+   grid.ItemsSource = null;
+   grid.ItemsSource = items;
+   statusText.Text = string.Format("Đã tìm thấy {0} mục menu chuột phải ({1} mục có thể tùy chỉnh).", items.Count, items.Count(x => !x.IsSystemProtected));
+  };
+  loadItems();
+
+  var btnToggle = ActionButton(I18n.T("⚡ Bật / Tắt mục đã chọn (Toggle)"), () => {
+   var chosen = items.Where(x => x.Selected && !x.IsSystemProtected).ToList();
+   if (chosen.Count == 0) { MessageBox.Show(dialog, "Vui lòng chọn ít nhất 1 mục không phải hệ thống.", "Thông báo"); return; }
+   int count = 0;
+   foreach (var item in chosen) {
+    string err;
+    if (ContextMenuManager.Toggle(item, out err)) count++;
+   }
+   loadItems();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   MessageBox.Show(dialog, string.Format("Đã cập nhật trạng thái cho {0} mục menu chuột phải!", count), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+  });
+  btnToggle.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnToggle);
+
+  btnRow.Children.Add(ActionButton(I18n.T("Chọn tất cả có thể tắt"), () => {
+   foreach (var it in items) it.Selected = !it.IsSystemProtected && it.IsEnabled;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Bỏ chọn"), () => {
+   foreach (var it in items) it.Selected = false;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Làm mới"), loadItems));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenSsdTrimDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Tối Ưu Hóa & Kích Hoạt TRIM SSD · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 840, Height = 580, MinWidth = 700, MinHeight = 440,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("TỐI ƯU HÓA TUỔI THỌ & KÍCH HOẠT TRIM SSD (SOLID STATE DRIVE)"), 19, true));
+  header.Children.Add(Label(I18n.T("Lệnh TRIM thông báo cho chip điều khiển SSD biết các khối dữ liệu (LBA) không còn sử dụng để thu dọn trước, giúp duy trì tốc độ đọc ghi tối đa và kéo dài tuổi thọ chip nhớ NAND Flash."), 12));
+
+  var statusBox = new StackPanel();
+  var lblTrim = Label("...", 13, true);
+  var lblReFs = Label("...", 13, true);
+
+  Action checkTrim = () => {
+   var st = SsdTrimOptimizer.QueryTrimStatus();
+   lblTrim.Text = st.StatusText;
+   lblTrim.Foreground = st.IsTrimOptimal ? Brushes.MediumSeaGreen : Brushes.OrangeRed;
+   lblReFs.Text = st.IsReFsTrimEnabled ? "✓ ReFS TRIM Bật" : "● ReFS TRIM Mặc định";
+  };
+  checkTrim();
+
+  var sGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition());
+  sGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+  sGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+  var r1 = Label("Trạng thái TRIM (NTFS):", 12); r1.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r2 = Label("Trạng thái TRIM (ReFS):", 12); r2.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+
+  Grid.SetRow(r1, 0); Grid.SetColumn(r1, 0); sGrid.Children.Add(r1);
+  Grid.SetRow(lblTrim, 0); Grid.SetColumn(lblTrim, 1); sGrid.Children.Add(lblTrim);
+  Grid.SetRow(r2, 1); Grid.SetColumn(r2, 0); sGrid.Children.Add(r2);
+  Grid.SetRow(lblReFs, 1); Grid.SetColumn(lblReFs, 1); sGrid.Children.Add(lblReFs);
+
+  statusBox.Children.Add(sGrid);
+  var cardStatus = Card(statusBox);
+  cardStatus.Padding = new Thickness(14, 10, 14, 10);
+  header.Children.Add(cardStatus);
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Sẵn sàng kiểm tra hoặc Re-TRIM ổ cứng SSD."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var logBox = new TextBox {
+   IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   FontFamily = new FontFamily("Consolas"), FontSize = 11,
+   Margin = new Thickness(0, 4, 0, 0),
+   Text = "Nhật ký kiểm tra TRIM SSD sẵn sàng..."
+  };
+  logBox.SetResourceReference(Control.BackgroundProperty, "Header");
+  logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
+  root.Children.Add(logBox);
+
+  var btnEnable = ActionButton(I18n.T("⚡ Kích hoạt TRIM (Enable TRIM)"), () => {
+   string report;
+   bool ok = SsdTrimOptimizer.EnableTrim(out report);
+   logBox.Text = report;
+   checkTrim();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   if (ok) {
+    statusText.Text = "Đã kích hoạt tính năng TRIM cho SSD thành công!";
+    MessageBox.Show(dialog, "Đã bật lệnh TRIM trong Windows!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } else {
+    MessageBox.Show(dialog, "Cần quyền Administrator để thay đổi cấu hình fsutil.", "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
+   }
+  });
+  btnEnable.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnEnable);
+
+  var btnRetrim = ActionButton(I18n.T("🚀 Chạy Re-TRIM ổ C: (defrag /L)"), async () => {
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang phát lệnh Re-TRIM cho ổ C:...";
+   logBox.Text = "Khởi chạy defrag.exe C: /L (Re-TRIM SSD)...\r\n";
+   try {
+    int code = await SsdTrimOptimizer.RunRetrimAsync("C", line => {
+     window.Dispatcher.Invoke(new Action(() => {
+      logBox.AppendText(line + "\r\n");
+      logBox.ScrollToEnd();
+     }));
+    }, CancellationToken.None);
+    statusText.Text = string.Format("Re-TRIM kết thúc với mã: {0}.", code);
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    MessageBox.Show(dialog, "Đã gửi tín hiệu Re-TRIM cho chip điều khiển SSD thành công!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi Re-TRIM: " + ex.Message;
+    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnRow.Children.Add(btnRetrim);
+
+  btnRow.Children.Add(ActionButton(I18n.T("Kiểm tra lại"), () => { checkTrim(); statusText.Text = "Đã kiểm tra lại trạng thái TRIM."; }));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenFolderSpaceDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Phân Tích Trực Quan Dung Lượng Thư Mục · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 960, Height = 640, MinWidth = 780, MinHeight = 480,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("PHÂN TÍCH TRỰC QUAN DUNG LƯỢNG THƯ MỤC (DISK SPACE ANALYZER)"), 19, true));
+  header.Children.Add(Label(I18n.T("Đo lường và xếp hạng trực quan các thư mục chiếm nhiều dung lượng nhất trên ổ đĩa.\n★ Trả lời ngay câu hỏi: 'Thư mục nào đang ngốn đầy ổ cứng của tôi?'."), 12));
+
+  var selRow = new WrapPanel { Margin = new Thickness(0, 6, 0, 4) };
+  header.Children.Add(selRow);
+  selRow.Children.Add(Label("Đường dẫn cần phân tích:  ", 12, true));
+  var txtPath = new TextBox { Text = @"C:\", Width = 260, Margin = new Thickness(0, 0, 8, 0) };
+  txtPath.SetResourceReference(Control.BackgroundProperty, "Header");
+  selRow.Children.Add(txtPath);
+
+  selRow.Children.Add(ActionButton("Ổ C:\\", () => txtPath.Text = @"C:\"));
+  selRow.Children.Add(ActionButton("Thư mục cá nhân", () => txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Bấm 'Bắt đầu phân tích' để tính toán dung lượng các thư mục."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var grid = new DataGrid { IsReadOnly = true, AutoGenerateColumns = false, RowHeight = Double.NaN, MinRowHeight = 36 };
+  root.Children.Add(grid);
+  AddColumn(grid, "THƯ MỤC", "Name", 220);
+  AddColumn(grid, "DUNG LƯỢNG", "SizeLabel", 130);
+  AddColumn(grid, "TỶ LỆ", "PercentLabel", 90);
+  AddColumn(grid, "SỐ TỆP TIN", "FileCount", 100);
+  AddColumn(grid, "ĐƯỜNG DẪN ĐẦY ĐỦ", "FullPath", 360);
+
+  List<FolderSpaceItem> items = new List<FolderSpaceItem>();
+  var btnScan = ActionButton(I18n.T("🔍 Bắt đầu phân tích"), async () => {
+   string path = txtPath.Text.Trim();
+   if (!Directory.Exists(path)) { MessageBox.Show(dialog, "Đường dẫn không tồn tại.", "Thông báo"); return; }
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang quét và tính toán kích thước các thư mục con...";
+   try {
+    items = await Task.Run(() => FolderSpaceVisualizer.Analyze(path, CancellationToken.None, null));
+    grid.ItemsSource = null;
+    grid.ItemsSource = items;
+    statusText.Text = string.Format("Phân tích xong {0} thư mục tại {1}. Tổng cộng: {2}.", items.Count, path, Features.Size(items.Sum(x => x.Bytes)));
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi phân tích: " + ex.Message;
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnScan.Style = (Style)window.Resources["Primary"];
+  selRow.Children.Add(btnScan);
+
+  btnRow.Children.Add(ActionButton(I18n.T("📂 Mở thư mục trong Explorer"), () => {
+   var sel = grid.SelectedItem as FolderSpaceItem;
+   if (sel != null && Directory.Exists(sel.FullPath)) {
+    Process.Start(new ProcessStartInfo("explorer.exe", sel.FullPath) { UseShellExecute = true });
+   } else {
+    MessageBox.Show(dialog, "Vui lòng chọn 1 thư mục trong bảng.", "Thông báo");
+   }
+  }));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenWindowsUpdateCleanerDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Dọn Dẹp & Khắc Phục Lỗi Windows Update Cache · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 840, Height = 560, MinWidth = 700, MinHeight = 440,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("DỌN DẸP & KHẮC PHỤC LỖI WINDOWS UPDATE CACHE"), 19, true));
+  header.Children.Add(Label(I18n.T("Giải phóng hàng gigabyte tệp cập nhật tải về cũ hoặc bị lỗi trong thư mục C:\\Windows\\SoftwareDistribution\\Download, đồng thời tự động khởi động lại dịch vụ Update để sửa các mã lỗi 0x80070002, 0x80240034."), 12));
+
+  var statusBox = new StackPanel();
+  var lblSize = Label("...", 13, true);
+  var lblCount = Label("...", 13, true);
+
+  Action checkCache = () => {
+   int count;
+   long bytes = WindowsUpdateCleaner.GetCacheBytes(out count);
+   lblSize.Text = Features.Size(bytes);
+   lblSize.Foreground = bytes > 1024L * 1024 * 1024 ? Brushes.OrangeRed : Brushes.MediumSeaGreen;
+   lblCount.Text = count + " tệp gói bản vá";
+  };
+  checkCache();
+
+  var sGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition());
+  sGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+  sGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+  var r1 = Label("Dung lượng bộ đệm Windows Update:", 12); r1.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r2 = Label("Số tệp bản vá lưu trữ:", 12); r2.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+
+  Grid.SetRow(r1, 0); Grid.SetColumn(r1, 0); sGrid.Children.Add(r1);
+  Grid.SetRow(lblSize, 0); Grid.SetColumn(lblSize, 1); sGrid.Children.Add(lblSize);
+  Grid.SetRow(r2, 1); Grid.SetColumn(r2, 0); sGrid.Children.Add(r2);
+  Grid.SetRow(lblCount, 1); Grid.SetColumn(lblCount, 1); sGrid.Children.Add(lblCount);
+
+  statusBox.Children.Add(sGrid);
+  var cardStatus = Card(statusBox);
+  cardStatus.Padding = new Thickness(14, 10, 14, 10);
+  header.Children.Add(cardStatus);
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Chọn 'Dọn sạch Cache & Làm mới Windows Update' để giải phóng bộ đệm."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var logBox = new TextBox {
+   IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   FontFamily = new FontFamily("Consolas"), FontSize = 11,
+   Margin = new Thickness(0, 4, 0, 0),
+   Text = "Nhật ký làm mới Windows Update sẵn sàng..."
+  };
+  logBox.SetResourceReference(Control.BackgroundProperty, "Header");
+  logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
+  root.Children.Add(logBox);
+
+  var btnPurge = ActionButton(I18n.T("🧹 Dọn sạch Cache & Làm mới Windows Update"), async () => {
+   if (!Confirm("Tạm dừng dịch vụ Windows Update và dọn sạch các gói tải về trong SoftwareDistribution\\Download?\nQuá trình sẽ tự động khởi động lại dịch vụ ngay sau khi dọn xong.")) return;
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang dọn dẹp bộ đệm Windows Update...";
+   try {
+    string report = "";
+    long freed = 0;
+    await Task.Run(() => WindowsUpdateCleaner.Purge(out report, out freed));
+    logBox.Text = report;
+    checkCache();
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    statusText.Text = string.Format("Đã dọn sạch {0} tệp bản cập nhật cũ.", Features.Size(freed));
+    MessageBox.Show(dialog, string.Format("Đã làm sạch thành công {0} cache Windows Update!", Features.Size(freed)), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi dọn dẹp: " + ex.Message;
+    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnPurge.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnPurge);
+
+  btnRow.Children.Add(ActionButton(I18n.T("Kiểm tra lại dung lượng"), () => { checkCache(); statusText.Text = "Đã cập nhật dung lượng cache."; }));
 
   dialog.ShowDialog();
  }

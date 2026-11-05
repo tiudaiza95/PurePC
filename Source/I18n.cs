@@ -312,6 +312,27 @@ static class I18n {
   Add("💻 Rác Lập trình & AI", "💻 Dev & AI Caches");
   Add("Dọn rác Dev & AI đã chọn", "Clean Selected Dev & AI Caches");
   Add("Tích hợp 5 trong 1: Tàn dư gỡ cài đặt · Tệp dung lượng lớn (>100MB) · Tệp trùng lặp · Lối tắt hỏng · Rác Lập trình & AI", "5-in-1: Leftover remnants · Large files (>100MB) · Duplicate content · Broken shortcuts · Dev & AI Caches");
+
+  // Elite 3.0 Context Menu, SSD TRIM, Folder Space, Windows Update Cache
+  Add("Menu Chuột phải (Context Menu)", "Shell Context Menu Handlers");
+  Add("Tắt hoặc bật lại các menu mở rộng bên thứ 3 trong menu chuột phải File Explorer, chống giật đơ.", "Enable or disable third-party context menu handlers in File Explorer to eliminate right-click lag.");
+  Add("Quản lý Menu chuột phải", "Manage Context Menu");
+  Add("QUẢN LÝ MENU CHUỘT PHẢI (SHELL CONTEXT MENU HANDLERS)", "SHELL CONTEXT MENU HANDLERS MANAGER");
+
+  Add("Tối ưu hóa & Kích hoạt TRIM SSD", "SSD TRIM Optimizer");
+  Add("Kiểm tra trạng thái TRIM và phát tín hiệu Re-TRIM cho chip điều khiển SSD duy trì tốc độ và tuổi thọ.", "Check TRIM status and issue Re-TRIM commands to SSD controller to maintain speed and cell lifespan.");
+  Add("Tối ưu TRIM SSD", "Optimize SSD TRIM");
+  Add("TỐI ƯU HÓA TUỔI THỌ & KÍCH HOẠT TRIM SSD (SOLID STATE DRIVE)", "SSD LIFESPAN OPTIMIZER & FORCE TRIM (SOLID STATE DRIVE)");
+
+  Add("Phân tích Dung lượng Thư mục", "Disk Space Folder Visualizer");
+  Add("Đo lường và xếp hạng trực quan các thư mục chiếm nhiều dung lượng nhất trên ổ đĩa C:\\ hoặc D:\\.", "Measure and rank largest space-consuming folders on drives C:\\ or D:\\.");
+  Add("Phân tích Dung lượng", "Analyze Folder Space");
+  Add("PHÂN TÍCH TRỰC QUAN DUNG LƯỢNG THƯ MỤC (DISK SPACE ANALYZER)", "DISK SPACE FOLDER VISUALIZER & ANALYZER");
+
+  Add("Dọn Windows Update Cache", "Purge Windows Update Cache");
+  Add("Dọn sạch các bản cập nhật tải về bị lỗi trong SoftwareDistribution\\Download và khởi động lại dịch vụ.", "Clean corrupted or cached update files in SoftwareDistribution\\Download and restart update services.");
+  Add("Dọn Update Cache", "Clean Update Cache");
+  Add("DỌN DẸP & KHẮC PHỤC LỖI WINDOWS UPDATE CACHE", "WINDOWS UPDATE CACHE CLEANER & REPAIR");
  }
 
  public static void Init() {

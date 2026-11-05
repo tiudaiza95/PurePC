@@ -119,6 +119,22 @@ static class ProTests {
    Check(SystemRepair.IsDismAvailable, "SystemRepair finds dism.exe in System32");
    Check(SystemPerformance.GetSystemUptime().TotalSeconds > 0, "SystemPerformance.GetSystemUptime reports positive uptime");
    Check(!string.IsNullOrEmpty(SystemPerformance.GetUptimeString()), "SystemPerformance.GetUptimeString returns non-empty string");
+
+   // Elite 3.0 tests: Context Menu, SSD TRIM, Folder Space, Windows Update
+   var contextItems = ContextMenuManager.Scan();
+   Check(contextItems != null, "ContextMenuManager.Scan returns list");
+   string testErr;
+   Check(!ContextMenuManager.Toggle(new ContextMenuItem { IsSystemProtected = true }, out testErr), "ContextMenuManager protects system handlers");
+   var trimStatus = SsdTrimOptimizer.QueryTrimStatus();
+   Check(trimStatus != null, "SsdTrimOptimizer.QueryTrimStatus executes without exception");
+   Check(!string.IsNullOrEmpty(WindowsUpdateCleaner.DownloadCacheDir), "WindowsUpdateCleaner points to valid directory");
+   bool folderCancelled = false;
+   try {
+       FolderSpaceVisualizer.Analyze(Environment.GetFolderPath(Environment.SpecialFolder.Windows), new CancellationToken(true), null);
+   } catch (OperationCanceledException) {
+       folderCancelled = true;
+   }
+   Check(folderCancelled, "FolderSpaceVisualizer supports cancellation properly");
   return count;
  }
 }
