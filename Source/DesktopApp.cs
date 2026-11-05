@@ -77,6 +77,10 @@ partial class DesktopApp {
     else if(page=="Apps")C<Button>("RefreshApps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
     else if(page=="Startup")LoadStartup();
     else if(page=="History")LoadHistory();
+    else if(page=="Tools")BuildTools();
+    else if(page=="Deep")BuildDeepPage();
+    else if(page=="DiskTools")BuildDiskTools();
+    else if(page=="Drivers")BuildDriverPage();
     e.Handled=true;
    }
   };
@@ -86,26 +90,40 @@ partial class DesktopApp {
  async Task Reload(){apps=await Task.Run(()=>Engine.Apps());Text("AppCount",apps.Count.ToString());Text("DuplicateCount",Engine.DuplicateCount.ToString());try{var drive=new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory));Text("DiskFree",Features.Size(drive.AvailableFreeSpace));Text("DriveLabel","DUNG LƯỢNG TRỐNG · "+drive.Name.TrimEnd('\\'));}catch{Text("DiskFree","—");}Filter();}
  void Filter(){FilterPro();}
  void BindRemnants(){C<DataGrid>("RemnantsGrid").ItemsSource=null;C<DataGrid>("RemnantsGrid").ItemsSource=remnants;C<DataGrid>("RemnantsGrid").Visibility=remnants.Count>0?Visibility.Visible:Visibility.Collapsed;}
+ void SetNavText(string navName,string text){
+  var nav=C<RadioButton>(navName);
+  if(nav==null)return;
+  var stack=nav.Content as StackPanel;
+  if(stack!=null&&stack.Children.Count>1){
+   var tb=stack.Children[1] as TextBlock;
+   if(tb!=null){tb.Text=text;return;}
+  }
+  nav.Content=text;
+ }
  void ApplyLanguage(){
-  if(C<RadioButton>("NavHealth")!=null)C<RadioButton>("NavHealth").Content=I18n.T("Tổng quan");
-  if(C<RadioButton>("NavApps")!=null)C<RadioButton>("NavApps").Content=I18n.T("Ứng dụng");
-  if(C<RadioButton>("NavDeep")!=null)C<RadioButton>("NavDeep").Content=I18n.T("Quét chuyên sâu");
-  if(C<RadioButton>("NavStartup")!=null)C<RadioButton>("NavStartup").Content=I18n.T("Khởi động");
-  if(C<RadioButton>("NavDiskTools")!=null)C<RadioButton>("NavDiskTools").Content=I18n.T("Công cụ ổ đĩa");
-  if(C<RadioButton>("NavDrivers")!=null)C<RadioButton>("NavDrivers").Content=I18n.T("Driver & thiết bị");
-  if(C<RadioButton>("NavHistory")!=null)C<RadioButton>("NavHistory").Content=I18n.T("Nhật ký");
-  if(C<RadioButton>("NavTools")!=null)C<RadioButton>("NavTools").Content=I18n.T("Công cụ Pro");
+  SetNavText("NavHealth",I18n.T("Tổng quan"));
+  SetNavText("NavApps",I18n.T("Ứng dụng"));
+  SetNavText("NavDeep",I18n.T("Quét chuyên sâu"));
+  SetNavText("NavStartup",I18n.T("Khởi động"));
+  SetNavText("NavDiskTools",I18n.T("Công cụ ổ đĩa"));
+  SetNavText("NavDrivers",I18n.T("Driver & thiết bị"));
+  SetNavText("NavHistory",I18n.T("Nhật ký"));
+  SetNavText("NavTools",I18n.T("Công cụ Pro"));
+
+  if(C<Button>("ToggleTheme")!=null)C<Button>("ToggleTheme").Content=dark?I18n.T("☀ Sáng"):I18n.T("◐ Tối");
+  if(C<Button>("ToggleLang")!=null)C<Button>("ToggleLang").Content=I18n.Lang=="vi"?"🌐 VI":"🌐 EN";
 
   if(C<Button>("Uninstall")!=null)C<Button>("Uninstall").Content=I18n.T("Gỡ mục đã chọn");
   if(C<Button>("ForceUninstall")!=null)C<Button>("ForceUninstall").Content=I18n.T("⚡ Gỡ cưỡng chế");
   if(C<Button>("BatchUninstall")!=null)C<Button>("BatchUninstall").Content=I18n.T("⚡ Gỡ hàng loạt");
-   if(C<Button>("SetupMonitorBtn")!=null)C<Button>("SetupMonitorBtn").Content=I18n.T("📸 Giám sát cài đặt");
+  if(C<Button>("SetupMonitorBtn")!=null)C<Button>("SetupMonitorBtn").Content=I18n.T("📸 Giám sát cài đặt");
   if(C<Button>("ScanRemnants")!=null)C<Button>("ScanRemnants").Content=I18n.T("Quét phần dư");
   if(C<Button>("CleanRemnants")!=null)C<Button>("CleanRemnants").Content=I18n.T("Dọn mục đã chọn");
   if(C<Button>("HistoryRemnants")!=null)C<Button>("HistoryRemnants").Content=I18n.T("Phần dư đã ghi nhận");
   if(C<Button>("RefreshApps")!=null)C<Button>("RefreshApps").Content=I18n.T("Làm mới");
 
   if(page=="Health")BuildHealth();
+  else if(page=="Tools")BuildTools();
   else if(page=="DiskTools")BuildDiskTools();
   else if(page=="Deep")BuildDeepPage();
   else if(page=="Drivers")BuildDriverPage();
@@ -137,12 +155,6 @@ partial class DesktopApp {
   string next=I18n.Lang=="vi"?"en":"vi";
   I18n.Save(next);
   ApplyLanguage();
-  if(page=="Health")BuildHealth();
-  else if(page=="Tools")BuildTools();
-  else if(page=="Deep")BuildDeepPage();
-  else if(page=="DiskTools")BuildDiskTools();
-  else if(page=="Drivers")BuildDriverPage();
-  else Navigate(page);
  }
  class Owner:System.Windows.Forms.IWin32Window{public IntPtr Handle{get;private set;}public Owner(IntPtr h){Handle=h;}}
 }

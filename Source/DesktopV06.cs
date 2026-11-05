@@ -135,9 +135,11 @@ partial class DesktopApp {
 
   var cpuPts=new List<double>();
   var ramPts=new List<double>();
-  Action<Canvas,List<double>,double,Color,Color> drawWave=(canvas,history,val,strokeCol,fillCol)=>{
-   history.Add(val);
-   if(history.Count>24)history.RemoveAt(0);
+  Action<Canvas,List<double>,double,Color,Color,bool> drawWave=(canvas,history,val,strokeCol,fillCol,push)=>{
+   if(push){
+    history.Add(val);
+    if(history.Count>24)history.RemoveAt(0);
+   }
    canvas.Children.Clear();
    double w=canvas.ActualWidth>20?canvas.ActualWidth:(canvas.RenderSize.Width>20?canvas.RenderSize.Width:240);
    double h=32;
@@ -156,6 +158,11 @@ partial class DesktopApp {
    area.Add(new Point(w,h));
    canvas.Children.Add(new System.Windows.Shapes.Polygon{Points=area,Fill=new SolidColorBrush(fillCol)});
    canvas.Children.Add(new System.Windows.Shapes.Polyline{Points=pts,Stroke=new SolidColorBrush(strokeCol),StrokeThickness=2,StrokeLineJoin=PenLineJoin.Round});
+  };
+
+  Action redrawWaves=()=>{
+   drawWave(cpuWave,cpuPts,0,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245),false);
+   drawWave(ramWave,ramPts,0,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105),false);
   };
 
   // Cập nhật real-time metrics & biểu đồ sóng động
@@ -177,7 +184,8 @@ partial class DesktopApp {
     }
     for(int idx=0;idx<driveChips.Children.Count;idx++){
      var btn=(Button)driveChips.Children[idx];
-     btn.Style=idx==selectedDriveIdx?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
+     var targetStyle=idx==selectedDriveIdx?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
+     if(btn.Style!=targetStyle)btn.Style=targetStyle;
     }
    } else {
     driveChips.Visibility=Visibility.Collapsed;
@@ -191,8 +199,8 @@ partial class DesktopApp {
    diskVal.Text=Features.Size(dFree)+" "+I18n.T("trống");
    diskBar.Value=dPct;
    diskSub.Text=I18n.T("Tổng")+" "+Features.Size(dTotal)+" · "+I18n.T("đã dùng")+" "+dPct.ToString("0.0")+"%";
-   drawWave(cpuWave,cpuPts,m.CpuUsage,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245));
-   drawWave(ramWave,ramPts,(double)m.RamPercent,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105));
+   drawWave(cpuWave,cpuPts,m.CpuUsage,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245),true);
+   drawWave(ramWave,ramPts,(double)m.RamPercent,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105),true);
   };
   onHealthPerfTick=updateM;
 
@@ -202,8 +210,8 @@ partial class DesktopApp {
   ramPts.Add((double)initPerf.RamPercent);ramPts.Add((double)initPerf.RamPercent);
   updateM();
 
-  cpuWave.SizeChanged+=(s,e)=>{if(page=="Health"&&onHealthPerfTick!=null)onHealthPerfTick();};
-  ramWave.SizeChanged+=(s,e)=>{if(page=="Health"&&onHealthPerfTick!=null)onHealthPerfTick();};
+  cpuWave.SizeChanged+=(s,e)=>{if(page=="Health")redrawWaves();};
+  ramWave.SizeChanged+=(s,e)=>{if(page=="Health")redrawWaves();};
 
   if(perfTimer==null){
    perfTimer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1.0)};

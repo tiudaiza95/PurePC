@@ -21,6 +21,8 @@ public partial class AppEntry {
  public string AppType { get { return IsUwp ? "UWP (Store)" : "Win32 (Desktop)"; } }
  public int Number {get;set;}
  public bool Selected {get;set;}
+ public bool CanRemoveUwp { get { return !UwpManager.IsProtected(PackageFullName); } }
+ public string UwpStatus { get { return CanRemoveUwp ? I18n.T("Có thể gỡ") : I18n.T("★ Bảo vệ cốt lõi"); } }
  [XmlIgnore] public List<AppEntry> Sources=new List<AppEntry>();
  [XmlIgnore] public Advisory Advice;
  [XmlIgnore] ImageSource icon;

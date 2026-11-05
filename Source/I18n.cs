@@ -70,6 +70,13 @@ static class I18n {
   Add("AMD · Bộ đệm Shader DX", "AMD · DX Shader Cache");
   Add("Windows Update · Delivery Optimization", "Windows Update · Delivery Optimization Cache");
   Add("Ổ ĐĨA HỆ THỐNG & DỮ LIỆU", "SYSTEM & DATA STORAGE DRIVES");
+  Add("☀ Sáng", "☀ Light");
+  Add("◐ Tối", "◐ Dark");
+  Add("◐ Giao diện", "◐ Theme");
+  Add("Có thể gỡ", "Removable");
+  Add("★ Bảo vệ cốt lõi", "★ Core Protected");
+  Add("TRẠNG THÁI", "STATUS");
+  Add("CHĂM SÓC MÁY TÍNH · v1.2", "PC MAINTENANCE · v1.2");
   Add("Driver từ đúng nhà sản xuất.", "Manufacturer Drivers & Devices");
   Add("Kiểm kê tại máy — nguồn hãng — cài gói cục bộ có xác minh", "Local inventory — vendor sources — verified local INF installation");
 
