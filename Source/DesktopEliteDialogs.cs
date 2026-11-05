@@ -1,0 +1,446 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
+
+partial class DesktopApp {
+ void OpenRamOptimizerDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Bộ Tối Ưu RAM Chuyên Sâu & Quản Lý Tiến Trình · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 960, Height = 650, MinWidth = 780, MinHeight = 500,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("BỘ TỐI ƯU RAM CHUYÊN SÂU & QUẢN LÝ BỘ NHỚ TIẾN TRÌNH"), 19, true));
+  header.Children.Add(Label(I18n.T("Thu dọn bộ nhớ đệm (Working Set) của các tiến trình bằng Win32 SetProcessWorkingSetSize & EmptyWorkingSet.\n★ An toàn 100%: Giải phóng hàng trăm MB đến nhiều GB RAM bị chiếm giữ mà không tắt ứng dụng hay mất dữ liệu."), 12));
+
+  var mem = SystemPerformance.GetMemory();
+  var ramBar = new ProgressBar { Height = 8, Margin = new Thickness(0, 6, 0, 6), Maximum = 100, Value = mem.dwMemoryLoad };
+  var ramInfo = Label(string.Format("Đang dùng: {0}% ({1} / {2})", mem.dwMemoryLoad, Features.Size((long)(mem.ullTotalPhys - mem.ullAvailPhys)), Features.Size((long)mem.ullTotalPhys)), 13, true);
+  var ramBox = new StackPanel { Margin = new Thickness(0, 8, 0, 4) };
+  ramBox.Children.Add(ramInfo);
+  ramBox.Children.Add(ramBar);
+  var ramCard = Card(ramBox);
+  ramCard.Padding = new Thickness(14, 10, 14, 10);
+  header.Children.Add(ramCard);
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Đang tải danh sách tiến trình tiêu thụ bộ nhớ lớn nhất…"), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var grid = new DataGrid { IsReadOnly = true, AutoGenerateColumns = false, RowHeight = Double.NaN, MinRowHeight = 36 };
+  root.Children.Add(grid);
+  AddChecks(grid, "IsSelected");
+  AddColumn(grid, "PID", "Id", 70);
+  AddColumn(grid, "TÊN TIẾN TRÌNH", "Name", 180);
+  AddColumn(grid, "BỘ NHỚ (WORKING SET)", "WorkingSetLabel", 150);
+  AddColumn(grid, "TIÊU ĐỀ CỬA SỔ", "Title", 320);
+  AddColumn(grid, "SỐ LUỒNG", "Threads", 90);
+
+  List<ProcessMemoryInfo> procs = new List<ProcessMemoryInfo>();
+  Action refreshList = () => {
+   procs = ProcessMemoryManager.GetTopProcesses(30);
+   grid.ItemsSource = null;
+   grid.ItemsSource = procs;
+   var curMem = SystemPerformance.GetMemory();
+   ramBar.Value = curMem.dwMemoryLoad;
+   ramInfo.Text = string.Format("Đang dùng: {0}% ({1} / {2})", curMem.dwMemoryLoad, Features.Size((long)(curMem.ullTotalPhys - curMem.ullAvailPhys)), Features.Size((long)curMem.ullTotalPhys));
+   statusText.Text = string.Format("Hiển thị {0} tiến trình hàng đầu. Có thể chọn để dọn riêng lẻ hoặc dọn toàn bộ.", procs.Count);
+  };
+  refreshList();
+
+  var btnCompactAll = ActionButton(I18n.T("⚡ Thu dọn RAM toàn bộ tiến trình (Deep Compact)"), () => {
+   long freedBytes;
+   int trimmed = ProcessMemoryManager.OptimizeAll(out freedBytes);
+   refreshList();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   MessageBox.Show(dialog, string.Format("Đã thu dọn bộ nhớ cho {0} tiến trình thành công!\nGiải phóng: {1} RAM vật lý.", trimmed, Features.Size(freedBytes)), "Tối ưu RAM chuyên sâu", MessageBoxButton.OK, MessageBoxImage.Information);
+  });
+  btnCompactAll.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnCompactAll);
+
+  btnRow.Children.Add(ActionButton(I18n.T("🧹 Dọn các tiến trình đã chọn"), () => {
+   var chosen = procs.Where(x => x.IsSelected).ToList();
+   if (chosen.Count == 0) { MessageBox.Show(dialog, "Vui lòng chọn ít nhất 1 tiến trình.", "Thông báo"); return; }
+   int count = 0;
+   foreach (var p in chosen) {
+    if (ProcessMemoryManager.TrimProcess(p.Id)) count++;
+   }
+   refreshList();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   MessageBox.Show(dialog, string.Format("Đã thu dọn bộ nhớ cho {0} / {1} tiến trình đã chọn.", count, chosen.Count), "Dọn tiến trình", MessageBoxButton.OK, MessageBoxImage.Information);
+  }));
+
+  btnRow.Children.Add(ActionButton(I18n.T("Chọn tất cả"), () => {
+   foreach (var p in procs) p.IsSelected = true;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Bỏ chọn"), () => {
+   foreach (var p in procs) p.IsSelected = false;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Làm mới"), refreshList));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenDevAiCleanerDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Dọn dẹp Rác Lập Trình & Mô Hình AI Chuyên Sâu · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 980, Height = 650, MinWidth = 780, MinHeight = 500,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("TRÌNH DỌN RÁC LẬP TRÌNH & MÔ HÌNH AI (DEV & AI CLEANER)"), 19, true));
+  header.Children.Add(Label(I18n.T("Quét và làm sạch an toàn bộ đệm của các công cụ phát triển phần mềm và AI (NPM, Yarn, pnpm, Python pip, Hugging Face, PyTorch, Rust Cargo, Gradle, Go, Android SDK).\n★ Tiết kiệm từ 5GB đến hơn 40GB dung lượng ổ C:. Các thư mục này sẽ tự tạo lại khi bạn chạy lệnh cài đặt package mới."), 12));
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Đang quét các vị trí bộ đệm lập trình & AI…"), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var grid = new DataGrid { IsReadOnly = true, AutoGenerateColumns = false, RowHeight = Double.NaN, MinRowHeight = 36 };
+  root.Children.Add(grid);
+  AddChecks(grid, "Selected");
+  AddColumn(grid, "PHÂN LOẠI", "Category", 180);
+  AddColumn(grid, "CÔNG CỤ / NỀN TẢNG", "ToolName", 170);
+  AddColumn(grid, "SỐ TỆP", "FileCount", 80);
+  AddColumn(grid, "DUNG LƯỢNG RÁC", "SizeLabel", 130);
+  AddColumn(grid, "ĐƯỜNG DẪN THƯ MỤC", "Path", 340);
+
+  List<DevAiCacheItem> items = new List<DevAiCacheItem>();
+  Action scanCaches = async () => {
+   statusText.Text = "Đang rà soát các kho lưu trữ package và model AI…";
+   btnRow.IsEnabled = false;
+   try {
+    items = await Task.Run(() => DevAiCacheCleaner.ScanAll(CancellationToken.None, null));
+    grid.ItemsSource = null;
+    grid.ItemsSource = items;
+    long totalBytes = items.Sum(x => x.Bytes);
+    statusText.Text = string.Format("Đã phát hiện {0} kho bộ đệm lập trình & AI. Tổng dung lượng: {1}.", items.Count, Features.Size(totalBytes));
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi quét: " + ex.Message;
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  };
+  scanCaches();
+
+  var btnClean = ActionButton(I18n.T("🧹 Dọn sạch mục đã chọn"), async () => {
+   var chosen = items.Where(x => x.Selected).ToList();
+   if (chosen.Count == 0) { MessageBox.Show(dialog, "Vui lòng chọn ít nhất 1 mục bộ nhớ đệm để dọn.", "Thông báo"); return; }
+   long totalBytes = chosen.Sum(x => x.Bytes);
+   if (!Confirm(string.Format("Dọn sạch {0} thư mục bộ đệm lập trình/AI ({1})?\n\nToàn bộ tệp sẽ được chuyển vào Thùng rác để bạn có thể khôi phục nếu cần.", chosen.Count, Features.Size(totalBytes)))) return;
+
+   btnRow.IsEnabled = false;
+   int done = 0;
+   long cleanedBytes = 0;
+   foreach (var item in chosen) {
+    statusText.Text = "Đang dọn dẹp: " + item.ToolName + "…";
+    bool ok = await Task.Run(() => DevAiCacheCleaner.Clean(item, true));
+    if (ok) { done++; cleanedBytes += item.Bytes; }
+   }
+   btnRow.IsEnabled = true;
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   MessageBox.Show(dialog, string.Format("Đã dọn dẹp thành công {0} mục bộ nhớ đệm!\nGiải phóng: {1} an toàn vào Thùng rác.", done, Features.Size(cleanedBytes)), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   scanCaches();
+  });
+  btnClean.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnClean);
+
+  btnRow.Children.Add(ActionButton(I18n.T("Chọn tất cả"), () => {
+   foreach (var it in items) it.Selected = true;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Bỏ chọn"), () => {
+   foreach (var it in items) it.Selected = false;
+   grid.Items.Refresh();
+  }));
+  btnRow.Children.Add(ActionButton(I18n.T("Quét lại"), scanCaches));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenComponentStoreDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Phân tích & Tối ưu WinSxS (Windows Component Store) · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 880, Height = 600, MinWidth = 720, MinHeight = 460,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("PHÂN TÍCH & TỐI ƯU KHO THÀNH PHẦN WINSXS (DISM)"), 19, true));
+  header.Children.Add(Label(I18n.T("Sử dụng công cụ Microsoft DISM chính thức để kiểm tra và thu hồi các gói cập nhật Windows Update lỗi thời.\n★ An toàn tuyệt đối: Không can thiệp thủ công vào file hệ thống; DISM chỉ dọn các bản vá đã được thay thế."), 12));
+
+  var infoGrid = new Grid { Margin = new Thickness(0, 8, 0, 8) };
+  infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
+  infoGrid.ColumnDefinitions.Add(new ColumnDefinition());
+  infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+  infoGrid.ColumnDefinitions.Add(new ColumnDefinition());
+  for (int i = 0; i < 2; i++) infoGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+  var lblExp = Label("…", 13, true);
+  var lblAct = Label("…", 13, true);
+  var lblPkg = Label("…", 13, true);
+  var lblRec = Label("…", 13, true);
+
+  var k1 = Label("Dung lượng Explorer hiển thị:", 12); k1.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var k2 = Label("Dung lượng thực tế WinSxS:", 12); k2.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var k3 = Label("Số gói có thể thu hồi:", 12); k3.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var k4 = Label("Khuyến nghị dọn dẹp:", 12); k4.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+
+  Grid.SetRow(k1, 0); Grid.SetColumn(k1, 0); infoGrid.Children.Add(k1);
+  Grid.SetRow(lblExp, 0); Grid.SetColumn(lblExp, 1); infoGrid.Children.Add(lblExp);
+  Grid.SetRow(k2, 1); Grid.SetColumn(k2, 0); infoGrid.Children.Add(k2);
+  Grid.SetRow(lblAct, 1); Grid.SetColumn(lblAct, 1); infoGrid.Children.Add(lblAct);
+
+  Grid.SetRow(k3, 0); Grid.SetColumn(k3, 2); infoGrid.Children.Add(k3);
+  Grid.SetRow(lblPkg, 0); Grid.SetColumn(lblPkg, 3); infoGrid.Children.Add(lblPkg);
+  Grid.SetRow(k4, 1); Grid.SetColumn(k4, 2); infoGrid.Children.Add(k4);
+  Grid.SetRow(lblRec, 1); Grid.SetColumn(lblRec, 3); infoGrid.Children.Add(lblRec);
+
+  var cardInfo = Card(infoGrid);
+  cardInfo.Padding = new Thickness(14, 10, 14, 10);
+  header.Children.Add(cardInfo);
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Bấm 'Phân tích WinSxS' để kiểm tra kho thành phần Windows qua DISM."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var logBox = new TextBox {
+   IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   FontFamily = new FontFamily("Consolas"), FontSize = 11,
+   Margin = new Thickness(0, 4, 0, 0),
+   Text = "Nhật ký DISM Console sẵn sàng…"
+  };
+  logBox.SetResourceReference(Control.BackgroundProperty, "Header");
+  logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
+  root.Children.Add(logBox);
+
+  var btnAnalyze = ActionButton(I18n.T("🔍 Phân tích WinSxS (Analyze)"), async () => {
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang chạy DISM /AnalyzeComponentStore… Vui lòng chờ 1-2 phút…";
+   logBox.Text = "Bắt đầu phân tích kho thành phần Windows…\r\n";
+   try {
+    var res = await ComponentStoreManager.AnalyzeAsync(CancellationToken.None);
+    lblExp.Text = res.ExplorerSize;
+    lblAct.Text = res.ActualSize;
+    lblPkg.Text = res.ReclaimablePackages;
+    lblRec.Text = res.CleanupRecommended ? "CÓ (Nên dọn dẹp)" : "KHÔNG (Đã tối ưu)";
+    lblRec.Foreground = res.CleanupRecommended ? Brushes.OrangeRed : Brushes.MediumSeaGreen;
+    logBox.Text = res.RawOutput;
+    statusText.Text = res.CleanupRecommended ? "Phân tích xong: Khuyến nghị dọn dẹp kho thành phần!" : "Phân tích xong: Kho thành phần WinSxS đang trong trạng thái tối ưu.";
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi phân tích: " + ex.Message;
+    logBox.Text += "\r\n[Lỗi] " + ex.Message;
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnAnalyze.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnAnalyze);
+
+  var btnClean = ActionButton(I18n.T("⚡ Dọn dẹp kho thành phần (StartComponentCleanup)"), async () => {
+   if (!Confirm("Khởi chạy DISM /StartComponentCleanup để dọn dẹp các bản cập nhật đã thay thế?\nQuá trình có thể mất từ 3 đến 8 phút tùy tốc độ ổ cứng.")) return;
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang dọn dẹp WinSxS… Quá trình đang diễn ra ngầm…";
+   logBox.Text = "Bắt đầu dọn dẹp WinSxS qua DISM /StartComponentCleanup…\r\n";
+   try {
+    int code = await ComponentStoreManager.StartCleanupAsync(false, line => {
+     window.Dispatcher.Invoke(new Action(() => {
+      logBox.AppendText(line + "\r\n");
+      logBox.ScrollToEnd();
+     }));
+    }, CancellationToken.None);
+    statusText.Text = string.Format("Dọn dẹp hoàn tất với mã thoát: {0}.", code);
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    MessageBox.Show(dialog, "Đã hoàn tất dọn dẹp kho thành phần Windows WinSxS!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } catch (Exception ex) {
+    statusText.Text = "Lỗi khi dọn dẹp: " + ex.Message;
+    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+   } finally {
+    btnRow.IsEnabled = true;
+   }
+  });
+  btnRow.Children.Add(btnClean);
+
+  btnRow.Children.Add(ActionButton(I18n.T("Sao chép nhật ký"), () => {
+   try { Clipboard.SetText(logBox.Text); MessageBox.Show(dialog, "Đã sao chép nhật ký vào Clipboard!", "Thông báo"); } catch {}
+  }));
+
+  dialog.ShowDialog();
+ }
+
+ void OpenGameBoosterDialog() {
+  var dialog = new Window {
+   Title = I18n.T("Tăng tốc Game & Giảm Độ Trễ Mạng (Low-Latency Booster) · Dọn Dẹp PC 1.2"),
+   Owner = window, Width = 840, Height = 560, MinWidth = 700, MinHeight = 440,
+   WindowStartupLocation = WindowStartupLocation.CenterOwner,
+   Resources = window.Resources, FontFamily = window.FontFamily, FontSize = 13
+  };
+  dialog.SetResourceReference(Window.BackgroundProperty, "Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty, "Ink");
+  EnableEscapeClose(dialog);
+
+  var root = new DockPanel { Margin = new Thickness(20) };
+  dialog.Content = root;
+
+  var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+  DockPanel.SetDock(header, Dock.Top);
+  root.Children.Add(header);
+
+  header.Children.Add(Label(I18n.T("TĂNG TỐC GAME & TỐI ƯU HÓA ĐỘ TRỄ MẠNG (LOW-LATENCY BOOSTER)"), 19, true));
+  header.Children.Add(Label(I18n.T("Tối ưu độ trễ phản hồi mạng TCP/IP (vô hiệu hóa thuật toán Nagle), tăng mức ưu tiên GPU/CPU cho luồng trò chơi và kích hoạt gói năng lượng Ultimate Performance."), 12));
+
+  var statusBox = new StackPanel();
+  var lblTcp = Label("…", 13, true);
+  var lblSys = Label("…", 13, true);
+  var lblPri = Label("…", 13, true);
+
+  Action updateStatus = () => {
+   var st = GameBooster.GetStatus();
+   lblTcp.Text = st.IsTcpOptimized ? "✓ Đã tối ưu (TcpAckFrequency=1 & TCPNoDelay=1)" : "● Mặc định Windows (Có độ trễ gom gói tin Nagle)";
+   lblTcp.Foreground = st.IsTcpOptimized ? Brushes.MediumSeaGreen : Brushes.Orange;
+
+   lblSys.Text = (st.IsSystemResponsivenessOptimized && st.IsNetworkThrottlingDisabled) ? "✓ Đã tối ưu (SystemResponsiveness=0, Throttling=Tắt)" : "● Mặc định Windows (Dành 20% CPU cho nền, Bật bóp băng thông)";
+   lblSys.Foreground = (st.IsSystemResponsivenessOptimized && st.IsNetworkThrottlingDisabled) ? Brushes.MediumSeaGreen : Brushes.Orange;
+
+   lblPri.Text = st.IsGamesPriorityOptimized ? "✓ Đã ưu tiên (GPU Priority 8, Luồng Game: High)" : "● Mặc định Windows (Mức ưu tiên bình thường)";
+   lblPri.Foreground = st.IsGamesPriorityOptimized ? Brushes.MediumSeaGreen : Brushes.Orange;
+  };
+  updateStatus();
+
+  var sGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
+  sGrid.ColumnDefinitions.Add(new ColumnDefinition());
+  for (int i = 0; i < 3; i++) sGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+  var r1 = Label("Độ trễ TCP/IP Card Mạng:", 12); r1.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r2 = Label("Hệ thống & Băng thông Mạng:", 12); r2.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+  var r3 = Label("Mức ưu tiên luồng Game:", 12); r3.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+
+  Grid.SetRow(r1, 0); Grid.SetColumn(r1, 0); sGrid.Children.Add(r1);
+  Grid.SetRow(lblTcp, 0); Grid.SetColumn(lblTcp, 1); sGrid.Children.Add(lblTcp);
+  Grid.SetRow(r2, 1); Grid.SetColumn(r2, 0); sGrid.Children.Add(r2);
+  Grid.SetRow(lblSys, 1); Grid.SetColumn(lblSys, 1); sGrid.Children.Add(lblSys);
+  Grid.SetRow(r3, 2); Grid.SetColumn(r3, 0); sGrid.Children.Add(r3);
+  Grid.SetRow(lblPri, 2); Grid.SetColumn(lblPri, 1); sGrid.Children.Add(lblPri);
+
+  statusBox.Children.Add(sGrid);
+  var cardStatus = Card(statusBox);
+  cardStatus.Padding = new Thickness(14, 10, 14, 10);
+  header.Children.Add(cardStatus);
+
+  var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+  DockPanel.SetDock(bottom, Dock.Bottom);
+  root.Children.Add(bottom);
+
+  var statusText = Label(I18n.T("Chọn 'Kích hoạt Tối ưu Game' để áp dụng bộ tinh chỉnh hiệu năng cao."), 12);
+  statusText.Margin = new Thickness(0, 0, 0, 6);
+  bottom.Children.Add(statusText);
+
+  var btnRow = new WrapPanel();
+  bottom.Children.Add(btnRow);
+
+  var logBox = new TextBox {
+   IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   FontFamily = new FontFamily("Consolas"), FontSize = 11,
+   Margin = new Thickness(0, 4, 0, 0),
+   Text = "Chi tiết các thiết lập tối ưu hóa độ trễ sẽ hiển thị tại đây…"
+  };
+  logBox.SetResourceReference(Control.BackgroundProperty, "Header");
+  logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
+  root.Children.Add(logBox);
+
+  var btnBoost = ActionButton(I18n.T("⚡ Kích hoạt Tối ưu Game (1-Click Boost)"), () => {
+   string report;
+   bool ok = GameBooster.ApplyOptimizations(out report);
+   logBox.Text = report;
+   updateStatus();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   if (ok) {
+    statusText.Text = "Đã kích hoạt tối ưu hóa độ trễ mạng và hiệu năng Game thành công!";
+    MessageBox.Show(dialog, "Đã kích hoạt bộ tối ưu Game & độ trễ mạng thành công!\nKhởi động lại một số game để nhận hiệu quả cao nhất.", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } else {
+    statusText.Text = "Áp dụng tối ưu có cảnh báo hoặc cần quyền Administrator.";
+    MessageBox.Show(dialog, "Không thể ghi một số khóa Registry. Hãy thử mở lại Dọn Dẹp PC bằng quyền Run as Administrator.", "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
+   }
+  });
+  btnBoost.Style = (Style)window.Resources["Primary"];
+  btnRow.Children.Add(btnBoost);
+
+  btnRow.Children.Add(ActionButton(I18n.T("🔄 Khôi phục mặc định Windows"), () => {
+   if (!Confirm("Khôi phục toàn bộ thiết lập mạng TCP/IP và luồng đa phương tiện về mặc định Windows?")) return;
+   string report;
+   GameBooster.RestoreDefaults(out report);
+   logBox.Text = report;
+   updateStatus();
+   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   statusText.Text = "Đã khôi phục thiết lập mặc định Windows.";
+   MessageBox.Show(dialog, "Đã khôi phục thiết lập mạng và Multimedia về mặc định của Windows!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+  }));
+
+  dialog.ShowDialog();
+ }
+}

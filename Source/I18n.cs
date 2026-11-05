@@ -266,6 +266,27 @@ static class I18n {
   Add("Kiểm tra bản cập nhật trên GitHub", "Check for Updates on GitHub");
   Add("Mở Kho mã nguồn GitHub", "Open GitHub Repository");
   Add("Sao chép thông tin phiên bản", "Copy Version Information");
+
+  // Elite 2.0 Translations
+  Add("Rác Lập trình & Mô hình AI", "Developer & AI Model Caches");
+  Add("Dọn sạch bộ đệm của NPM, Yarn, Pip, PyTorch, Hugging Face, Gradle, Cargo... tiết kiệm hàng chục GB ổ C:.", "Purge caches for NPM, Yarn, Pip, PyTorch, Hugging Face, Gradle, Cargo... reclaiming tens of GBs on C:.");
+  Add("Dọn rác Dev & AI", "Clean Dev & AI Caches");
+  Add("Tăng tốc Game & Giảm Ping", "Game Booster & Low Latency");
+  Add("Tối ưu hóa độ trễ TCP/IP, tắt bóp băng thông mạng (Throttling) và mở khóa gói Ultimate Performance.", "Optimize TCP/IP latency, disable network throttling, and unlock Ultimate Performance power scheme.");
+  Add("Mở Bộ Tăng tốc Game", "Open Game Booster");
+  Add("Tối ưu kho WinSxS (DISM)", "WinSxS Component Store (DISM)");
+  Add("Phân tích và thu hồi các gói cập nhật Windows Update cũ qua công cụ Microsoft DISM chính thức.", "Analyze and reclaim superseded Windows Update packages via official Microsoft DISM.");
+  Add("Mở Tối ưu WinSxS", "Open WinSxS Optimizer");
+  Add("Bộ Tối ưu RAM Chuyên sâu", "Intelligent RAM Optimizer");
+  Add("Thu dọn Working Set của các tiến trình bằng API Win32, giải phóng bộ nhớ RAM mà không tắt ứng dụng.", "Trim process working sets via Win32 APIs, recovering memory without closing apps.");
+  Add("Mở Tối ưu RAM", "Open RAM Optimizer");
+  Add("BỘ TỐI ƯU RAM CHUYÊN SÂU & QUẢN LÝ BỘ NHỚ TIẾN TRÌNH", "INTELLIGENT RAM OPTIMIZER & PROCESS MEMORY MANAGER");
+  Add("TRÌNH DỌN RÁC LẬP TRÌNH & MÔ HÌNH AI (DEV & AI CLEANER)", "DEVELOPER & AI MODEL CACHE CLEANER");
+  Add("PHÂN TÍCH & TỐI ƯU KHO THÀNH PHẦN WINSXS (DISM)", "WINSXS COMPONENT STORE ANALYZER & CLEANER (DISM)");
+  Add("TĂNG TỐC GAME & TỐI ƯU HÓA ĐỘ TRỄ MẠNG (LOW-LATENCY BOOSTER)", "GAME BOOSTER & NETWORK LATENCY OPTIMIZER");
+  Add("⚡ Thu dọn RAM toàn bộ tiến trình (Deep Compact)", "⚡ Deep Compact RAM for All Processes");
+  Add("🧹 Dọn các tiến trình đã chọn", "🧹 Trim Selected Processes");
+  Add("🌐 Lưu lượng mạng thời gian thực: ↓ 0 KB/s · ↑ 0 KB/s", "🌐 Real-time Network Traffic: ↓ 0 KB/s · ↑ 0 KB/s");
  }
 
  public static void Init() {

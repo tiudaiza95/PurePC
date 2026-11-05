@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 using System;
 using System.IO;
 using System.Linq;
@@ -38,6 +39,8 @@ public class SystemMetrics {
  public long DiskFree { get; set; }
  public double DiskPercent { get; set; }
  public List<DiskDriveMetrics> Drives { get; set; }
+ public double NetworkDownKBps { get; set; }
+ public double NetworkUpKBps { get; set; }
 }
 
 public static class SystemPerformance {
@@ -191,29 +194,68 @@ public static class SystemPerformance {
    m.DiskFree = sysDrive.Free;
    m.DiskPercent = sysDrive.Percent;
   }
+  double netDown, netUp;
+  GetNetworkBandwidth(out netDown, out netUp);
+  m.NetworkDownKBps = netDown;
+  m.NetworkUpKBps = netUp;
   return m;
  }
 
- [DllImport("psapi.dll")]
- static extern int EmptyWorkingSet(IntPtr hwProc);
+ static long lastBytesRecv = -1;
+ static long lastBytesSent = -1;
+ static DateTime lastNetSampleTime = DateTime.MinValue;
+ static double lastDownKBps = 0;
+ static double lastUpKBps = 0;
+ static readonly object netSync = new object();
+
+ public static void GetNetworkBandwidth(out double downKBps, out double upKBps) {
+  lock (netSync) {
+   DateTime now = DateTime.UtcNow;
+   long totalRecv = 0;
+   long totalSent = 0;
+   try {
+    NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+    for (int i = 0; i < nics.Length; i++) {
+     NetworkInterface ni = nics[i];
+     if (ni.OperationalStatus == OperationalStatus.Up && 
+         ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+         ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel) {
+      IPv4InterfaceStatistics stats = ni.GetIPv4Statistics();
+      totalRecv += stats.BytesReceived;
+      totalSent += stats.BytesSent;
+     }
+    }
+   } catch {}
+
+   if (lastBytesRecv < 0 || lastNetSampleTime == DateTime.MinValue) {
+    lastBytesRecv = totalRecv;
+    lastBytesSent = totalSent;
+    lastNetSampleTime = now;
+    downKBps = 0;
+    upKBps = 0;
+    return;
+   }
+
+   double seconds = (now - lastNetSampleTime).TotalSeconds;
+   if (seconds >= 0.4) {
+    long diffRecv = totalRecv - lastBytesRecv;
+    long diffSent = totalSent - lastBytesSent;
+    if (diffRecv < 0) diffRecv = 0;
+    if (diffSent < 0) diffSent = 0;
+    lastDownKBps = (diffRecv / 1024.0) / seconds;
+    lastUpKBps = (diffSent / 1024.0) / seconds;
+    lastBytesRecv = totalRecv;
+    lastBytesSent = totalSent;
+    lastNetSampleTime = now;
+   }
+   downKBps = lastDownKBps;
+   upKBps = lastUpKBps;
+  }
+ }
 
  public static long OptimizeMemory() {
-  long freed = 0;
-  try {
-   var memBefore = GetMemory();
-   foreach (var p in Process.GetProcesses()) {
-    try {
-     if (p.Id <= 4) continue;
-     EmptyWorkingSet(p.Handle);
-    } catch {}
-   }
-   GC.Collect();
-   GC.WaitForPendingFinalizers();
-   var memAfter = GetMemory();
-   if (memAfter.ullAvailPhys > memBefore.ullAvailPhys) {
-    freed = (long)(memAfter.ullAvailPhys - memBefore.ullAvailPhys);
-   }
-  } catch {}
+  long freed;
+  ProcessMemoryManager.OptimizeAll(out freed);
   return freed;
  }
 }

@@ -110,6 +110,8 @@ partial class DesktopApp {
   var ramWave=new Canvas{Height=32,Margin=new Thickness(0,4,0,4),ClipToBounds=true};
   var ramBox=new StackPanel();ramBox.Children.Add(ramTitle);ramBox.Children.Add(ramVal);ramBox.Children.Add(ramBar);ramBox.Children.Add(ramWave);ramBox.Children.Add(ramSub);
   var ramCard=Card(ramBox);ramCard.Margin=new Thickness(3,0,3,0);ramCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(ramCard,1);perfGrid.Children.Add(ramCard);
+  ramCard.Cursor=System.Windows.Input.Cursors.Hand;ramCard.ToolTip=I18n.T("Bấm để mở Bộ Tối Ưu RAM Chuyên Sâu & Quản Lý Tiến Trình");
+  ramCard.MouseLeftButtonUp+=(s,e)=>OpenRamOptimizerDialog();
 
   // Ô 3: Ổ ĐĨA (Hỗ trợ đa phân vùng C:, D:,...)
   int selectedDriveIdx=0;
@@ -123,14 +125,19 @@ partial class DesktopApp {
 
   mainStack.Children.Add(perfGrid);
 
-  // Dải ghi chú an toàn chân trang (Lấp đầy khoảng trống hài hòa)
+  // Dải ghi chú an toàn chân trang & Băng thông mạng
   var footerCard=new StackPanel();
+  var netBadge=Label(I18n.T("🌐 Lưu lượng mạng thời gian thực: ↓ 0 KB/s · ↑ 0 KB/s"),12,true);
+  netBadge.HorizontalAlignment=HorizontalAlignment.Center;
+  netBadge.Margin=new Thickness(0,0,0,4);
+  footerCard.Children.Add(netBadge);
+
   var footNote=Label(I18n.T("Chế độ bảo vệ dữ liệu tích cực: Toàn bộ tác vụ quét dọn hệ thống đều ưu tiên chuyển vào Thùng rác để khôi phục và sao lưu Registry an toàn trước khi xử lý."),12);
   footNote.HorizontalAlignment=HorizontalAlignment.Center;
   footNote.SetResourceReference(TextBlock.ForegroundProperty,"Muted");
   footerCard.Children.Add(footNote);
   var footBorder=Card(footerCard);
-  footBorder.Padding=new Thickness(18,12,18,12);
+  footBorder.Padding=new Thickness(18,10,18,10);
   mainStack.Children.Add(footBorder);
 
   var cpuPts=new List<double>();
@@ -199,6 +206,9 @@ partial class DesktopApp {
    diskVal.Text=Features.Size(dFree)+" "+I18n.T("trống");
    diskBar.Value=dPct;
    diskSub.Text=I18n.T("Tổng")+" "+Features.Size(dTotal)+" · "+I18n.T("đã dùng")+" "+dPct.ToString("0.0")+"%";
+   string downStr=m.NetworkDownKBps>=1024.0?(m.NetworkDownKBps/1024.0).ToString("0.0")+" MB/s":m.NetworkDownKBps.ToString("0")+" KB/s";
+   string upStr=m.NetworkUpKBps>=1024.0?(m.NetworkUpKBps/1024.0).ToString("0.0")+" MB/s":m.NetworkUpKBps.ToString("0")+" KB/s";
+   netBadge.Text=string.Format("🌐 Lưu lượng mạng thời gian thực: ↓ {0}  ·  ↑ {1}",downStr,upStr);
    drawWave(cpuWave,cpuPts,m.CpuUsage,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245),true);
    drawWave(ramWave,ramPts,(double)m.RamPercent,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105),true);
   };
@@ -306,8 +316,7 @@ partial class DesktopApp {
 
   // NÚT 4: ⚡ Tối ưu RAM (Hàng 1, Cột 1)
   var btnRam=ActionButton(I18n.T("⚡ Tối ưu RAM"),()=>{
-   long freed=SystemPerformance.OptimizeMemory();
-   MessageBox.Show(window,"Đã thu hồi và giải phóng "+Features.Size(freed)+" bộ nhớ RAM vật lý!","Tối ưu RAM",MessageBoxButton.OK,MessageBoxImage.Information);
+   OpenRamOptimizerDialog();
    updateM();
   });
   btnRam.Padding=new Thickness(12,10,12,10);

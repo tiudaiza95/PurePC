@@ -36,7 +36,7 @@ partial class DesktopApp {
   var grid=new Grid{Margin=new Thickness(0,0,0,14)};
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
-  for(int r=0;r<5;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+  for(int r=0;r<7;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
   rootPanel.Children.Add(grid);
 
   Func<string,string,string,string,Action,Border> createToolCard=(icon,title,desc,btnText,action)=>{
@@ -157,6 +157,23 @@ partial class DesktopApp {
   }));
   schedule.Children.Add(buttons);
   var c10=Card(schedule);c10.Padding=new Thickness(16,14,16,14);
-  c10.Margin=new Thickness(5,0,0,0);Grid.SetRow(c10,4);Grid.SetColumn(c10,1);grid.Children.Add(c10);
+  c10.Margin=new Thickness(5,0,0,10);Grid.SetRow(c10,4);Grid.SetColumn(c10,1);grid.Children.Add(c10);
+  c9.Margin=new Thickness(0,0,5,10);
+
+  // Card 11: Dev & AI Cache Cleaner
+  var c11=createToolCard("💻","Rác Lập trình & Mô hình AI","Dọn sạch bộ đệm của NPM, Yarn, Pip, PyTorch, Hugging Face, Gradle, Cargo... tiết kiệm hàng chục GB ổ C:.","Dọn rác Dev & AI",OpenDevAiCleanerDialog);
+  c11.Margin=new Thickness(0,0,5,10);Grid.SetRow(c11,5);Grid.SetColumn(c11,0);grid.Children.Add(c11);
+
+  // Card 12: Game & Low-Latency Booster
+  var c12=createToolCard("🎮","Tăng tốc Game & Giảm Ping","Tối ưu hóa độ trễ TCP/IP, tắt bóp băng thông mạng (Throttling) và mở khóa gói Ultimate Performance.","Mở Bộ Tăng tốc Game",OpenGameBoosterDialog);
+  c12.Margin=new Thickness(5,0,0,10);Grid.SetRow(c12,5);Grid.SetColumn(c12,1);grid.Children.Add(c12);
+
+  // Card 13: WinSxS & Component Store Optimizer
+  var c13=createToolCard("🧱","Tối ưu kho WinSxS (DISM)","Phân tích và thu hồi các gói cập nhật Windows Update cũ qua công cụ Microsoft DISM chính thức.","Mở Tối ưu WinSxS",OpenComponentStoreDialog);
+  c13.Margin=new Thickness(0,0,5,0);Grid.SetRow(c13,6);Grid.SetColumn(c13,0);grid.Children.Add(c13);
+
+  // Card 14: Intelligent RAM Optimizer
+  var c14=createToolCard("🧠","Bộ Tối ưu RAM Chuyên sâu","Thu dọn Working Set của các tiến trình bằng API Win32, giải phóng bộ nhớ RAM mà không tắt ứng dụng.","Mở Tối ưu RAM",OpenRamOptimizerDialog);
+  c14.Margin=new Thickness(5,0,0,0);Grid.SetRow(c14,6);Grid.SetColumn(c14,1);grid.Children.Add(c14);
  }
 }

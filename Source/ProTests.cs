@@ -89,6 +89,28 @@ static class ProTests {
    File.WriteAllText(testShred, "SECRET TEST CONTENT");
    FileShredder.ShredFile(testShred, 1);
    Check(!File.Exists(testShred), "FileShredder.ShredFile overwrites and deletes file successfully");
+   
+   // Elite Optimizations Unit Tests
+   Check(!ProcessMemoryManager.TrimProcess(0), "ProcessMemoryManager protects PID 0 System Idle");
+   Check(!ProcessMemoryManager.TrimProcess(4), "ProcessMemoryManager protects PID 4 System Kernel");
+   var topProcs = ProcessMemoryManager.GetTopProcesses(5);
+   Check(topProcs != null, "ProcessMemoryManager.GetTopProcesses returns list");
+   double downRate, upRate;
+   SystemPerformance.GetNetworkBandwidth(out downRate, out upRate);
+   Check(downRate >= 0 && upRate >= 0, "SystemPerformance.GetNetworkBandwidth non-negative");
+   var devTargets = DevAiCacheCleaner.GetKnownTargets();
+   Check(devTargets.Count >= 10, "DevAiCacheCleaner registers at least 10 ecosystem targets");
+   Check(devTargets.Any(x => x.ToolName.Contains("NPM")), "DevAiCacheCleaner targets NPM");
+   Check(devTargets.Any(x => x.ToolName.Contains("Hugging Face")), "DevAiCacheCleaner targets Hugging Face AI");
+   Check(ComponentStoreManager.IsAvailable, "ComponentStoreManager dism.exe is available on Windows");
+   string fakeDismOut = "Windows Explorer Reported Size of Component Store : 10.50 GB\nActual Size of the Component Store : 8.20 GB\nNumber of Reclaimable Packages : 2\nComponent Store Cleanup Recommended : Yes\n";
+   var parsedDism = ComponentStoreManager.ParseAnalysis(fakeDismOut);
+   Check(parsedDism.ExplorerSize == "10.50 GB", "DISM analysis parses Explorer size");
+   Check(parsedDism.ActualSize == "8.20 GB", "DISM analysis parses Actual size");
+   Check(parsedDism.ReclaimablePackages == "2", "DISM analysis parses Reclaimable packages");
+   Check(parsedDism.CleanupRecommended, "DISM analysis parses CleanupRecommended flag");
+   var gameStatus = GameBooster.GetStatus();
+   Check(gameStatus != null, "GameBooster.GetStatus executes without exception");
   return count;
  }
 }
