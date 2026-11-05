@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Windows.Media;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -21,22 +23,59 @@ static class Maintenance {
  static void Release(object obj){if(obj!=null&&System.Runtime.InteropServices.Marshal.IsComObject(obj))System.Runtime.InteropServices.Marshal.ReleaseComObject(obj);}
  public static void ScheduledScan(){using(var cancel=new CancellationTokenSource(TimeSpan.FromMinutes(10))){var found=AnalysisTools.Cleanup(AnalysisTools.Roots()[0],cancel.Token,null);string report="Quét theo lịch hoàn tất lúc "+DateTime.Now.ToString("dd/MM/yyyy HH:mm")+"\n"+found.Items.Count+" tệp Temp đủ điều kiện xem trước / "+Features.Size(found.Items.Sum(x=>x.Size))+"\nKhông có tệp nào bị xóa. Mở Dọn Dẹp PC để xem và tự chọn nếu muốn dọn.";Directory.CreateDirectory(Engine.Data);File.WriteAllText(Path.Combine(Engine.Data,"scheduled-last.txt"),report);Engine.Log("SCHEDULE_SCAN "+report.Replace("\n"," | "));MessageBox.Show(report,"Dọn Dẹp PC · Thông báo quét");}}
 }
+class ProToolItem {
+ public int Category;
+ public string Title;
+ public string Keywords;
+ public Border Card;
+}
 partial class DesktopApp {
+ TextBox toolSearchBox;
  void BuildTools(){
   proHost.Children.Clear();
   Text("Heading",I18n.T("Trung tâm Tiện ích Pro & Công cụ nâng cao"));
-  Text("Subtitle",I18n.T("Kho công cụ chuyên sâu: Tối ưu CSDL, Hủy tệp an toàn, Dọn Registry, Gỡ UWP và bảo trì Windows"));
+  Text("Subtitle",I18n.T("Kho 20 công cụ chuyên sâu: Tối ưu CSDL, Hủy tệp, Dọn Registry, Gỡ UWP, Tăng tốc RAM/Game và bảo trì Windows"));
 
   var scroll=new ScrollViewer{VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
   proHost.Children.Add(scroll);
   var rootPanel=new StackPanel{Margin=new Thickness(0,0,0,16)};
   scroll.Content=rootPanel;
 
-  // LƯỚI CARD CÔNG CỤ CHUYÊN SÂU (2 Cột x 5 Hàng)
+  // THANH TÌM KIẾM VÀ BỘ LỌC DANH MỤC TIỆN ÍCH PRO
+  var filterBar=new StackPanel{Margin=new Thickness(0,0,0,16)};
+  rootPanel.Children.Add(filterBar);
+
+  var searchBorder=new Border{CornerRadius=new CornerRadius(10),Padding=new Thickness(14,6,14,6),Margin=new Thickness(0,0,0,12)};
+  searchBorder.SetResourceReference(Border.BackgroundProperty,"Header");
+  var searchGrid=new Grid();
+  toolSearchBox=new TextBox{FontSize=13,VerticalAlignment=VerticalAlignment.Center,BorderThickness=new Thickness(0),Background=Brushes.Transparent};
+  toolSearchBox.SetResourceReference(TextBox.ForegroundProperty,"Ink");
+  var searchHint=Label(I18n.T("🔍 Tìm kiếm tiện ích... (ví dụ: ram, ssd, registry, mạng, game, dism, uwp...) · Phím tắt: Ctrl+F"),12);
+  searchHint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");
+  searchHint.VerticalAlignment=VerticalAlignment.Center;searchHint.IsHitTestVisible=false;
+  searchGrid.Children.Add(toolSearchBox);
+  searchGrid.Children.Add(searchHint);
+  searchBorder.Child=searchGrid;
+  filterBar.Children.Add(searchBorder);
+
+  // HÀNG NÚT DANH MỤC
+  var catRow=new WrapPanel{Margin=new Thickness(0,0,0,4)};
+  filterBar.Children.Add(catRow);
+
+  int activeCat=0;
+  var catButtons=new List<Button>();
+  string[] catNames=new string[]{
+   "✨ Tất cả (20)",
+   "🚀 Tăng tốc & RAM (5)",
+   "🧹 Dọn dẹp chuyên sâu (6)",
+   "🛡️ Bảo mật & Menu (4)",
+   "🔧 Sửa lỗi & Bảo trì (5)"
+  };
+
+  // LƯỚI CARD CÔNG CỤ CHUYÊN SÂU (2 Cột x N Hàng động)
   var grid=new Grid{Margin=new Thickness(0,0,0,14)};
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
-  for(int r=0;r<10;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
   rootPanel.Children.Add(grid);
 
   Func<string,string,string,string,Action,Border> createToolCard=(icon,title,desc,btnText,action)=>{
@@ -58,35 +97,37 @@ partial class DesktopApp {
    return card;
   };
 
-  // Card 1: SQLite Optimizer
+  var toolList=new List<ProToolItem>();
+
+  // Card 1: SQLite Optimizer (Cat 1: Tăng tốc)
   var c1=createToolCard("⚡","Tối ưu hóa Database SQLite","Hút bụi chân không (Vacuum) và tái lập chỉ mục (Reindex) CSDL của Chrome, Edge, Firefox, VS Code... tăng tốc mở app.","Mở SQLite Optimizer",OpenSqliteOptimizerDialog);
-  c1.Margin=new Thickness(0,0,5,10);Grid.SetRow(c1,0);Grid.SetColumn(c1,0);grid.Children.Add(c1);
+  toolList.Add(new ProToolItem{Category=1,Title="Tối ưu hóa Database SQLite",Keywords="sqlite database chrome edge firefox csdl vacuum reindex toc do khoi dong",Card=c1});
 
-  // Card 2: File Shredder
+  // Card 2: File Shredder (Cat 3: Bảo mật)
   var c2=createToolCard("🔥","Hủy tệp an toàn (File Shredder)","Ghi đè dữ liệu 3 lượt theo chuẩn DoD 5220.22-M và xóa dấu vết MFT, chống khôi phục hoàn toàn.","Mở File Shredder",OpenFileShredderDialog);
-  c2.Margin=new Thickness(5,0,0,10);Grid.SetRow(c2,0);Grid.SetColumn(c2,1);grid.Children.Add(c2);
+  toolList.Add(new ProToolItem{Category=3,Title="Hủy tệp an toàn (File Shredder)",Keywords="huy tep an toan file shredder dod 5220 xoa vinh vien mft chong khoi phuc bao mat",Card=c2});
 
-  // Card 3: Registry Cleaner
+  // Card 3: Registry Cleaner (Cat 2: Dọn dẹp)
   var c3=createToolCard("🧹","Dọn dẹp Registry thông minh","Quét và làm sạch các khóa Registry mồ côi (CLSID, DLL thiếu, MUI cache rác). Tự động sao lưu .reg.","Mở Dọn Registry",OpenRegistryCleanerDialog);
-  c3.Margin=new Thickness(0,0,5,10);Grid.SetRow(c3,1);Grid.SetColumn(c3,0);grid.Children.Add(c3);
+  toolList.Add(new ProToolItem{Category=2,Title="Dọn dẹp Registry thông minh",Keywords="don dep registry cleaner mo coi clsid dll mui cache reg he thong",Card=c3});
 
-  // Card 4: UWP Bloatware Uninstaller
+  // Card 4: UWP Bloatware Uninstaller (Cat 2: Dọn dẹp)
   var c4=createToolCard("📦","Gỡ Bloatware Windows 10/11","Gỡ bỏ sạch sẽ các ứng dụng Universal mặc định như Xbox, Cortana, Maps, Thời tiết... Bảo vệ Store.","Mở Gỡ ứng dụng UWP",OpenUwpManagerDialog);
-  c4.Margin=new Thickness(5,0,0,10);Grid.SetRow(c4,1);Grid.SetColumn(c4,1);grid.Children.Add(c4);
+  toolList.Add(new ProToolItem{Category=2,Title="Gỡ Bloatware Windows 10/11",Keywords="go bloatware uwp windows 10 11 xbox cortana store app universal go cai dat",Card=c4});
 
-  // Card 5: Browser Extensions
+  // Card 5: Browser Extensions (Cat 3: Bảo mật)
   var c5=createToolCard("🧩","Tiện ích mở rộng trình duyệt","Liệt kê, bật/tắt hoặc gỡ bỏ các Add-on/Extension mở rộng trên Chrome, Edge, Cốc Cốc, Brave, Firefox.","Quản lý tiện ích",OpenBrowserExtensionsDialog);
-  c5.Margin=new Thickness(0,0,5,10);Grid.SetRow(c5,2);Grid.SetColumn(c5,0);grid.Children.Add(c5);
+  toolList.Add(new ProToolItem{Category=3,Title="Tiện ích mở rộng trình duyệt",Keywords="tien ich mo rong browser extensions add-on chrome edge coc coc brave firefox",Card=c5});
 
-  // Card 6: Services Manager
+  // Card 6: Services Manager (Cat 4: Sửa lỗi & Bảo trì)
   var c6=createToolCard("⚙️","Quản lý Dịch vụ Windows","Kiểm soát các dịch vụ nền của phần mềm bên thứ 3 tự khởi chạy, bảo vệ tuyệt đối dịch vụ Windows cốt lõi.","Quản lý Dịch vụ",OpenServicesDialog);
-  c6.Margin=new Thickness(5,0,0,10);Grid.SetRow(c6,2);Grid.SetColumn(c6,1);grid.Children.Add(c6);
+  toolList.Add(new ProToolItem{Category=4,Title="Quản lý Dịch vụ Windows",Keywords="quan ly dich vu windows services chay ngam tat dich vu toi uu khoi dong",Card=c6});
 
-  // Card 7: Setup Monitor
+  // Card 7: Setup Monitor (Cat 4: Sửa lỗi & Bảo trì)
   var c7=createToolCard("🔍","Giám sát cài đặt ứng dụng","Chụp snapshot hệ thống trước và sau cài đặt để theo dõi 100% tệp và registry đã sinh ra, hỗ trợ gỡ sạch.","Bật Giám sát cài đặt",OpenSetupMonitorDialog);
-  c7.Margin=new Thickness(0,0,5,10);Grid.SetRow(c7,3);Grid.SetColumn(c7,0);grid.Children.Add(c7);
+  toolList.Add(new ProToolItem{Category=4,Title="Giám sát cài đặt ứng dụng",Keywords="giam sat cai dat setup monitor snapshot theo doi go sach phan du",Card=c7});
 
-  // Card 8: DNS Flush & Recycle Bin
+  // Card 8: DNS Flush & Recycle Bin (Cat 1: Tăng tốc)
   var p8=new StackPanel();
   var h8=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
   h8.Children.Add(Label("🚀  ",18,true));h8.Children.Add(Label(I18n.T("Làm sạch DNS & Dọn Thùng rác"),14,true));p8.Children.Add(h8);
@@ -107,9 +148,9 @@ partial class DesktopApp {
   }));
   p8.Children.Add(row8);
   var c8=Card(p8);c8.Padding=new Thickness(16,14,16,14);
-  c8.Margin=new Thickness(5,0,0,10);Grid.SetRow(c8,3);Grid.SetColumn(c8,1);grid.Children.Add(c8);
+  toolList.Add(new ProToolItem{Category=1,Title="Làm sạch DNS & Dọn Thùng rác",Keywords="lam sach dns flush dns resolver cache thung rac recycle bin xoa mang",Card=c8});
 
-  // Card 9: WinGet Updater
+  // Card 9: WinGet Updater (Cat 4: Sửa lỗi & Bảo trì)
   var updates=new StackPanel();
   var hu=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
   hu.Children.Add(Label("🔄  ",18,true));hu.Children.Add(Label("Software Updater · WinGet",14,true));updates.Children.Add(hu);
@@ -135,9 +176,9 @@ partial class DesktopApp {
   toolOutput=new TextBox{IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,Height=130,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Text="Chưa kiểm tra trực tuyến.",FontFamily=new System.Windows.Media.FontFamily("Consolas"),FontSize=11,Margin=new Thickness(0,8,0,0)};
   updates.Children.Add(toolOutput);
   var c9=Card(updates);c9.Padding=new Thickness(16,14,16,14);
-  c9.Margin=new Thickness(0,0,5,0);Grid.SetRow(c9,4);Grid.SetColumn(c9,0);grid.Children.Add(c9);
+  toolList.Add(new ProToolItem{Category=4,Title="Software Updater · WinGet",Keywords="software updater winget cap nhat phan mem official microsoft package",Card=c9});
 
-  // Card 10: Task Scheduler
+  // Card 10: Task Scheduler (Cat 4: Sửa lỗi & Bảo trì)
   var schedule=new StackPanel();
   var hs=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,6)};
   hs.Children.Add(Label("⏰  ",18,true));hs.Children.Add(Label(I18n.T("Lịch quét tự động"),14,true));schedule.Children.Add(hs);
@@ -157,47 +198,95 @@ partial class DesktopApp {
   }));
   schedule.Children.Add(buttons);
   var c10=Card(schedule);c10.Padding=new Thickness(16,14,16,14);
-  c10.Margin=new Thickness(5,0,0,10);Grid.SetRow(c10,4);Grid.SetColumn(c10,1);grid.Children.Add(c10);
-  c9.Margin=new Thickness(0,0,5,10);
+  toolList.Add(new ProToolItem{Category=4,Title="Lịch quét tự động",Keywords="lich quet tu dong task scheduler hen gio tu dong quet temp",Card=c10});
 
-  // Card 11: Dev & AI Cache Cleaner
+  // Card 11: Dev & AI Cache Cleaner (Cat 2: Dọn dẹp)
   var c11=createToolCard("💻","Rác Lập trình & Mô hình AI","Dọn sạch bộ đệm của NPM, Yarn, Pip, PyTorch, Hugging Face, Gradle, Cargo... tiết kiệm hàng chục GB ổ C:.","Dọn rác Dev & AI",OpenDevAiCleanerDialog);
-  c11.Margin=new Thickness(0,0,5,10);Grid.SetRow(c11,5);Grid.SetColumn(c11,0);grid.Children.Add(c11);
+  toolList.Add(new ProToolItem{Category=2,Title="Rác Lập trình & Mô hình AI",Keywords="rac lap trinh dev ai cache python pip npm yarn pytorch hugging face gradle cargo",Card=c11});
 
-  // Card 12: Game & Low-Latency Booster
+  // Card 12: Game & Low-Latency Booster (Cat 1: Tăng tốc)
   var c12=createToolCard("🎮","Tăng tốc Game & Giảm Ping","Tối ưu hóa độ trễ TCP/IP, tắt bóp băng thông mạng (Throttling) và mở khóa gói Ultimate Performance.","Mở Bộ Tăng tốc Game",OpenGameBoosterDialog);
-  c12.Margin=new Thickness(5,0,0,10);Grid.SetRow(c12,5);Grid.SetColumn(c12,1);grid.Children.Add(c12);
+  toolList.Add(new ProToolItem{Category=1,Title="Tăng tốc Game & Giảm Ping",Keywords="tang toc game giam ping lag tcp nagle throttling ultimate performance latency do tre",Card=c12});
 
-  // Card 13: WinSxS & Component Store Optimizer
+  // Card 13: WinSxS & Component Store Optimizer (Cat 2: Dọn dẹp)
   var c13=createToolCard("🧱","Tối ưu kho WinSxS (DISM)","Phân tích và thu hồi các gói cập nhật Windows Update cũ qua công cụ Microsoft DISM chính thức.","Mở Tối ưu WinSxS",OpenComponentStoreDialog);
-  c13.Margin=new Thickness(0,0,5,10);Grid.SetRow(c13,6);Grid.SetColumn(c13,0);grid.Children.Add(c13);
+  toolList.Add(new ProToolItem{Category=2,Title="Tối ưu kho WinSxS (DISM)",Keywords="toi uu winsxs dism component store windows update ban cap nhat cu ban sao",Card=c13});
 
-  // Card 14: Intelligent RAM Optimizer
+  // Card 14: Intelligent RAM Optimizer (Cat 1: Tăng tốc)
   var c14=createToolCard("🧠","Bộ Tối ưu RAM Chuyên sâu","Thu dọn Working Set của các tiến trình bằng API Win32, giải phóng bộ nhớ RAM mà không tắt ứng dụng.","Mở Tối ưu RAM",OpenRamOptimizerDialog);
-  c14.Margin=new Thickness(5,0,0,10);Grid.SetRow(c14,6);Grid.SetColumn(c14,1);grid.Children.Add(c14);
+  toolList.Add(new ProToolItem{Category=1,Title="Bộ Tối ưu RAM Chuyên sâu",Keywords="toi uu ram bo nho working set standby list purge islc giai phong memory",Card=c14});
 
-  // Card 15: Privacy & Telemetry Shield
+  // Card 15: Privacy & Telemetry Shield (Cat 3: Bảo mật)
   var c15=createToolCard("🛡️","Bảo vệ Riêng tư & Tắt Telemetry","Tắt thu thập dữ liệu chẩn đoán (DiagTrack), chặn quảng cáo và tìm kiếm Bing trong Start Menu.","Mở Privacy Shield",OpenPrivacyShieldDialog);
-  c15.Margin=new Thickness(0,0,5,10);Grid.SetRow(c15,7);Grid.SetColumn(c15,0);grid.Children.Add(c15);
+  toolList.Add(new ProToolItem{Category=3,Title="Bảo vệ Riêng tư & Tắt Telemetry",Keywords="bao ve rieng tu privacy shield telemetry diagtrack chan quang cao bing tracking theo doi",Card=c15});
 
-  // Card 16: System File Checker & DISM Repair
+  // Card 16: System File Checker & DISM Repair (Cat 4: Sửa lỗi & Bảo trì)
   var c16=createToolCard("🛠️","Sửa lỗi tệp hệ thống & DISM","Quét SFC Scannow, phục hồi kho ảnh Windows DISM RestoreHealth và đặt lại ngăn xếp mạng TCP/IP.","Mở Sửa lỗi Windows",OpenSystemRepairDialog);
-  c16.Margin=new Thickness(5,0,0,10);Grid.SetRow(c16,7);Grid.SetColumn(c16,1);grid.Children.Add(c16);
+  toolList.Add(new ProToolItem{Category=4,Title="Sửa lỗi tệp hệ thống & DISM",Keywords="sua loi tep he thong sfc scannow dism restorehealth khoi phuc tcp ip winsock mang loi",Card=c16});
 
-  // Card 17: Context Menu Manager
+  // Card 17: Context Menu Manager (Cat 3: Bảo mật)
   var c17=createToolCard("🖱️","Menu Chuột phải (Context Menu)","Tắt hoặc bật lại các menu mở rộng bên thứ 3 trong menu chuột phải File Explorer, chống giật đơ.","Quản lý Menu chuột phải",OpenContextMenuDialog);
-  c17.Margin=new Thickness(0,0,5,10);Grid.SetRow(c17,8);Grid.SetColumn(c17,0);grid.Children.Add(c17);
+  toolList.Add(new ProToolItem{Category=3,Title="Menu Chuột phải (Context Menu)",Keywords="menu chuot phai context menu file explorer shell extension giat do tat bat",Card=c17});
 
-  // Card 18: SSD TRIM Optimizer
+  // Card 18: SSD TRIM Optimizer (Cat 1: Tăng tốc)
   var c18=createToolCard("⚡","Tối ưu hóa & Kích hoạt TRIM SSD","Kiểm tra trạng thái TRIM và phát tín hiệu Re-TRIM cho chip điều khiển SSD duy trì tốc độ và tuổi thọ.","Tối ưu TRIM SSD",OpenSsdTrimDialog);
-  c18.Margin=new Thickness(5,0,0,10);Grid.SetRow(c18,8);Grid.SetColumn(c18,1);grid.Children.Add(c18);
+  toolList.Add(new ProToolItem{Category=1,Title="Tối ưu hóa & Kích hoạt TRIM SSD",Keywords="toi uu hoa trim ssd retrim o cung the ran toc do tuoi tho chip controller",Card=c18});
 
-  // Card 19: Folder Space Visualizer
+  // Card 19: Folder Space Visualizer (Cat 2: Dọn dẹp)
   var c19=createToolCard("📊","Phân tích Dung lượng Thư mục","Đo lường và xếp hạng trực quan các thư mục chiếm nhiều dung lượng nhất trên ổ đĩa C:\\ hoặc D:\\.","Phân tích Dung lượng",OpenFolderSpaceDialog);
-  c19.Margin=new Thickness(0,0,5,0);Grid.SetRow(c19,9);Grid.SetColumn(c19,0);grid.Children.Add(c19);
+  toolList.Add(new ProToolItem{Category=2,Title="Phân tích Dung lượng Thư mục",Keywords="phan tich dung luong thu muc visualizer xep hang o dia c d thu muc lon nhat",Card=c19});
 
-  // Card 20: Windows Update Cache Cleaner
+  // Card 20: Windows Update Cache Cleaner (Cat 2: Dọn dẹp)
   var c20=createToolCard("🧹","Dọn Windows Update Cache","Dọn sạch các bản cập nhật tải về bị lỗi trong SoftwareDistribution\\Download và khởi động lại dịch vụ.","Dọn Update Cache",OpenWindowsUpdateCleanerDialog);
-  c20.Margin=new Thickness(5,0,0,0);Grid.SetRow(c20,9);Grid.SetColumn(c20,1);grid.Children.Add(c20);
+  toolList.Add(new ProToolItem{Category=2,Title="Dọn Windows Update Cache",Keywords="don windows update cache softwaredistribution download tai ve loi wuauserv bits",Card=c20});
+
+  // Logic lọc và hiển thị động
+  Action filterTools=()=>{
+   string q=(toolSearchBox!=null?(toolSearchBox.Text??"").ToLowerInvariant().Trim():"");
+   var visible=toolList.Where(t=>{
+    bool catMatch=(activeCat==0||t.Category==activeCat);
+    if(!catMatch)return false;
+    if(String.IsNullOrEmpty(q))return true;
+    return (t.Title??"").ToLowerInvariant().Contains(q)||(t.Keywords??"").ToLowerInvariant().Contains(q);
+   }).ToList();
+
+   grid.Children.Clear();
+   grid.RowDefinitions.Clear();
+   int rows=(visible.Count+1)/2;
+   for(int r=0;r<rows;r++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+
+   for(int i=0;i<visible.Count;i++){
+    var card=visible[i].Card;
+    int r=i/2;
+    int c=i%2;
+    Grid.SetRow(card,r);
+    Grid.SetColumn(card,c);
+    card.Margin=new Thickness(c==0?0:5,0,c==0?5:0,10);
+    grid.Children.Add(card);
+   }
+  };
+
+  // Khởi tạo các nút tab danh mục
+  for(int idx=0;idx<catNames.Length;idx++){
+   int catIdx=idx;
+   var btnCat=new Button{Content=I18n.T(catNames[idx]),Padding=new Thickness(12,6,12,6),Margin=new Thickness(0,0,8,6),FontSize=12};
+   btnCat.Click+=(s,e)=>{
+    activeCat=catIdx;
+    for(int b=0;b<catButtons.Count;b++){
+     catButtons[b].Style=b==activeCat?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
+    }
+    filterTools();
+   };
+   catButtons.Add(btnCat);
+   catRow.Children.Add(btnCat);
+  }
+  catButtons[0].Style=(Style)window.Resources["Primary"];
+
+  toolSearchBox.TextChanged+=(s,e)=>{
+   searchHint.Visibility=String.IsNullOrEmpty(toolSearchBox.Text)?Visibility.Visible:Visibility.Collapsed;
+   filterTools();
+  };
+
+  filterTools();
  }
 }

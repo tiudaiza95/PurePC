@@ -83,6 +83,20 @@ partial class DesktopApp {
     else if(page=="Drivers")BuildDriverPage();
     e.Handled=true;
    }
+   else if(e.KeyboardDevice.Modifiers==System.Windows.Input.ModifierKeys.Control&&e.Key==System.Windows.Input.Key.F){
+    if(page=="Apps"&&C<TextBox>("Search")!=null){C<TextBox>("Search").Focus();C<TextBox>("Search").SelectAll();e.Handled=true;}
+    else if(page=="Tools"&&toolSearchBox!=null){toolSearchBox.Focus();toolSearchBox.SelectAll();e.Handled=true;}
+   }
+   else if(e.KeyboardDevice.Modifiers==System.Windows.Input.ModifierKeys.Control){
+    if(e.Key==System.Windows.Input.Key.D1){NavigatePro("Health");e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D2){Navigate("Apps");C<RadioButton>("NavApps").IsChecked=true;e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D3){OpenV04("Deep",BuildDeepPage);C<RadioButton>("NavDeep").IsChecked=true;e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D4){Navigate("Startup");C<RadioButton>("NavStartup").IsChecked=true;e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D5){OpenV04("DiskTools",BuildDiskTools);C<RadioButton>("NavDiskTools").IsChecked=true;e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D6){NavigatePro("Tools");e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D7){OpenV04("Drivers",BuildDriverPage);C<RadioButton>("NavDrivers").IsChecked=true;e.Handled=true;}
+    else if(e.Key==System.Windows.Input.Key.D8){Navigate("History");C<RadioButton>("NavHistory").IsChecked=true;e.Handled=true;}
+   }
   };
   I18n.Init();ApplyLanguage();State();return window;
  }

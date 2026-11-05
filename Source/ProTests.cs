@@ -135,6 +135,14 @@ static class ProTests {
        folderCancelled = true;
    }
    Check(folderCancelled, "FolderSpaceVisualizer supports cancellation properly");
+   var sysStartup = new StartupItem { Name = "SecurityHealth", Command = @"C:\Windows\System32\SecurityHealthSystray.exe" };
+   Check(sysStartup.Recommendation.Contains("Hệ thống"), "StartupItem recommends keeping system entries");
+   var heavyStartup = new StartupItem { Name = "Discord", Command = @"C:\Users\Admin\AppData\Local\Discord\app.exe" };
+   Check(heavyStartup.Recommendation.Contains("Khuyên tắt"), "StartupItem recommends disabling heavy apps");
+   var disabledStartup = new StartupItem { Name = "OldApp", Disabled = true };
+   Check(disabledStartup.Recommendation.Contains("Đã tắt"), "StartupItem recognizes disabled state");
+   var normalApp = A("NormalApp", "NormalVendor");
+   Check(normalApp.StatusLabel.Contains("An toàn") || normalApp.StatusLabel.Contains("Ứng dụng"), "AppEntry displays reassuring status label for regular apps");
   return count;
  }
 }

@@ -63,7 +63,7 @@ partial class DesktopApp {
   cleanTitle.Margin=new Thickness(0,0,0,10);
   cleanCard.Children.Add(cleanTitle);
 
-  var chkChrome=new CheckBox{Content=I18n.T("Dọn sạch bộ nhớ đệm Google Chrome (Bỏ chọn nếu muốn giữ cache)"),IsChecked=true,Margin=new Thickness(0,2,0,10)};
+  var chkChrome=new CheckBox{Content=I18n.T("Dọn sạch cache Google Chrome (Chỉ xóa tệp đệm tạm, giữ 100% mật khẩu & đăng nhập)"),IsChecked=true,Margin=new Thickness(0,2,0,10)};
   chkChrome.SetResourceReference(Control.ForegroundProperty,"Ink");
   chkChrome.HorizontalAlignment=HorizontalAlignment.Center;
   cleanCard.Children.Add(chkChrome);

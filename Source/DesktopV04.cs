@@ -11,7 +11,8 @@ using System.Windows.Media;
 
 partial class DesktopApp {
  List<DeepItem> deepItems=new List<DeepItem>();
- List<DriverRecord> driverRecords=new List<DriverRecord>();
+ List<DriverRecord> driverRecords=new List<DriverRecord>();
+
  List<BrokenShortcut> brokenShortcuts=new List<BrokenShortcut>();
  List<DevAiCacheItem> devAiItems=new List<DevAiCacheItem>();
  DataGrid driversGrid;
@@ -211,6 +212,7 @@ partial class DesktopApp {
 
   int currentTab=0;
   bool hasScanned=false;
+  Button btnCleanDeep=null, btnCleanLarge=null, btnCleanDev=null, btnCleanShort=null, btnAutoDup=null, btnCleanDup=null;
   Action updateTabUI=()=>{
    btnTabDeep.Content=I18n.T("🛡️ Tàn dư gỡ cài đặt")+" ("+deepItems.Count+")";
    btnTabLarge.Content=I18n.T("📦 Tệp dung lượng lớn")+" ("+files.Count+")";
@@ -235,8 +237,13 @@ partial class DesktopApp {
    dupGrid.Visibility=(currentTab==2&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
    shortGrid.Visibility=(currentTab==3&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
    devAiGrid.Visibility=(currentTab==4&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
+   if(btnCleanDeep!=null)btnCleanDeep.Visibility=(currentTab==0&&deepItems.Count>0)?Visibility.Visible:Visibility.Collapsed;
+   if(btnCleanLarge!=null)btnCleanLarge.Visibility=(currentTab==1&&files.Count>0)?Visibility.Visible:Visibility.Collapsed;
+   if(btnAutoDup!=null)btnAutoDup.Visibility=(currentTab==2&&(duplicateFiles!=null&&duplicateFiles.Count>0))?Visibility.Visible:Visibility.Collapsed;
+   if(btnCleanDup!=null)btnCleanDup.Visibility=(currentTab==2&&(duplicateFiles!=null&&duplicateFiles.Count>0))?Visibility.Visible:Visibility.Collapsed;
+   if(btnCleanShort!=null)btnCleanShort.Visibility=(currentTab==3&&brokenShortcuts.Count>0)?Visibility.Visible:Visibility.Collapsed;
+   if(btnCleanDev!=null)btnCleanDev.Visibility=(currentTab==4&&devAiItems.Count>0)?Visibility.Visible:Visibility.Collapsed;
   };
-  updateTabUI();
 
   btnTabDeep.Click+=(s,e)=>{currentTab=0;updateTabUI();};
   btnTabLarge.Click+=(s,e)=>{currentTab=1;updateTabUI();};
@@ -244,7 +251,7 @@ partial class DesktopApp {
   btnTabShort.Click+=(s,e)=>{currentTab=3;updateTabUI();};
   btnTabDev.Click+=(s,e)=>{currentTab=4;updateTabUI();};
 
-  // Nút hành động
+  // Nút hành động chính và các nút theo ngữ cảnh tab
   var actionRow=new WrapPanel{Margin=new Thickness(0,0,0,10)};
   top.Children.Add(actionRow);
 
@@ -253,12 +260,12 @@ partial class DesktopApp {
     var progress=Progress();
     hasScanned=true;
 
-    Text("Status","[1/4] Đang quét tàn dư gỡ cài đặt và khóa Registry mồ côi…");
+    Text("Status","[1/5] Đang quét tàn dư gỡ cài đặt và khóa Registry mồ côi…");
     deepItems=await Task.Run(()=>DeepClean.Scan(token,progress));
     deepGrid.ItemsSource=null;deepGrid.ItemsSource=deepItems;
     updateTabUI();
 
-    Text("Status","[2/4] Đang phân tích tệp dung lượng lớn (>100MB) trên các ổ đĩa…");
+    Text("Status","[2/5] Đang phân tích tệp dung lượng lớn (>100MB) trên các ổ đĩa…");
     string userDir=Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     int skipped=0;bool limited=false;
     var allFiles=await Task.Run(()=>AnalysisTools.Walk(userDir,token,progress,out skipped,out limited,AnalysisTools.IsJunkOrSystemCacheDir));
@@ -275,7 +282,7 @@ partial class DesktopApp {
     largeGrid.ItemsSource=null;largeGrid.ItemsSource=files;
     updateTabUI();
 
-    Text("Status","[3/4] Đang kiểm tra đối chiếu nội dung trùng lặp (SHA-256)…");
+    Text("Status","[3/5] Đang kiểm tra đối chiếu nội dung trùng lặp (SHA-256)…");
     string summary="";
     duplicateFiles=await Task.Run(()=>AnalysisTools.Duplicates(allFiles,token,progress,out summary));
     dupGrid.ItemsSource=null;dupGrid.ItemsSource=duplicateFiles;
@@ -295,10 +302,11 @@ partial class DesktopApp {
    });
   });
   btnScanAll.Style=(Style)window.Resources["Primary"];
+  btnScanAll.Margin=new Thickness(0,0,10,0);
   actionRow.Children.Add(btnScanAll);
 
-  // Nút xử lý tàn dư
-  actionRow.Children.Add(WorkButton(I18n.T("Dọn tàn dư đã chọn"),async()=>{ await Task.Yield();
+  // Nút xử lý tàn dư (chỉ hiện khi ở Tab 0)
+  btnCleanDeep=WorkButton(I18n.T("🧹 Dọn tàn dư đã chọn"),async()=>{ await Task.Yield();
    var selected=deepItems.Where(x=>x.Selected&&x.Actionable).ToList();
    if(selected.Count==0){Text("Status","Chưa chọn mục tàn dư có đủ điều kiện xử lý.");return;}
    if(!Confirm("Xử lý "+selected.Count+" mục tàn dư theo hành động?\nCác mục sẽ được chuyển vào Thùng rác để an toàn."))return;
@@ -314,51 +322,28 @@ partial class DesktopApp {
    updateTabUI();
    Text("Status","Đã xử lý "+done+" mục tàn dư; giữ lại "+errors.Count+" mục.");
    ShowErrors(errors);
-  }));
+  });
+  btnCleanDeep.Margin=new Thickness(0,0,8,0);
+  actionRow.Children.Add(btnCleanDeep);
 
-  // Nút dọn tệp lớn
-  actionRow.Children.Add(WorkButton(I18n.T("Dọn tệp lớn đã chọn"),DeleteLargeFiles));
+  // Nút dọn tệp lớn (chỉ hiện khi ở Tab 1)
+  btnCleanLarge=WorkButton(I18n.T("🧹 Dọn tệp lớn đã chọn"),DeleteLargeFiles);
+  btnCleanLarge.Margin=new Thickness(0,0,8,0);
+  actionRow.Children.Add(btnCleanLarge);
 
-  // Nút dọn rác Dev & AI
-  actionRow.Children.Add(WorkButton(I18n.T("Dọn rác Dev & AI đã chọn"),async()=>{ await Task.Yield();
-   var chosen=devAiItems.Where(x=>x.Selected).ToList();
-   if(chosen.Count==0){Text("Status","Chưa chọn kho bộ đệm nào.");return;}
-   long total=chosen.Sum(x=>x.Bytes);
-   if(!Confirm("Dọn sạch "+chosen.Count+" thư mục bộ đệm lập trình & AI ("+Features.Size(total)+")?\nToàn bộ tệp sẽ được chuyển vào Thùng rác để đảm bảo an toàn."))return;
-   int done=0;
-   foreach(var item in chosen){
-    if(DevAiCacheCleaner.Clean(item,true)){done++;devAiItems.Remove(item);}
-   }
-   devAiGrid.ItemsSource=null;devAiGrid.ItemsSource=devAiItems;
-   updateTabUI();
-   Text("Status","Đã dọn sạch "+done+" mục bộ đệm lập trình & AI.");
-  }));
-
-  // Nút dọn lối tắt hỏng
-  actionRow.Children.Add(WorkButton(I18n.T("Dọn lối tắt đã chọn"),async()=>{ await Task.Yield();
-   var chosen=brokenShortcuts.Where(x=>x.Selected).ToList();
-   if(chosen.Count==0){Text("Status","Chưa chọn lối tắt hỏng.");return;}
-   if(!Confirm("Chuyển "+chosen.Count+" lối tắt hỏng vào Thùng rác để an toàn?"))return;
-   List<string> errors;
-   int cleaned=ShortcutCleaner.Clean(chosen,out errors);
-   foreach(var item in chosen)brokenShortcuts.Remove(item);
-   shortGrid.ItemsSource=null;shortGrid.ItemsSource=brokenShortcuts;
-   updateTabUI();
-   Text("Status","Đã dọn "+cleaned+" lối tắt hỏng; giữ lại "+errors.Count+" mục.");
-   ShowErrors(errors);
-  }));
-
-  // Nút dọn tệp trùng
-  actionRow.Children.Add(ActionButton(I18n.T("Tự chọn bản trùng dư thừa"),()=>{
+  // Nút chọn tự động tệp trùng (chỉ hiện khi ở Tab 2)
+  btnAutoDup=ActionButton(I18n.T("✨ Tự chọn bản trùng dư thừa"),()=>{
    if(duplicateFiles==null||duplicateFiles.Count==0){Text("Status","Chưa có dữ liệu tệp trùng.");return;}
    int count=WholeMachine.SelectDuplicateExtras(duplicateFiles);
    dupGrid.Items.Refresh();
    currentTab=2;updateTabUI();
    Text("Status","Đã chọn "+count+" bản sao dư thừa để dọn.");
-  }));
+  });
+  btnAutoDup.Margin=new Thickness(0,0,8,0);
+  actionRow.Children.Add(btnAutoDup);
 
-  // Nút dọn tệp trùng đã chọn
-  actionRow.Children.Add(WorkButton(I18n.T("Dọn tệp trùng đã chọn"),async()=>{ await Task.Yield();
+  // Nút dọn tệp trùng đã chọn (chỉ hiện khi ở Tab 2)
+  btnCleanDup=WorkButton(I18n.T("🧹 Dọn tệp trùng đã chọn"),async()=>{ await Task.Yield();
    var chosen=duplicateFiles==null?new List<FileItem>():duplicateFiles.Where(x=>x.Selected).ToList();
    if(chosen.Count==0){Text("Status","Chưa đánh dấu bản trùng muốn xóa. Hãy bấm 'Tự chọn bản trùng dư thừa' hoặc chọn thủ công.");return;}
    if(!Confirm("Chuyển "+chosen.Count+" bản trùng đã đánh dấu vào Thùng rác?\nỨng dụng sẽ giữ lại ít nhất một bản gốc trong từng nhóm."))return;
@@ -377,7 +362,44 @@ partial class DesktopApp {
    updateTabUI();
    Text("Status","Đã xử lý "+done+" bản trùng; giữ lại "+errors.Count+" mục.");
    ShowErrors(errors);
-  }));
+  });
+  btnCleanDup.Margin=new Thickness(0,0,8,0);
+  actionRow.Children.Add(btnCleanDup);
+
+  // Nút dọn lối tắt hỏng (chỉ hiện khi ở Tab 3)
+  btnCleanShort=WorkButton(I18n.T("🧹 Dọn lối tắt đã chọn"),async()=>{ await Task.Yield();
+   var chosen=brokenShortcuts.Where(x=>x.Selected).ToList();
+   if(chosen.Count==0){Text("Status","Chưa chọn lối tắt hỏng.");return;}
+   if(!Confirm("Chuyển "+chosen.Count+" lối tắt hỏng vào Thùng rác để an toàn?"))return;
+   List<string> errors;
+   int cleaned=ShortcutCleaner.Clean(chosen,out errors);
+   foreach(var item in chosen)brokenShortcuts.Remove(item);
+   shortGrid.ItemsSource=null;shortGrid.ItemsSource=brokenShortcuts;
+   updateTabUI();
+   Text("Status","Đã dọn "+cleaned+" lối tắt hỏng; giữ lại "+errors.Count+" mục.");
+   ShowErrors(errors);
+  });
+  btnCleanShort.Margin=new Thickness(0,0,8,0);
+  actionRow.Children.Add(btnCleanShort);
+
+  // Nút dọn rác Dev & AI (chỉ hiện khi ở Tab 4)
+  btnCleanDev=WorkButton(I18n.T("🧹 Dọn rác Dev & AI đã chọn"),async()=>{ await Task.Yield();
+   var chosen=devAiItems.Where(x=>x.Selected).ToList();
+   if(chosen.Count==0){Text("Status","Chưa chọn kho bộ đệm nào.");return;}
+   long total=chosen.Sum(x=>x.Bytes);
+   if(!Confirm("Dọn sạch "+chosen.Count+" thư mục bộ đệm lập trình & AI ("+Features.Size(total)+")?\nToàn bộ tệp sẽ được chuyển vào Thùng rác để đảm bảo an toàn."))return;
+   int done=0;
+   foreach(var item in chosen){
+    if(DevAiCacheCleaner.Clean(item,true)){done++;devAiItems.Remove(item);}
+   }
+   devAiGrid.ItemsSource=null;devAiGrid.ItemsSource=devAiItems;
+   updateTabUI();
+   Text("Status","Đã dọn sạch "+done+" mục bộ đệm lập trình & AI.");
+  });
+  btnCleanDev.Margin=new Thickness(0,0,8,0);
+  actionRow.Children.Add(btnCleanDev);
+
+  updateTabUI();
 
   top.Children.Add(Label("Bấm tab tương ứng để xem bảng kết quả chi tiết của từng loại tệp. Mọi thao tác xóa đều ưu tiên Thùng rác để có thể phục hồi.",11));
  }

@@ -32,7 +32,7 @@ public partial class AppEntry {
  public string SizeSource {get{return MeasuredFromDisk?"Đo trực tiếp từ thư mục cài đặt thực tế; chính xác hơn Registry.":(EstimatedBytes>0?"Registry EstimatedSize × 1.024 byte; ước tính do trình cài khai báo, không phải số đo đĩa.":"Không có EstimatedSize đáng tin cậy; chưa đo thư mục.");}}
  public string InstalledDate {get{DateTime d;return DateTime.TryParseExact(InstalledOn,"yyyyMMdd",CultureInfo.InvariantCulture,DateTimeStyles.None,out d)?d.ToString("dd/MM/yyyy"):"Chưa rõ";}}
  public string Category {get{return Advice==null?"Chưa xác định":Advice.Category;}}
- public string StatusLabel {get{return Advice==null?"Chưa đủ thông tin":Advice.Level;}}
+ public string StatusLabel {get{return Advice==null?I18n.T("Ứng dụng bên thứ 3"):Advice.Level=="Không đủ thông tin"?I18n.T("Ứng dụng thông thường (An toàn)"):I18n.T(Advice.Level);}}
  public bool Caution {get{return Advice==null||Advice.Caution||SystemComponent;}}
  public bool CanUninstall {get{return !Protected&&!String.IsNullOrWhiteSpace(Command);}}
  public bool Protected {get{return Advice!=null&&Advice.Protected;}}

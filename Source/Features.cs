@@ -26,6 +26,25 @@ public class StartupItem {
  public bool Disabled {get;set;}
  public string Backup {get;set;}
  public string Status {get {return I18n.T(Disabled?"○ Đã tắt":"● Đang kích hoạt");}}
+ public string Recommendation {
+  get {
+   if(Disabled)return I18n.T("○ Đã tắt");
+   string combined=((Name??"")+" "+(Command??"")).ToLowerInvariant();
+   if(combined.Contains("unikey")||combined.Contains("evkey")||combined.Contains("realtek")||
+      combined.Contains("rtkaud")||combined.Contains("ravcpl")||combined.Contains("igfxtray")||
+      combined.Contains("hkcmd")||combined.Contains("securityhealth")||combined.Contains("ctfmon")||
+      combined.Contains("windows defender")||combined.Contains("touchpad")||combined.Contains("synaptics"))
+    return I18n.T("🛡️ Hệ thống (Nên giữ)");
+   if(combined.Contains("teams")||combined.Contains("discord")||combined.Contains("spotify")||
+      combined.Contains("steam")||combined.Contains("epicgames")||combined.Contains("onedrive")||
+      combined.Contains("googledrive")||combined.Contains("dropbox")||combined.Contains("adobe")||
+      combined.Contains("creative cloud")||combined.Contains("skype")||combined.Contains("zoom")||
+      combined.Contains("fathom")||combined.Contains("update")||combined.Contains("torrent")||
+      combined.Contains("chrome")||combined.Contains("zalo")||combined.Contains("viber"))
+    return I18n.T("⚡ Khuyên tắt (Tăng tốc)");
+   return I18n.T("Tùy chọn người dùng");
+  }
+ }
  public string Impact {
   get {
    if(Disabled)return "—";
