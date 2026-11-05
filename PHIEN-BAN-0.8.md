@@ -1,10 +1,10 @@
-# Nhật ký cập nhật phiên bản 0.8 · Dọn Dẹp PC (PurePC Pro)
+﻿# Nhật ký cập nhật phiên bản 0.8 · PurePC (PurePC Pro)
 
 > **Phiên bản**: `0.8.0.0`  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF)  
 > **Trạng thái kiểm thử**: PASS 96/96 Unit Checks  
 > **Mã băm SHA-256**: `4BABE71C808550760A0E3C9FAE402EF95737566E5A3A9123145B33CBFF7A7E74`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`
+> **Lối tắt Desktop**: `%USERPROFILE%\Desktop\PurePC.lnk` trỏ trực tiếp đến `%LOCALAPPDATA%\Programs\PurePC\PurePC.exe`
 
 ---
 
@@ -58,10 +58,10 @@ Hiện thực hóa trọn vẹn tầm nhìn kết hợp sức mạnh tối ưu h
 
 ### 🎨 4. Nhận diện phiên bản v0.8 & Giao diện tối ưu
 - Cập nhật số phiên bản đồng bộ `0.8.0.0` trên toàn hệ thống:
-  - Cửa sổ chính: `Title="Dọn Dẹp PC 0.8"`
-  - Nhãn thương hiệu: `Dọn Dẹp PC 0.8` · `CHĂM SÓC MÁY TÍNH · v0.8`
+  - Cửa sổ chính: `Title="PurePC 0.8"`
+  - Nhãn thương hiệu: `PurePC 0.8` · `CHĂM SÓC MÁY TÍNH · v0.8`
   - Chân trang: `Phiên bản 0.8 · Desktop Pro`
-  - Menu Cài đặt: `Cài đặt & Tiện ích chuyên sâu · Dọn Dẹp PC 0.8`
+  - Menu Cài đặt: `Cài đặt & Tiện ích chuyên sâu · PurePC 0.8`
   - File thông tin: `AssemblyInfo.cs` (`0.8.0.0`), `app.manifest` (`0.8.0.0`), `installation-check.json` (`0.8.0.0`).
 
 ---

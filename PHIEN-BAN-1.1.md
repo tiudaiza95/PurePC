@@ -1,21 +1,21 @@
-# Nhật ký phát hành Phiên bản 1.1 · Dọn Dẹp PC (PurePC Pro Max)
+﻿# Nhật ký phát hành Phiên bản 1.1 · PurePC (PurePC Pro Max)
 
 > **Phiên bản**: `1.1.0.0` (Bản nâng cấp tính năng thông minh - Smart Features Upgrade)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
 > **Trạng thái kiểm thử**: PASS 103/103 Unit Checks  
 > **Mã băm SHA-256**: `571E8574EB92A144B0C4FA55E2DADB814ACB73BF3B2CA9414781886032D2C15B`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`  
+> **Lối tắt Desktop**: `%USERPROFILE%\Desktop\PurePC.lnk` trỏ trực tiếp đến `%LOCALAPPDATA%\Programs\PurePC\PurePC.exe`  
 > **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/PurePC](https://github.com/tiudaiza95/PurePC)
 
 ---
 
 ## 🌟 Tổng quan Cột mốc Phiên bản 1.1
 
-Phiên bản **1.1.0.0** nâng tầm **Dọn Dẹp PC** lên một đẳng cấp mới với các tính năng chuyên nghiệp sánh ngang các phần mềm thương mại hàng đầu như *IObit Uninstaller Pro*, *Revo Uninstaller Pro* và *CCleaner Professional*:
+Phiên bản **1.1.0.0** nâng tầm **PurePC** lên một đẳng cấp mới với các tính năng chuyên nghiệp sánh ngang các phần mềm thương mại hàng đầu như *IObit Uninstaller Pro*, *Revo Uninstaller Pro* và *CCleaner Professional*:
 
 ```
 +-----------------------------------------------------------------------------------------------+
-|                                  DỌN DẸP PC PRO MAX v1.1                                     |
+|                                  PurePC PRO MAX v1.1                                     |
 |                                                                                               |
 |   [WINDOWS STORE / UWP]         [SETUP MONITOR]                 [REALTIME WAVE & SHORTCUTS]   |
 |   • Quản lý ứng dụng UWP        • Chụp ảnh trạng thái trước cài • Biểu đồ sóng CPU/RAM mượt   |

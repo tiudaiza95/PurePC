@@ -54,7 +54,7 @@ partial class DesktopApp {
 
  void RequestAdministrator(){
   if(Drivers.Administrator()){Text("Status","Ứng dụng đã có quyền Administrator.");return;}
-  if(!Confirm("Mở một phiên Dọn Dẹp PC với quyền Administrator?\nWindows sẽ hiện UAC để bạn tự xác nhận. Chưa tự gỡ, dọn hay cài driver. Phiên hiện tại được giữ nguyên."))return;
+  if(!Confirm("Mở một phiên PurePC với quyền Administrator?\nWindows sẽ hiện UAC để bạn tự xác nhận. Chưa tự gỡ, dọn hay cài driver. Phiên hiện tại được giữ nguyên."))return;
   Process.Start(new ProcessStartInfo(Process.GetCurrentProcess().MainModule.FileName,"--drivers"){UseShellExecute=true,Verb="runas"});
  }
 

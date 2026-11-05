@@ -1,10 +1,10 @@
-# Nhật ký phát hành chính thức Phiên bản 1.0 · Dọn Dẹp PC (PurePC Pro Max)
+﻿# Nhật ký phát hành chính thức Phiên bản 1.0 · PurePC (PurePC Pro Max)
 
 > **Phiên bản**: `1.0.0.0` (Bản phát hành chính thức - Official Release)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
 > **Trạng thái kiểm thử**: PASS 96/96 Unit Checks  
 > **Mã băm SHA-256**: `729F566CD4060A6B5B91067CCEE5B3947E7BE16E8F951B077D14E7D9CD1872C9`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`  
+> **Lối tắt Desktop**: `%USERPROFILE%\Desktop\PurePC.lnk` trỏ trực tiếp đến `%LOCALAPPDATA%\Programs\PurePC\PurePC.exe`  
 > **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/PurePC](https://github.com/tiudaiza95/PurePC)
 
 ---
@@ -15,7 +15,7 @@ Phiên bản **1.0.0.0** đánh dấu sự hoàn thiện trọn vẹn mô hình 
 
 ```
 +---------------------------------------------------------------------------------------+
-|                                  DỌN DẸP PC PRO MAX v1.0                              |
+|                                  PurePC PRO MAX v1.0                              |
 |                                                                                       |
 |   [CCLEANER]                [IOBIT UNINSTALLER]          [DRIVER & DISK TOOLS]        |
 |   • Tối ưu RAM thời gian    • Gỡ cài đặt tiêu chuẩn      • Kiểm kê phần cứng máy      |

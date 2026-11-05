@@ -1,4 +1,4 @@
-# Rà soát trước nâng cấp → Dọn Dẹp PC
+﻿# Rà soát trước nâng cấp → PurePC
 
 Ngày rà soát: 24/10/2026. Giữ kiến trúc C#/.NET Framework/WPF, Engine và Features; không tạo dự án mới.
 

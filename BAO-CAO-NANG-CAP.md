@@ -1,4 +1,4 @@
-# Dọn Dẹp PC 0.3 — kết quả nâng cấp
+﻿# PurePC 0.3 — kết quả nâng cấp
 
 Ngày: 24/10/2026. Nâng cấp trực tiếp mã C#/.NET Framework/WPF của Sạch Gọn 0.2; giữ lại Engine, Features, quản lý Run và cơ chế bảo vệ đường dẫn. Không phải dự án mới hay giao diện mô phỏng.
 
@@ -6,7 +6,7 @@ Ngày: 24/10/2026. Nâng cấp trực tiếp mã C#/.NET Framework/WPF của S�
 
 | Hạng mục | Phạm vi hoạt động |
 |---|---|
-| Nhận diện | Tên Dọn Dẹp PC, icon gốc mới, executable PurePC.exe, shortcut Desktop |
+| Nhận diện | Tên PurePC, icon gốc mới, executable PurePC.exe, shortcut Desktop |
 | Giao diện | Light/Dark, lưu chế độ; thanh trái thu gọn; co giãn cửa sổ; trạng thái xử lý/kết quả/lỗi; thẻ tổng quan chỉ ở Health Check |
 | Danh sách | STT sau tìm/lọc/sắp xếp; icon thật từ tệp hoặc icon chung; tên, publisher, version, size, date, trạng thái, phân loại, nút thông tin/gỡ; nhiều lựa chọn Ctrl/Shift; menu chuột phải |
 | Nguồn danh sách | Registry Uninstall HKCU/HKLM 32/64-bit. Có cả mục SystemComponent và mục không có trình gỡ, được giữ chỉ xem khi phù hợp. Không phải danh sách toàn bộ Microsoft Store |

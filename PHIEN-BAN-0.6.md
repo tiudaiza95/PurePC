@@ -1,4 +1,4 @@
-﻿# Dọn Dẹp PC 0.6
+﻿# PurePC 0.6
 
 Tổng quan đã có quét, bảng xem trước và dọn tệp thật sau xác nhận. Gộp các vị trí Temp/cache xác định được, báo cáo lỗi cũ và phần dư thuộc lịch sử gỡ. Phần dư có khả năng chứa dữ liệu người dùng không được chọn tự động. Kiểm tra lại đường dẫn, quyền, liên kết, kích thước/thời gian và ứng dụng đang mở trước xử lý. Dọn ưu tiên Thùng rác; không coi dung lượng tệp xử lý là dung lượng đã giải phóng.
 

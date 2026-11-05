@@ -1,4 +1,4 @@
-﻿# Dọn Dẹp PC 0.4
+﻿# PurePC 0.4
 
 Đã thêm Google, gỡ MSI cho thành phần phụ hợp lệ, quét chuyên sâu dựa trên đăng ký/lịch sử, thao tác xóa tệp lớn và bản trùng, nút Disk Cleanup/Optimize Drives, kiểm kê và cập nhật driver qua Windows Update.
 

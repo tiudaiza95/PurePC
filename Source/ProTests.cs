@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -64,7 +64,7 @@ static class ProTests {
   if(loadedRec!=null)SetupMonitor.DeleteRecord(loadedRec);
    Check(SystemPerformance.FlushDnsCache(),"SystemPerformance.FlushDnsCache succeeds");
    Check(!String.IsNullOrEmpty(SystemPerformance.GetBoardName()),"SystemPerformance.GetBoardName returns valid string");
-   Check(StartupItem.EstimateImpact(@"C:\Users\Admin\AppData\Local\Discord\app.exe","Discord")=="Cao","StartupItem heavy impact detection");
+   Check(StartupItem.EstimateImpact(@"C:\Users\User\AppData\Local\Discord\app.exe","Discord")=="Cao","StartupItem heavy impact detection");
    Check(StartupItem.EstimateImpact(@"C:\Windows\System32\ctfmon.exe","CTF Loader")=="Thấp","StartupItem light impact detection");
    Check(StartupItem.EstimateImpact(@"C:\Program Files\Unknown\app.exe","UnknownApp")=="Trung bình","StartupItem medium impact default");
    Engine.InvalidateAppCache();
@@ -137,7 +137,7 @@ static class ProTests {
    Check(folderCancelled, "FolderSpaceVisualizer supports cancellation properly");
    var sysStartup = new StartupItem { Name = "SecurityHealth", Command = @"C:\Windows\System32\SecurityHealthSystray.exe" };
    Check(sysStartup.Recommendation.Contains("Hệ thống"), "StartupItem recommends keeping system entries");
-   var heavyStartup = new StartupItem { Name = "Discord", Command = @"C:\Users\Admin\AppData\Local\Discord\app.exe" };
+   var heavyStartup = new StartupItem { Name = "Discord", Command = @"C:\Users\User\AppData\Local\Discord\app.exe" };
    Check(heavyStartup.Recommendation.Contains("Khuyên tắt"), "StartupItem recommends disabling heavy apps");
    var disabledStartup = new StartupItem { Name = "OldApp", Disabled = true };
    Check(disabledStartup.Recommendation.Contains("Đã tắt"), "StartupItem recognizes disabled state");

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -340,7 +340,7 @@ partial class DesktopApp {
    var sb=new StringBuilder();
    sb.AppendLine("================================================================================");
    sb.AppendLine("                     BÁO CÁO TOÀN DIỆN DRIVER & THIẾT BỊ                      ");
-   sb.AppendLine("                   Dọn Dẹp PC Pro Max - Phiên bản 1.2                          ");
+   sb.AppendLine("                   PurePC Pro Max - Phiên bản 1.2                          ");
    sb.AppendLine("             Thời gian xuất: "+DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
    sb.AppendLine("================================================================================");
    sb.AppendLine();

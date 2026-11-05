@@ -1,4 +1,4 @@
-# PurePC (v1.2 Pro Max)
+﻿# PurePC (v1.2 Pro Max)
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6?logo=windows)](https://github.com/tiudaiza95/PurePC)
 [![Framework](https://img.shields.io/badge/.NET-Framework%204.8-512BD4?logo=dotnet)](https://github.com/tiudaiza95/PurePC)

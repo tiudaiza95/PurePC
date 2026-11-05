@@ -1,4 +1,4 @@
-﻿# Dọn Dẹp PC 0.5
+﻿# PurePC 0.5
 
 Hoàn tất ngày 26/10/2026. Đã tách Công cụ ổ đĩa thành hai thẻ riêng; bỏ nút Disk Cleanup/tối ưu khỏi hàng thao tác tệp lớn. Sửa tiêu đề cột khi bảng trống và sidebar thu gọn.
 

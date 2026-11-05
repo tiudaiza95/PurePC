@@ -1,10 +1,10 @@
-# Nhật ký phát hành Phiên bản 1.2 · Dọn Dẹp PC (PurePC Pro Max)
+﻿# Nhật ký phát hành Phiên bản 1.2 · PurePC (PurePC Pro Max)
 
 > **Phiên bản**: `1.2.0.0` (Bản nâng cấp Tối ưu hóa Hiệu năng, Tốc độ Khởi động & Bảo mật - High Performance & Security Upgrade)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
 > **Trạng thái kiểm thử**: PASS 118/118 Unit Checks  
 > **Mã băm SHA-256**: `59394572428526806A98348BD9A7D205C61E3EEA72F3C7787005892054C6D2E0`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`  
+> **Lối tắt Desktop**: `%USERPROFILE%\Desktop\PurePC.lnk` trỏ trực tiếp đến `%LOCALAPPDATA%\Programs\PurePC\PurePC.exe`  
 > **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/PurePC](https://github.com/tiudaiza95/PurePC)
 
 ---
@@ -15,7 +15,7 @@ Phiên bản **1.2.0.0** tập trung vào đột phá về **Tối ưu hóa hi�
 
 ```
 +-----------------------------------------------------------------------------------------------+
-|                                  DỌN DẸP PC PRO MAX v1.2                                     |
+|                                  PurePC PRO MAX v1.2                                     |
 |                                                                                               |
 |   [INSTANT LAUNCH & CACHING]    [STARTUP IMPACT ANALYZER]       [SQLITE & SHREDDER TOOLS]     |
 |   • Khởi động tức thì (<0.1s)   • Phân tích tác động khởi động  • Win32 winsqlite3.dll VACUUM |

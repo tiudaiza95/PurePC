@@ -1,6 +1,6 @@
-﻿DỌN DẸP PC 0.6
+﻿PUREPC 1.2 PRO MAX
 
-Mở biểu tượng Dọn Dẹp PC trên Desktop.
+Mở biểu tượng PurePC trên Desktop.
 
 DỌN RÁC TỔNG QUAN
 1. Bấm Quét rác tổng quan. Tùy chọn duyệt ổ cứng bổ sung thống kê tệp lớn;
