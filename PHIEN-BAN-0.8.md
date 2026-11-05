@@ -1,10 +1,10 @@
-# Nhật ký cập nhật phiên bản 0.8 · Dọn Dẹp PC (DonDepPC Pro)
+# Nhật ký cập nhật phiên bản 0.8 · Dọn Dẹp PC (PurePC Pro)
 
 > **Phiên bản**: `0.8.0.0`  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF)  
 > **Trạng thái kiểm thử**: PASS 96/96 Unit Checks  
 > **Mã băm SHA-256**: `4BABE71C808550760A0E3C9FAE402EF95737566E5A3A9123145B33CBFF7A7E74`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`
+> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`
 
 ---
 
@@ -19,7 +19,7 @@ Hiện thực hóa trọn vẹn tầm nhìn kết hợp sức mạnh tối ưu h
 - **Vấn đề giải quyết**: Khi các phần mềm bên thứ ba bị hỏng file gỡ cài đặt (`uninstall.exe`), bị crash giữa chừng hoặc không đăng ký lệnh gỡ trong Windows, người dùng không thể gỡ theo cách thông thường.
 - **Cơ chế hoạt động**:
   1. **An toàn tuyệt đối**: Tự động từ chối nếu ứng dụng là thành phần cốt lõi của Windows (`Protected`).
-  2. **Tự động sao lưu Registry**: Tạo bản sao lưu khóa Registry của phần mềm ra thư mục tạm (`%TEMP%\DonDepPC_Backup\*.reg`) trước khi thực hiện.
+  2. **Tự động sao lưu Registry**: Tạo bản sao lưu khóa Registry của phần mềm ra thư mục tạm (`%TEMP%\PurePC_Backup\*.reg`) trước khi thực hiện.
   3. **Xóa đăng ký hệ thống**: Xóa triệt để khóa cài đặt khỏi Registry Uninstall (`HKCU` hoặc `HKLM`).
   4. **Chuyển thư mục cài đặt vào Thùng rác**: Toàn bộ thư mục cài đặt thực tế (`InstallLocation`) được chuyển an toàn vào Recycle Bin thay vì xóa vĩnh viễn, tránh rủi ro mất dữ liệu.
   5. **Quét sâu tàn dư (Deep Remnants Clean)**: Tự động chạy thuật toán quét rác phần dư trong AppData, LocalAppData, ProgramData và Shortcuts Desktop/StartMenu, hiển thị hộp thoại xác nhận dọn sạch 1-click.

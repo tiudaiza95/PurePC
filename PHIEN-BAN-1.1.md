@@ -1,11 +1,11 @@
-# Nhật ký phát hành Phiên bản 1.1 · Dọn Dẹp PC (DonDepPC Pro Max)
+# Nhật ký phát hành Phiên bản 1.1 · Dọn Dẹp PC (PurePC Pro Max)
 
 > **Phiên bản**: `1.1.0.0` (Bản nâng cấp tính năng thông minh - Smart Features Upgrade)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
 > **Trạng thái kiểm thử**: PASS 103/103 Unit Checks  
 > **Mã băm SHA-256**: `571E8574EB92A144B0C4FA55E2DADB814ACB73BF3B2CA9414781886032D2C15B`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`  
-> **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/DonDepPC](https://github.com/tiudaiza95/DonDepPC)
+> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`  
+> **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/PurePC](https://github.com/tiudaiza95/PurePC)
 
 ---
 
@@ -47,7 +47,7 @@ Phiên bản **1.1.0.0** nâng tầm **Dọn Dẹp PC** lên một đẳng cấp
 - **Cơ chế Snapshot 3 bước thông minh**:
   - **Bước 1**: Chụp ảnh trạng thái hệ thống trước khi cài đặt (thư mục `Program Files`, `AppData`, `ProgramData` và các nhánh Registry `Uninstall`, `Run`). Tốc độ chụp siêu nhanh < 0.5 giây.
   - **Bước 2**: Người dùng thoải mái chạy tệp cài đặt (`Setup.exe`, `Installer.msi`) của phần mềm mới.
-  - **Bước 3**: Chụp ảnh đối chiếu diff sau khi cài đặt xong, tự động nhận diện và lưu lại mọi tệp tin, thư mục và khóa Registry mới phát sinh vào hồ sơ snapshot XML tại `%LOCALAPPDATA%\SachGon\Snapshots\`.
+  - **Bước 3**: Chụp ảnh đối chiếu diff sau khi cài đặt xong, tự động nhận diện và lưu lại mọi tệp tin, thư mục và khóa Registry mới phát sinh vào hồ sơ snapshot XML tại `%LOCALAPPDATA%\PurePC\Snapshots\`.
 - **Gỡ bỏ triệt để 100% (Clean Uninstall)**:
   - Cho phép người dùng gỡ bỏ bất kỳ phần mềm nào đã được giám sát.
   - Xóa sạch mọi tệp tin và khóa Registry đã được ghi nhận trong snapshot, không bỏ sót dù chỉ 1 file rác hay 1 khóa đăng ký.

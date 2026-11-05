@@ -18,7 +18,7 @@ static class ProTests {
   Check(unknown.SizeLabel=="Chưa rõ","size unknown not zero");unknown.EstimatedBytes=1024;Check(unknown.SizeSource.Contains("1.024"),"size method explained");unknown.InstalledOn="garbage";Check(unknown.InstalledDate=="Chưa rõ","invalid date unknown");unknown.InstalledOn=DateTime.Today.ToString("yyyyMMdd");Check(DesktopApp.MatchesFilter(unknown,1),"recent install filter");unknown.EstimatedBytes=2L*1024*1024*1024;Check(DesktopApp.MatchesFilter(unknown,2),"large app filter");
   Check(!Engine.Uninstaller(new AppEntry{Command="msiexec.exe /I{11111111-1111-1111-1111-111111111111}"}).Verb.Equals("runas"),"no forced elevation");
   Check(!new Remnant{IsRegistry=true}.CanClean,"speculative registry cannot clean");Check(Maintenance.UpdateArgs("Microsoft.PowerToys").Contains("--exact"),"exact package update");bool rejected=false;try{Maintenance.UpdateArgs("foo --all");}catch{rejected=true;}Check(rejected,"update argument injection blocked");Check(!Maintenance.UpdateArgs("Foo.Bar").Contains("accept"),"no silent agreement acceptance");Check(Maintenance.Quote("a b")=="\"a b\"","quote spaces");Check(Maintenance.Quote("abc\\")=="\"abc\\\\\"","quote trailing slash");
-  string sandbox=Path.Combine(Path.GetTempPath(),"DonDepPC-fixture-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(sandbox);try{
+  string sandbox=Path.Combine(Path.GetTempPath(),"PurePC-fixture-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(sandbox);try{
    string f1=Path.Combine(sandbox,"one.txt"),f2=Path.Combine(sandbox,"two.bin"),f3=Path.Combine(sandbox,"same-size-other.bin");File.WriteAllText(f1,"ABCD");File.WriteAllText(f2,"ABCD");File.WriteAllText(f3,"DCBA");string summary;var duplicates=AnalysisTools.Duplicates(sandbox,CancellationToken.None,null,out summary);Check(duplicates.Count==2,"duplicates by content not extension/name");Check(duplicates.All(x=>x.Evidence.Length==64),"SHA256 evidence");Check(duplicates.All(x=>x.Path!=f3),"same length different content excluded");
    var machine=WholeMachine.Scan(new[]{sandbox},CancellationToken.None,null);Check(machine.Files==3&&machine.Bytes==12&&!machine.Cancelled,"whole scan traverses fixture files with exact total");
    Check(WholeMachine.Scan(new[]{sandbox},new CancellationToken(true),null).Cancelled,"whole scan reports partial cancellation");
@@ -37,7 +37,7 @@ static class ProTests {
    bool cancelled=false;try{AnalysisTools.Walk(sandbox,new CancellationToken(true),null,out skip,out limited);}catch(OperationCanceledException){cancelled=true;}Check(cancelled,"tree scan cancellation");
    string oldData=Engine.Data;try{Engine.Data=Path.Combine(sandbox,"isolated-state");var remembered=A("Fixture remembered","Vendor");Engine.Remember(remembered);remembered.Key="second-fixture";Engine.Remember(remembered);Check(Engine.RemovalHistory().Count==2,"removal history keeps separate identities");Check(Engine.Recall().Key=="second-fixture","last removal context retained");}finally{Engine.Data=oldData;}
    string untouched=File.ReadAllText(f3);try{AnalysisTools.Clean(new FileItem{Path=f3,ScopeRoot=sandbox,Size=4,Modified=File.GetLastWriteTimeUtc(f3)});}catch{}Check(File.ReadAllText(f3)==untouched,"cleanup rejects unregistered root before deletion");
-  }finally{if(Path.GetFileName(sandbox).StartsWith("DonDepPC-fixture-")&&Path.GetDirectoryName(sandbox).Equals(Path.GetTempPath().TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))Directory.Delete(sandbox,true);}
+  }finally{if(Path.GetFileName(sandbox).StartsWith("PurePC-fixture-")&&Path.GetDirectoryName(sandbox).Equals(Path.GetTempPath().TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))Directory.Delete(sandbox,true);}
   string exe=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Source","Fixtures","ProcessFixture.exe");string capture=Maintenance.Capture(exe,"--fixture-output",CancellationToken.None).GetAwaiter().GetResult();Check(capture.Contains("exit=7"),"process exit code captured: "+capture);Check(capture.Contains("fixture-output thành công")&&capture.Contains("fixture-error"),"stdout unicode and stderr captured");bool processCancelled=false;try{Maintenance.Capture(exe,"--fixture-wait",new CancellationToken(true)).GetAwaiter().GetResult();}catch(OperationCanceledException){processCancelled=true;}Check(processCancelled,"owned fixture process cancellation");
 
   using(var cancelSearch=new CancellationTokenSource(300))using(var proc=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe,"--fixture-wait"){UseShellExecute=false,CreateNoWindow=true})){bool stopped=false;try{DriverSearchJob.Wait(proc,cancelSearch.Token,null,TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();}catch(OperationCanceledException){stopped=true;}Check(stopped&&proc.HasExited,"driver search cancellation ends owned worker");}
@@ -56,10 +56,10 @@ static class ProTests {
   Check(UwpManager.CleanPublisher("CN=OpenAI, O=OpenAI")=="OpenAI","UWP publisher regex extraction");
   Check(DesktopApp.MatchesFilter(new AppEntry{IsUwp=true},9),"UWP filter matches UWP app");
   Check(DesktopApp.MatchesFilter(new AppEntry{IsUwp=false},10),"Win32 filter matches Win32 app");
-  var snapTest=new SnapshotRecord{AppName="DonDepPCUnitTestApp",CreatedAt=DateTime.UtcNow};
+  var snapTest=new SnapshotRecord{AppName="PurePCUnitTestApp",CreatedAt=DateTime.UtcNow};
   snapTest.CreatedFiles.Add(@"C:\dummy\file.txt");
   SetupMonitor.SaveRecord(snapTest);
-  var loadedRec=SetupMonitor.LoadAllRecords().FirstOrDefault(r=>r.AppName=="DonDepPCUnitTestApp");
+  var loadedRec=SetupMonitor.LoadAllRecords().FirstOrDefault(r=>r.AppName=="PurePCUnitTestApp");
   Check(loadedRec!=null&&loadedRec.CreatedFiles.Count==1,"SetupMonitor save and load record cycle");
   if(loadedRec!=null)SetupMonitor.DeleteRecord(loadedRec);
    Check(SystemPerformance.FlushDnsCache(),"SystemPerformance.FlushDnsCache succeeds");
@@ -77,7 +77,7 @@ static class ProTests {
    long optFreed = SystemPerformance.OptimizeMemory();
    Check(optFreed >= 0, "SystemPerformance.OptimizeMemory executes without leaking");
    Check(SqliteOptimizer.IsAvailable, "SqliteOptimizer.IsAvailable returns true on Windows 10/11");
-   string testDb = Path.Combine(Path.GetTempPath(), "DonDepPC_test_" + Guid.NewGuid().ToString("N") + ".db");
+   string testDb = Path.Combine(Path.GetTempPath(), "PurePC_test_" + Guid.NewGuid().ToString("N") + ".db");
    try {
        File.WriteAllBytes(testDb, System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0"));
        Check(SqliteOptimizer.IsSqliteDatabase(testDb), "SqliteOptimizer recognizes SQLite header");
@@ -85,7 +85,7 @@ static class ProTests {
        if (File.Exists(testDb)) File.Delete(testDb);
    }
    Check(FileShredder.IsProtected(Environment.SystemDirectory), "FileShredder protects SystemDirectory");
-   string testShred = Path.Combine(Path.GetTempPath(), "DonDepPC_shred_" + Guid.NewGuid().ToString("N") + ".tmp");
+   string testShred = Path.Combine(Path.GetTempPath(), "PurePC_shred_" + Guid.NewGuid().ToString("N") + ".tmp");
    File.WriteAllText(testShred, "SECRET TEST CONTENT");
    FileShredder.ShredFile(testShred, 1);
    Check(!File.Exists(testShred), "FileShredder.ShredFile overwrites and deletes file successfully");

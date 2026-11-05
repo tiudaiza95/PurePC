@@ -1,11 +1,11 @@
-# Nhật ký phát hành Phiên bản 1.2 · Dọn Dẹp PC (DonDepPC Pro Max)
+# Nhật ký phát hành Phiên bản 1.2 · Dọn Dẹp PC (PurePC Pro Max)
 
 > **Phiên bản**: `1.2.0.0` (Bản nâng cấp Tối ưu hóa Hiệu năng, Tốc độ Khởi động & Bảo mật - High Performance & Security Upgrade)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
 > **Trạng thái kiểm thử**: PASS 118/118 Unit Checks  
 > **Mã băm SHA-256**: `59394572428526806A98348BD9A7D205C61E3EEA72F3C7787005892054C6D2E0`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`  
-> **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/DonDepPC](https://github.com/tiudaiza95/DonDepPC)
+> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`  
+> **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/PurePC](https://github.com/tiudaiza95/PurePC)
 
 ---
 

@@ -4,9 +4,9 @@
     <TargetFramework>net48</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <AssemblyName>DonDepPC</AssemblyName>
-    <RootNamespace>DonDepPC</RootNamespace>
-    <ApplicationIcon>..\DonDepPC.ico</ApplicationIcon>
+    <AssemblyName>PurePC</AssemblyName>
+    <RootNamespace>PurePC</RootNamespace>
+    <ApplicationIcon>..\PurePC.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>..\bin\$(Configuration)\</OutputPath>
@@ -20,10 +20,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="MainWindow.xaml">
-      <LogicalName>SachGon.MainWindow.xaml</LogicalName>
+      <LogicalName>PurePC.MainWindow.xaml</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DonDepPC.png">
-      <LogicalName>SachGon.Icon.png</LogicalName>
+    <EmbeddedResource Include="..\PurePC.png">
+      <LogicalName>PurePC.Icon.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 </Project>

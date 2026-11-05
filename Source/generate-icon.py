@@ -22,5 +22,5 @@ cx,cy,r,inner = 720,285,165,45
 d.polygon([(cx,cy-r),(cx+inner,cy-inner),(cx+r,cy),(cx+inner,cy+inner),(cx,cy+r),(cx-inner,cy+inner),(cx-r,cy),(cx-inner,cy-inner)], fill=(205,255,242,255))
 d.rounded_rectangle((295,380,465,417), radius=15, fill='white')
 d.rounded_rectangle((295,450,560,481), radius=15, fill=(162,239,255,255))
-im.save(out/'DonDepPC.png')
-im.save(out/'DonDepPC.ico', sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
+im.save(out/'PurePC.png')
+im.save(out/'PurePC.ico', sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])

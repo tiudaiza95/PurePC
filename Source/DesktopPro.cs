@@ -178,8 +178,8 @@ partial class DesktopApp {
   aboutCard.Children.Add(Label("Mô hình kết hợp hoàn hảo giữa:\n• CCleaner: Dọn tệp tạm, tối ưu RAM, dọn Registry và quản lý tiện ích trình duyệt.\n• IObit Uninstaller: Gỡ cài đặt chuyên sâu, gỡ hàng loạt và dọn sạch tàn dư rác 1-click.\n• Driver & System Tools: Giám sát phần cứng và bảo trì ổ đĩa chuyên sâu.\n\nCam kết an toàn tuyệt đối, minh bạch 100% dữ liệu và bảo vệ quyền riêng tư.",12));
   
   var githubRow=new WrapPanel{Margin=new Thickness(0,10,0,0)};
-  githubRow.Children.Add(ActionButton(I18n.T("Kiểm tra bản cập nhật trên GitHub"),()=>OpenUrl("https://github.com/tiudaiza95/DonDepPC/releases")));
-  githubRow.Children.Add(ActionButton(I18n.T("Mở Kho mã nguồn GitHub"),()=>OpenUrl("https://github.com/tiudaiza95/DonDepPC")));
+  githubRow.Children.Add(ActionButton(I18n.T("Kiểm tra bản cập nhật trên GitHub"),()=>OpenUrl("https://github.com/tiudaiza95/PurePC/releases")));
+  githubRow.Children.Add(ActionButton(I18n.T("Mở Kho mã nguồn GitHub"),()=>OpenUrl("https://github.com/tiudaiza95/PurePC")));
   aboutCard.Children.Add(githubRow);
   t3Panel.Children.Add(Card(aboutCard));
 
@@ -245,7 +245,7 @@ partial class DesktopApp {
   var reports=new List<string>();
   reports.Add("=== KẾT QUẢ GỠ CƯỠNG CHẾ: "+a.Name+" ===");
   try{
-   string backupDir=Path.Combine(Path.GetTempPath(),"DonDepPC_Backup");
+   string backupDir=Path.Combine(Path.GetTempPath(),"PurePC_Backup");
    Directory.CreateDirectory(backupDir);
    string safeName=string.Join("_",a.Name.Split(Path.GetInvalidFileNameChars()));
    string backupFile=Path.Combine(backupDir,"Backup_"+safeName+"_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".reg");
@@ -598,7 +598,7 @@ partial class DesktopApp {
   btnRow.Children.Add(ActionButton("Chọn tất cả",()=>{foreach(var item in currentIssues)item.Selected=true;grid.Items.Refresh();}));
   btnRow.Children.Add(ActionButton("Bỏ chọn",()=>{foreach(var item in currentIssues)item.Selected=false;grid.Items.Refresh();}));
   btnRow.Children.Add(ActionButton("📁 Mở thư mục sao lưu",()=>{
-   string dir=Path.Combine(Path.GetTempPath(),"DonDepPC_Backup");
+   string dir=Path.Combine(Path.GetTempPath(),"PurePC_Backup");
    Directory.CreateDirectory(dir);
    Process.Start(new ProcessStartInfo("explorer.exe",dir){UseShellExecute=true});
   }));

@@ -47,5 +47,5 @@ CÁC MỤC KHÁC
 - Tệp trùng: quét → Tự chọn bản trùng để dọn → xem lại → Dọn bản đã chọn.
   Giữ ít nhất một bản; đọc lại nội dung trước xử lý. Không gộp tệp khác nội dung.
 - Công cụ ổ đĩa: hai thẻ Disk Cleanup và tối ưu HDD/SSD mở công cụ Windows.
-- Nhật ký và bản sao ở dữ liệu ứng dụng; thư mục dữ liệu cũ SachGon được giữ
+- Nhật ký và bản sao ở dữ liệu ứng dụng; thư mục dữ liệu cũ PurePC được giữ
   để không mất lịch sử. Bản sao driver được bảo vệ khỏi chức năng xóa tệp thông thường.

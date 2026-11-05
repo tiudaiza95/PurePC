@@ -3,8 +3,8 @@
   "SourceHash": "59394572428526806A98348BD9A7D205C61E3EEA72F3C7787005892054C6D2E0",
   "InstalledHash": "59394572428526806A98348BD9A7D205C61E3EEA72F3C7787005892054C6D2E0",
   "Shortcut": "C:\\Users\\Admin\\Desktop\\Dọn Dẹp PC.lnk",
-  "Target": "C:\\Users\\Admin\\AppData\\Local\\Programs\\DonDepPC\\DonDepPC.exe",
-  "Icon": "C:\\Users\\Admin\\AppData\\Local\\Programs\\DonDepPC\\DonDepPC.ico,0",
+  "Target": "C:\\Users\\Admin\\AppData\\Local\\Programs\\PurePC\\PurePC.exe",
+  "Icon": "C:\\Users\\Admin\\AppData\\Local\\Programs\\PurePC\\PurePC.ico,0",
   "Checks": 118,
   "LegacyUpdateSearchExit": 2
 }

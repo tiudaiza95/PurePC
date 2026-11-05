@@ -107,7 +107,7 @@ powershell -ExecutionPolicy Bypass -File .\Source\build.ps1
 <details>
 <summary>🇻🇳 <b>Xem giới thiệu bằng Tiếng Việt (Bản tóm tắt)</b></summary>
 
-### PurePC (DonDepPC Pro Max v1.2) - Phần mềm Tối ưu hóa & Chăm sóc Windows Toàn diện
+### PurePC (v1.2 Pro Max) - Phần mềm Tối ưu hóa & Chăm sóc Windows Toàn diện
 
 **PurePC** là công cụ chăm sóc, dọn dẹp hệ thống và tối ưu hóa hiệu năng máy tính Windows mã nguồn mở, hiện đại, an toàn và hoàn toàn không quảng cáo hay phần mềm rác.
 

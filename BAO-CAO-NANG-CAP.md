@@ -6,7 +6,7 @@ Ngày: 24/10/2026. Nâng cấp trực tiếp mã C#/.NET Framework/WPF của S�
 
 | Hạng mục | Phạm vi hoạt động |
 |---|---|
-| Nhận diện | Tên Dọn Dẹp PC, icon gốc mới, executable DonDepPC.exe, shortcut Desktop |
+| Nhận diện | Tên Dọn Dẹp PC, icon gốc mới, executable PurePC.exe, shortcut Desktop |
 | Giao diện | Light/Dark, lưu chế độ; thanh trái thu gọn; co giãn cửa sổ; trạng thái xử lý/kết quả/lỗi; thẻ tổng quan chỉ ở Health Check |
 | Danh sách | STT sau tìm/lọc/sắp xếp; icon thật từ tệp hoặc icon chung; tên, publisher, version, size, date, trạng thái, phân loại, nút thông tin/gỡ; nhiều lựa chọn Ctrl/Shift; menu chuột phải |
 | Nguồn danh sách | Registry Uninstall HKCU/HKLM 32/64-bit. Có cả mục SystemComponent và mục không có trình gỡ, được giữ chỉ xem khi phù hợp. Không phải danh sách toàn bộ Microsoft Store |
@@ -52,7 +52,7 @@ Kiến thức offline chưa phủ mọi phần mềm. Tra cứu trực tuyến h
 - Không có quyền → giữ lại; không chiếm quyền sở hữu, không sửa ACL và không tự nâng Administrator.
 - Thùng rác phụ thuộc ổ đĩa/Windows. Nếu được hỏi xóa vĩnh viễn, hãy Hủy nếu muốn khôi phục. Chuyển vào Thùng rác thường chưa giải phóng dung lượng đĩa.
 - Biến động free-space trước/sau có thể bị tác vụ khác ảnh hưởng; không thể quy toàn bộ biến động cho công cụ.
-- Để tương thích dữ liệu 0.2, lịch sử/bản sao vẫn nằm trong `%LOCALAPPDATA%\SachGon`. Tên này là đường dẫn dữ liệu cũ, không phải tên ứng dụng hiện tại.
+- Để tương thích dữ liệu 0.2, lịch sử/bản sao vẫn nằm trong `%LOCALAPPDATA%\PurePC`. Tên này là đường dẫn dữ liệu cũ, không phải tên ứng dụng hiện tại.
 
 ## Nguồn kiến thức đã đối chiếu ngày 24/10/2026
 

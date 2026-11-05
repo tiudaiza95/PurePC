@@ -19,10 +19,10 @@ static class Tests {
   b.Key=a.Key;b.Version="2.0";Check(Engine.Deduplicate(new[]{a,b}).Count==2,"different versions preserved");b.Version=a.Version;b.Hive=RegistryHive.LocalMachine;Check(Engine.Deduplicate(new[]{a,b}).Count==2,"different scope preserved");a.Hive=RegistryHive.LocalMachine;Check(Engine.Deduplicate(new[]{a,b}).Count==2,"machine architectures preserved");
   a.Command="MsiExec.exe /I{11111111-1111-1111-1111-111111111111}";var start=Engine.Uninstaller(a);Check(start.Arguments.StartsWith("/X{"),"MSI uninstall flag");Check(start.FileName==Path.Combine(Environment.SystemDirectory,"msiexec.exe"),"MSI system path");
   Check(!Engine.SafeFolder(Environment.GetFolderPath(Environment.SpecialFolder.Windows),a,new List<AppEntry>()),"system path rejected");
-  string name="SachGonTest"+Guid.NewGuid().ToString("N"),dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),name);
+  string name="PurePCTest"+Guid.NewGuid().ToString("N"),dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),name);
   Directory.CreateDirectory(dir);try{a=new AppEntry{Name=name,Key="own",Location=dir};Check(Engine.SafeFolder(dir,a,new List<AppEntry>()),"isolated app folder accepted");Check(!Engine.SafeFolder(dir,a,new List<AppEntry>{new AppEntry{Name="Other",Key="other",Location=Path.Combine(dir,"shared")}}),"shared install path rejected");a.Name="Other";Check(!Engine.SafeFolder(dir,a,new List<AppEntry>()),"name mismatch rejected");}finally{Directory.Delete(dir);}
-  string test=Path.Combine(Features.TempRoot,"SachGonTest-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(test);
-  string testKey="Software\\SachGonTest-"+Guid.NewGuid().ToString("N");
+  string test=Path.Combine(Features.TempRoot,"PurePCTest-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(test);
+  string testKey="Software\\PurePCTest-"+Guid.NewGuid().ToString("N");
   try{
    string old=Path.Combine(test,"old.tmp"),fresh=Path.Combine(test,"fresh.tmp");File.WriteAllText(old,"test");File.WriteAllText(fresh,"test");File.SetCreationTimeUtc(old,DateTime.UtcNow.AddDays(-10));File.SetLastWriteTimeUtc(old,DateTime.UtcNow.AddDays(-10));
    Check(Features.EligibleTemp(new FileInfo(old),DateTime.UtcNow),"old temp eligible");Check(!Features.EligibleTemp(new FileInfo(fresh),DateTime.UtcNow),"new temp excluded");
@@ -42,7 +42,7 @@ static class Tests {
   }finally{
    using(var root=RegistryKey.OpenBaseKey(RegistryHive.CurrentUser,RegistryView.Registry64))root.DeleteSubKeyTree(testKey,false);
    // Only remove this test's newly created, checked sandbox.
-   if(Path.GetFileName(test).StartsWith("SachGonTest-")&&Path.GetDirectoryName(test).Equals(Features.TempRoot,StringComparison.OrdinalIgnoreCase))Directory.Delete(test,true);
+   if(Path.GetFileName(test).StartsWith("PurePCTest-")&&Path.GetDirectoryName(test).Equals(Features.TempRoot,StringComparison.OrdinalIgnoreCase))Directory.Delete(test,true);
   }
   checks+=ProTests.Run();
   File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.txt"),"PASS: "+checks+" checks.\r\nDeduplication, path boundaries, temp age and read-only guards, cancellation, startup backup and restore tested.\r\nStartup mutations only used an isolated synthetic registry branch, never the real Run key. Additional tests cover sourced advisory, grouping, cleanup scope, SHA-256, cancellation and updater argument validation.\r\nNo installed applications removed.\r\n");

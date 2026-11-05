@@ -1,10 +1,10 @@
-# Nhật ký cập nhật phiên bản 0.9 · Dọn Dẹp PC (DonDepPC Pro Max)
+# Nhật ký cập nhật phiên bản 0.9 · Dọn Dẹp PC (PurePC Pro Max)
 
 > **Phiên bản**: `0.9.0.0`  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF)  
 > **Trạng thái kiểm thử**: PASS 96/96 Unit Checks  
 > **Mã băm SHA-256**: `A0DD023B0CA9315EECF253DA9867E8638E23FFFF857BFAE7B1569DC10A6C9002`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`
+> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`
 
 ---
 

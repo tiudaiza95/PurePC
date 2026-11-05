@@ -209,7 +209,7 @@ public static class RegistryTools {
         errors = new List<string>();
         int cleaned = 0;
 
-        string backupDir = Path.Combine(Path.GetTempPath(), "DonDepPC_Backup");
+        string backupDir = Path.Combine(Path.GetTempPath(), "PurePC_Backup");
         Directory.CreateDirectory(backupDir);
         backupFile = Path.Combine(backupDir, "Registry_Backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".reg");
 

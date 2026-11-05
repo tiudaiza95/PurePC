@@ -1,11 +1,11 @@
-# Nhật ký phát hành chính thức Phiên bản 1.0 · Dọn Dẹp PC (DonDepPC Pro Max)
+# Nhật ký phát hành chính thức Phiên bản 1.0 · Dọn Dẹp PC (PurePC Pro Max)
 
 > **Phiên bản**: `1.0.0.0` (Bản phát hành chính thức - Official Release)  
 > **Kiến trúc**: 64-bit Native (.NET 4.8 / WPF Desktop)  
 > **Trạng thái kiểm thử**: PASS 96/96 Unit Checks  
 > **Mã băm SHA-256**: `729F566CD4060A6B5B91067CCEE5B3947E7BE16E8F951B077D14E7D9CD1872C9`  
-> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\DonDepPC\DonDepPC.exe`  
-> **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/DonDepPC](https://github.com/tiudaiza95/DonDepPC)
+> **Lối tắt Desktop**: `C:\Users\Admin\Desktop\Dọn Dẹp PC.lnk` trỏ trực tiếp đến `C:\Users\Admin\AppData\Local\Programs\PurePC\PurePC.exe`  
+> **Kho mã nguồn GitHub**: [https://github.com/tiudaiza95/PurePC](https://github.com/tiudaiza95/PurePC)
 
 ---
 
@@ -41,7 +41,7 @@ Phiên bản **1.0.0.0** đánh dấu sự hoàn thiện trọn vẹn mô hình 
 ### 2. Trung tâm Bản quyền & Cập nhật GitHub trực tiếp
 - Trong mục Cài đặt (`☰` > Giới thiệu), tích hợp 2 nút tiện ích:
   - **`Kiểm tra bản cập nhật trên GitHub`**: Mở trực tiếp trang phát hành chính thức.
-  - **`Mở Kho mã nguồn GitHub`**: Truy cập mã nguồn mở tại `tiudaiza95/DonDepPC`.
+  - **`Mở Kho mã nguồn GitHub`**: Truy cập mã nguồn mở tại `tiudaiza95/PurePC`.
 
 ### 3. Động cơ Đa ngôn ngữ Hoàn thiện & Khởi tạo An toàn (Fail-Safe I18n)
 - Từ điển song ngữ Anh - Việt hoàn chỉnh từ giao diện chính, thanh điều hướng, các cửa sổ tiện ích (Registry, Tiện ích trình duyệt, Quản lý dịch vụ, Gỡ hàng loạt) đến trang Driver.
