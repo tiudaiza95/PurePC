@@ -10,7 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using System.Windows.Media;
 partial class DesktopApp {
- JunkReport junkReport=new JunkReport();TextBlock junkStatus;DispatcherTimer perfTimer;
+ JunkReport junkReport=new JunkReport();TextBlock junkStatus;DispatcherTimer perfTimer;Action onHealthPerfTick;
  void BuildHealth(){
   Text("Heading",I18n.T("Tổng quan hệ thống & Giám sát hiệu năng"));
   Text("Subtitle",I18n.T("Cấu hình máy tính, giám sát tài nguyên thời gian thực và dọn dẹp hệ thống"));
@@ -135,9 +135,9 @@ partial class DesktopApp {
   var ramPts=new List<double>();
   Action<Canvas,List<double>,double,Color,Color> drawWave=(canvas,history,val,strokeCol,fillCol)=>{
    history.Add(val);
-   if(history.Count>22)history.RemoveAt(0);
+   if(history.Count>24)history.RemoveAt(0);
    canvas.Children.Clear();
-   double w=canvas.ActualWidth>20?canvas.ActualWidth:220;
+   double w=canvas.ActualWidth>20?canvas.ActualWidth:(canvas.RenderSize.Width>20?canvas.RenderSize.Width:240);
    double h=32;
    int count=history.Count;
    if(count<2)return;
@@ -156,17 +156,29 @@ partial class DesktopApp {
    canvas.Children.Add(new System.Windows.Shapes.Polyline{Points=pts,Stroke=new SolidColorBrush(strokeCol),StrokeThickness=2,StrokeLineJoin=PenLineJoin.Round});
   };
 
-  // Cập nhật real-time metrics
+  // Cập nhật real-time metrics & biểu đồ sóng động
   Action updateM=()=>{
    var m=SystemPerformance.Sample();
    cpuVal.Text=m.CpuUsage.ToString("0.0")+"%";cpuBar.Value=m.CpuUsage;cpuSub.Text=I18n.T("Xung nhịp & tiến trình Windows");
    ramVal.Text=m.RamPercent+"%";ramBar.Value=m.RamPercent;ramSub.Text=Features.Size((long)m.UsedRam)+" / "+Features.Size((long)m.TotalRam);
    diskVal.Text=Features.Size(m.DiskFree)+" "+I18n.T("trống");diskBar.Value=m.DiskPercent;diskSub.Text=I18n.T("Tổng")+" "+Features.Size(m.DiskTotal)+" · "+I18n.T("đã dùng")+" "+m.DiskPercent.ToString("0.0")+"%";
+   drawWave(cpuWave,cpuPts,m.CpuUsage,Color.FromRgb(40,117,245),Color.FromArgb(45,40,117,245));
+   drawWave(ramWave,ramPts,(double)m.RamPercent,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105));
   };
+  onHealthPerfTick=updateM;
+
+  // Khởi tạo điểm ban đầu để biểu đồ hiển thị ngay tức thì
+  var initPerf=SystemPerformance.Sample();
+  cpuPts.Add(initPerf.CpuUsage);cpuPts.Add(initPerf.CpuUsage);
+  ramPts.Add((double)initPerf.RamPercent);ramPts.Add((double)initPerf.RamPercent);
   updateM();
+
+  cpuWave.SizeChanged+=(s,e)=>{if(page=="Health"&&onHealthPerfTick!=null)onHealthPerfTick();};
+  ramWave.SizeChanged+=(s,e)=>{if(page=="Health"&&onHealthPerfTick!=null)onHealthPerfTick();};
+
   if(perfTimer==null){
-   perfTimer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1.5)};
-   perfTimer.Tick+=(s,e)=>{if(page=="Health"&&!busy)updateM();};
+   perfTimer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1.0)};
+   perfTimer.Tick+=(s,e)=>{if(page=="Health"&&onHealthPerfTick!=null)onHealthPerfTick();};
    perfTimer.Start();
   }
 

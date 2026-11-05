@@ -198,6 +198,7 @@ partial class DesktopApp {
   contentHolder.Children.Add(emptyCard);
 
   int currentTab=0;
+  bool hasScanned=false;
   Action updateTabUI=()=>{
    btnTabDeep.Content=I18n.T("🛡️ Tàn dư gỡ cài đặt")+" ("+deepItems.Count+")";
    btnTabLarge.Content=I18n.T("📦 Tệp dung lượng lớn")+" ("+files.Count+")";
@@ -209,6 +210,12 @@ partial class DesktopApp {
    btnTabShort.Style=currentTab==3?(Style)window.Resources["Primary"]:(Style)window.FindResource(typeof(Button));
    int curCount=currentTab==0?deepItems.Count:(currentTab==1?files.Count:(currentTab==2?(duplicateFiles==null?0:duplicateFiles.Count):brokenShortcuts.Count));
    emptyCard.Visibility=curCount==0?Visibility.Visible:Visibility.Collapsed;
+   if(curCount==0){
+    emptyText.Text=hasScanned
+     ? I18n.T("Không phát hiện mục nào cần xử lý trong phần này. Hệ thống rất sạch sẽ!")
+     : I18n.T("Chưa có dữ liệu cho mục này. Hãy bấm '⚡ Quét toàn bộ chuyên sâu' để bắt đầu phân tích!");
+    emptyIcon.Text=hasScanned?"✅":"🔍";
+   }
    deepGrid.Visibility=(currentTab==0&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
    largeGrid.Visibility=(currentTab==1&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
    dupGrid.Visibility=(currentTab==2&&curCount>0)?Visibility.Visible:Visibility.Collapsed;
@@ -225,30 +232,35 @@ partial class DesktopApp {
   var actionRow=new WrapPanel{Margin=new Thickness(0,0,0,10)};
   top.Children.Add(actionRow);
 
-  var btnScanAll=WorkButton(I18n.T("⚡ Quét toàn bộ chuyên sâu (Cả 3 mục)"),async()=>{
+  var btnScanAll=WorkButton(I18n.T("⚡ Quét toàn bộ chuyên sâu"),async()=>{
    await WithScan(async token=>{
     var progress=Progress();
-    Text("Status","1/3. Đang quét tàn dư gỡ cài đặt và khóa mồ côi…");
+    hasScanned=true;
+
+    Text("Status","[1/4] Đang quét tàn dư gỡ cài đặt và khóa Registry mồ côi…");
     deepItems=await Task.Run(()=>DeepClean.Scan(token,progress));
     deepGrid.ItemsSource=null;deepGrid.ItemsSource=deepItems;
+    updateTabUI();
 
-    Text("Status","2/3. Đang phân tích tệp dung lượng lớn trên ổ đĩa…");
+    Text("Status","[2/4] Đang phân tích tệp dung lượng lớn trong thư mục người dùng…");
     string userDir=Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     int skipped=0;bool limited=false;
-    var allFiles=await Task.Run(()=>AnalysisTools.Walk(userDir,token,progress,out skipped,out limited));
+    var allFiles=await Task.Run(()=>AnalysisTools.Walk(userDir,token,progress,out skipped,out limited,AnalysisTools.IsJunkOrSystemCacheDir));
     files=allFiles.Where(x=>x.Size>=100L*1024*1024).OrderByDescending(x=>x.Size).Take(300).ToList();
     largeGrid.ItemsSource=null;largeGrid.ItemsSource=files;
+    updateTabUI();
 
-    Text("Status","3/3. Đang đối chiếu nội dung trùng lặp SHA-256…");
+    Text("Status","[3/4] Đang kiểm tra đối chiếu nội dung trùng lặp (SHA-256)…");
     string summary="";
-    duplicateFiles=await Task.Run(()=>AnalysisTools.Duplicates(userDir,token,progress,out summary));
+    duplicateFiles=await Task.Run(()=>AnalysisTools.Duplicates(allFiles,token,progress,out summary));
     dupGrid.ItemsSource=null;dupGrid.ItemsSource=duplicateFiles;
+    updateTabUI();
 
-    Text("Status","Đang quét các lối tắt (.lnk) bị hỏng trên Desktop & Start Menu…");
+    Text("Status","[4/4] Đang quét các lối tắt (.lnk) bị hỏng trên Desktop & Start Menu…");
     brokenShortcuts=await Task.Run(()=>ShortcutCleaner.Scan());
     shortGrid.ItemsSource=null;shortGrid.ItemsSource=brokenShortcuts;
-
     updateTabUI();
+
     Text("Status","Quét toàn diện hoàn tất: "+deepItems.Count+" tàn dư · "+files.Count+" tệp lớn · "+(duplicateFiles==null?0:duplicateFiles.Count)+" tệp trùng · "+brokenShortcuts.Count+" lối tắt hỏng.");
    });
   });
@@ -298,6 +310,28 @@ partial class DesktopApp {
    dupGrid.Items.Refresh();
    currentTab=2;updateTabUI();
    Text("Status","Đã chọn "+count+" bản sao dư thừa để dọn.");
+  }));
+
+  // Nút dọn tệp trùng đã chọn
+  actionRow.Children.Add(WorkButton(I18n.T("Dọn tệp trùng đã chọn"),async()=>{ await Task.Yield();
+   var chosen=duplicateFiles==null?new List<FileItem>():duplicateFiles.Where(x=>x.Selected).ToList();
+   if(chosen.Count==0){Text("Status","Chưa đánh dấu bản trùng muốn xóa. Hãy bấm 'Tự chọn bản trùng dư thừa' hoặc chọn thủ công.");return;}
+   if(!Confirm("Chuyển "+chosen.Count+" bản trùng đã đánh dấu vào Thùng rác?\nỨng dụng sẽ giữ lại ít nhất một bản gốc trong từng nhóm."))return;
+   var deleting=new HashSet<string>(chosen.Select(x=>x.Path),StringComparer.OrdinalIgnoreCase);
+   int done=0;var errors=new List<string>();
+   foreach(var item in chosen){
+    try{
+     Text("Status","Đối chiếu & dọn dẹp: "+item.Name);
+     await Task.Run(()=>FileActions.ValidateDuplicate(item,duplicateFiles,deleting));
+     FileActions.Recycle(item);
+     duplicateFiles.Remove(item);
+     done++;
+    }catch(Exception ex){errors.Add(ex.Message);}
+   }
+   dupGrid.ItemsSource=null;dupGrid.ItemsSource=duplicateFiles;
+   updateTabUI();
+   Text("Status","Đã xử lý "+done+" bản trùng; giữ lại "+errors.Count+" mục.");
+   ShowErrors(errors);
   }));
 
   top.Children.Add(Label("Bấm tab tương ứng để xem bảng kết quả chi tiết của từng loại tệp. Mọi thao tác xóa đều ưu tiên Thùng rác để có thể phục hồi.",11));

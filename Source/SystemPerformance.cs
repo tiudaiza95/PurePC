@@ -42,25 +42,27 @@ public static class SystemPerformance {
  }
 
  static ulong prevIdle, prevKernel, prevUser;
+ static double lastCpuUsage = 5.0;
  static readonly object sync = new object();
 
  public static double GetCpuUsage() {
   lock (sync) {
    ComFILETIME idle, kernel, user;
-   if (!GetSystemTimes(out idle, out kernel, out user)) return 5.0;
+   if (!GetSystemTimes(out idle, out kernel, out user)) return lastCpuUsage;
    ulong i = ToUInt64(idle), k = ToUInt64(kernel), u = ToUInt64(user);
    if (prevKernel == 0) {
     prevIdle = i; prevKernel = k; prevUser = u;
-    return 10.0;
+    return lastCpuUsage;
    }
    ulong diffIdle = i - prevIdle;
    ulong diffKernel = k - prevKernel;
    ulong diffUser = u - prevUser;
-   prevIdle = i; prevKernel = k; prevUser = u;
    ulong total = diffKernel + diffUser;
-   if (total == 0) return 0.0;
+   if (total == 0) return lastCpuUsage;
+   prevIdle = i; prevKernel = k; prevUser = u;
    double pct = (double)(total - diffIdle) * 100.0 / total;
-   return Math.Max(0.0, Math.Min(100.0, pct));
+   lastCpuUsage = Math.Max(0.5, Math.Min(100.0, pct));
+   return lastCpuUsage;
   }
  }
 
