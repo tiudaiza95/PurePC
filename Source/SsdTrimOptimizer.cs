@@ -62,15 +62,30 @@ public static class SsdTrimOptimizer {
             psi.CreateNoWindow = true;
             psi.UseShellExecute = false;
             psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
 
             using (var p = Process.Start(psi)) {
+                if (p == null) {
+                    report = "Không thể khởi động tiến trình fsutil.";
+                    return false;
+                }
                 string outStr = p.StandardOutput.ReadToEnd();
+                string errStr = p.StandardError.ReadToEnd();
                 p.WaitForExit(3000);
-                sb.AppendLine("✓ Đã kích hoạt lệnh TRIM: fsutil behavior set DisableDeleteNotify 0.");
-                sb.AppendLine(outStr);
+                string combined = ((outStr ?? "") + " " + (errStr ?? "")).ToLowerInvariant();
+                if (p.ExitCode == 0 && !combined.Contains("access is denied") && !combined.Contains("từ chối")) {
+                    sb.AppendLine("✓ Đã kích hoạt lệnh TRIM: fsutil behavior set DisableDeleteNotify 0.");
+                    if (!string.IsNullOrWhiteSpace(outStr)) sb.AppendLine(outStr.Trim());
+                    report = sb.ToString();
+                    return true;
+                } else {
+                    sb.AppendLine("! Lỗi khi kích hoạt TRIM: Cần quyền Administrator.");
+                    if (!string.IsNullOrWhiteSpace(errStr)) sb.AppendLine(errStr.Trim());
+                    else if (!string.IsNullOrWhiteSpace(outStr)) sb.AppendLine(outStr.Trim());
+                    report = sb.ToString();
+                    return false;
+                }
             }
-            report = sb.ToString();
-            return true;
         } catch (Exception ex) {
             report = "Lỗi khi kích hoạt TRIM: " + ex.Message;
             return false;

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -98,9 +99,23 @@ public static class BrowserExtensionTools {
         return null;
     }
 
+    static string GetBrowserProcessName(string browserName) {
+        if (string.IsNullOrEmpty(browserName)) return null;
+        if (browserName.Contains("Chrome")) return "chrome";
+        if (browserName.Contains("Edge")) return "msedge";
+        if (browserName.Contains("Brave")) return "brave";
+        if (browserName.Contains("Cốc Cốc") || browserName.Contains("CocCoc")) return "browser";
+        return null;
+    }
+
     public static bool RemoveExtension(BrowserExtensionItem item, out string error) {
         error = "";
         try {
+            string proc = GetBrowserProcessName(item.Browser ?? "");
+            if (!string.IsNullOrEmpty(proc) && Process.GetProcessesByName(proc).Length > 0) {
+                error = "Vui lòng đóng trình duyệt " + item.Browser + " trước khi gỡ tiện ích mở rộng.";
+                return false;
+            }
             if (Directory.Exists(item.InstallPath)) {
                 FileSystem.DeleteDirectory(item.InstallPath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin, UICancelOption.ThrowException);
                 return true;

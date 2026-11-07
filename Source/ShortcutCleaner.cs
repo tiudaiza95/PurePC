@@ -72,6 +72,18 @@ public static class ShortcutCleaner {
 
                         // Chỉ kiểm tra các đường dẫn có ổ đĩa cụ thể (C:\, D:\, ...) hoặc UNC
                         if (Path.IsPathRooted(target)) {
+                            string root = Path.GetPathRoot(target);
+                            if (!string.IsNullOrEmpty(root)) {
+                                try {
+                                    var drive = new DriveInfo(root);
+                                    if (!drive.IsReady) {
+                                        // Ổ đĩa di động/USB hoặc ổ mạng tạm thời ngắt kết nối; bỏ qua, không coi là hỏng
+                                        continue;
+                                    }
+                                } catch {
+                                    continue;
+                                }
+                            }
                             if (!File.Exists(target) && !Directory.Exists(target)) {
                                 broken.Add(new BrokenShortcut {
                                     Name = Path.GetFileName(lnk),
@@ -87,6 +99,11 @@ public static class ShortcutCleaner {
             } catch {}
         }
 
+        try {
+            if (shell != null && System.Runtime.InteropServices.Marshal.IsComObject(shell)) {
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);
+            }
+        } catch {}
         return broken;
     }
 

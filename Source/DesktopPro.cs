@@ -245,12 +245,13 @@ partial class DesktopApp {
   var reports=new List<string>();
   reports.Add("=== KẾT QUẢ GỠ CƯỠNG CHẾ: "+a.Name+" ===");
   try{
-   string backupDir=Path.Combine(Path.GetTempPath(),"PurePC_Backup");
+   string backupDir=Path.Combine(Engine.Data,"Registry-backups");
    Directory.CreateDirectory(backupDir);
    string safeName=string.Join("_",a.Name.Split(Path.GetInvalidFileNameChars()));
    string backupFile=Path.Combine(backupDir,"Backup_"+safeName+"_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".reg");
    string rootKey=(a.Hive==Microsoft.Win32.RegistryHive.LocalMachine?"HKLM":"HKCU")+"\\"+a.Key;
-   var p=Process.Start(new ProcessStartInfo("reg.exe","export \""+rootKey+"\" \""+backupFile+"\" /y"){CreateNoWindow=true,UseShellExecute=false});
+   string regArgs="export \""+rootKey+"\" \""+backupFile+"\" /y"+(a.View==Microsoft.Win32.RegistryView.Registry32?" /reg:32":"");
+   var p=Process.Start(new ProcessStartInfo("reg.exe",regArgs){CreateNoWindow=true,UseShellExecute=false});
    if(p!=null){p.WaitForExit(3000);if(File.Exists(backupFile))reports.Add("✓ Đã sao lưu Registry an toàn tại:\n"+backupFile);}
   }catch(Exception ex){reports.Add("⚠ Không thể sao lưu Registry: "+ex.Message);}
   try{
@@ -266,7 +267,27 @@ partial class DesktopApp {
    }
   }catch(Exception ex){reports.Add("⚠ Lỗi xóa Registry: "+ex.Message+" (Có thể cần quyền Quản trị viên)");}
   if(!String.IsNullOrWhiteSpace(a.Location)&&Directory.Exists(a.Location)){
-   if(!FileActions.ProtectedPath(a.Location)&&a.Location.TrimEnd('\\').Length>3){
+   bool isProtected=false;
+   try{
+    string loc=Path.GetFullPath(a.Location).TrimEnd('\\');
+    string win=Environment.GetFolderPath(Environment.SpecialFolder.Windows).TrimEnd('\\');
+    string sys=Environment.SystemDirectory.TrimEnd('\\');
+    string user=Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('\\');
+    string root=Path.GetPathRoot(loc).TrimEnd('\\');
+    string pf=Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles).TrimEnd('\\');
+    string pf86=Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86).TrimEnd('\\');
+    string pd=Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData).TrimEnd('\\');
+    if(loc.Length<=3||loc.Equals(root,StringComparison.OrdinalIgnoreCase)||
+       loc.Equals(win,StringComparison.OrdinalIgnoreCase)||loc.StartsWith(win+"\\",StringComparison.OrdinalIgnoreCase)||
+       loc.Equals(sys,StringComparison.OrdinalIgnoreCase)||loc.StartsWith(sys+"\\",StringComparison.OrdinalIgnoreCase)||
+       loc.Equals(user,StringComparison.OrdinalIgnoreCase)||loc.Equals(pf,StringComparison.OrdinalIgnoreCase)||
+       loc.Equals(pf86,StringComparison.OrdinalIgnoreCase)||loc.Equals(pd,StringComparison.OrdinalIgnoreCase)||
+       Engine.Within(AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\'),loc)){
+     isProtected=true;
+    }
+   }catch{isProtected=true;}
+
+   if(!isProtected&&a.Location.TrimEnd('\\').Length>3){
     try{
      Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(a.Location,Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin,Microsoft.VisualBasic.FileIO.UICancelOption.ThrowException);
      reports.Add("✓ Đã chuyển thư mục cài đặt vào Thùng rác:\n"+a.Location);
@@ -598,7 +619,7 @@ partial class DesktopApp {
   btnRow.Children.Add(ActionButton("Chọn tất cả",()=>{foreach(var item in currentIssues)item.Selected=true;grid.Items.Refresh();}));
   btnRow.Children.Add(ActionButton("Bỏ chọn",()=>{foreach(var item in currentIssues)item.Selected=false;grid.Items.Refresh();}));
   btnRow.Children.Add(ActionButton("📁 Mở thư mục sao lưu",()=>{
-   string dir=Path.Combine(Path.GetTempPath(),"PurePC_Backup");
+   string dir=Path.Combine(Engine.Data,"Registry-backups");
    Directory.CreateDirectory(dir);
    Process.Start(new ProcessStartInfo("explorer.exe",dir){UseShellExecute=true});
   }));

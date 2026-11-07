@@ -36,7 +36,9 @@ public static class UwpManager {
         "Microsoft.WindowsStore",
         "Microsoft.DesktopAppInstaller",
         "Microsoft.MicrosoftEdge.Stable",
-        "Microsoft.WindowsTerminal"
+        "Microsoft.WindowsTerminal",
+        "Microsoft.SecHealthUI",
+        "Microsoft.Windows.SecHealthUI"
     };
 
     public static string GetFriendlyName(string packageName) {
@@ -139,7 +141,7 @@ public static class UwpManager {
 
                     apps.Add(entry);
                 }
-                if (!proc.WaitForExit(5000)) { try { proc.Kill(); } catch {} }
+                if (!proc.WaitForExit(25000)) { try { proc.Kill(); } catch {} }
             }
         } catch {}
         cachedUwp = apps;

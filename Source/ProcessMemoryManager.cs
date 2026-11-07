@@ -37,6 +37,52 @@ public static class ProcessMemoryManager {
     const int SystemMemoryListInformation = 80;
     const int MemoryPurgeStandbyList = 4;
 
+    [DllImport("advapi32.dll", SetLastError = true)]
+    static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out LUID lpLuid);
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct LUID {
+        public uint LowPart;
+        public int HighPart;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    struct TOKEN_PRIVILEGES {
+        public uint PrivilegeCount;
+        public LUID Luid;
+        public uint Attributes;
+    }
+
+    const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+    const uint TOKEN_QUERY = 0x0008;
+    const uint SE_PRIVILEGE_ENABLED = 0x00000002;
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, uint BufferLengthInBytes, IntPtr PreviousState, IntPtr ReturnLength);
+
+    static bool EnablePrivilege(string privilegeName) {
+        try {
+            IntPtr hToken;
+            if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out hToken)) return false;
+            try {
+                LUID luid;
+                if (!LookupPrivilegeValue(null, privilegeName, out luid)) return false;
+                TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
+                tp.PrivilegeCount = 1;
+                tp.Luid = luid;
+                tp.Attributes = SE_PRIVILEGE_ENABLED;
+                return AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+            } finally {
+                CloseHandle(hToken);
+            }
+        } catch {
+            return false;
+        }
+    }
+
     public static bool TrimProcess(int pid) {
         if (pid <= 4) return false;
         IntPtr hProc = IntPtr.Zero;
@@ -59,16 +105,24 @@ public static class ProcessMemoryManager {
         try {
             var memBefore = SystemPerformance.GetMemory();
             Process[] procs = Process.GetProcesses();
-            for (int i = 0; i < procs.Length; i++) {
-                Process p = procs[i];
-                try {
-                    if (p.Id <= 4) continue;
-                    if (TrimProcess(p.Id)) {
-                        trimmed++;
-                    }
-                } catch {}
+            try {
+                for (int i = 0; i < procs.Length; i++) {
+                    Process p = procs[i];
+                    try {
+                        if (p.Id <= 4) continue;
+                        if (TrimProcess(p.Id)) {
+                            trimmed++;
+                        }
+                    } catch {}
+                }
+            } finally {
+                for (int i = 0; i < procs.Length; i++) {
+                    try { if (procs[i] != null) procs[i].Dispose(); } catch {}
+                }
             }
             try {
+                EnablePrivilege("SeProfileSingleProcessPrivilege");
+                EnablePrivilege("SeIncreaseQuotaPrivilege");
                 int cmd = MemoryPurgeStandbyList;
                 NtSetSystemInformation(SystemMemoryListInformation, ref cmd, sizeof(int));
             } catch {}
@@ -86,22 +140,28 @@ public static class ProcessMemoryManager {
         var list = new List<ProcessMemoryInfo>();
         try {
             Process[] procs = Process.GetProcesses();
-            for (int i = 0; i < procs.Length; i++) {
-                Process p = procs[i];
-                try {
-                    if (p.Id <= 4) continue;
-                    long ws = p.WorkingSet64;
-                    if (ws < 5L * 1024 * 1024) continue;
-                    var item = new ProcessMemoryInfo();
-                    item.Id = p.Id;
-                    item.Name = p.ProcessName;
-                    item.Title = p.MainWindowTitle;
-                    item.WorkingSetBytes = ws;
-                    item.PrivateMemoryBytes = p.PrivateMemorySize64;
-                    item.Threads = p.Threads.Count;
-                    item.IsSelected = true;
-                    list.Add(item);
-                } catch {}
+            try {
+                for (int i = 0; i < procs.Length; i++) {
+                    Process p = procs[i];
+                    try {
+                        if (p.Id <= 4) continue;
+                        long ws = p.WorkingSet64;
+                        if (ws < 5L * 1024 * 1024) continue;
+                        var item = new ProcessMemoryInfo();
+                        item.Id = p.Id;
+                        item.Name = p.ProcessName;
+                        item.Title = p.MainWindowTitle;
+                        item.WorkingSetBytes = ws;
+                        item.PrivateMemoryBytes = p.PrivateMemorySize64;
+                        item.Threads = p.Threads.Count;
+                        item.IsSelected = true;
+                        list.Add(item);
+                    } catch {}
+                }
+            } finally {
+                for (int i = 0; i < procs.Length; i++) {
+                    try { if (procs[i] != null) procs[i].Dispose(); } catch {}
+                }
             }
         } catch {}
         return list.OrderByDescending(delegate(ProcessMemoryInfo x) { return x.WorkingSetBytes; }).Take(count).ToList();

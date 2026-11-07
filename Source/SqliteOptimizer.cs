@@ -15,6 +15,9 @@ public static class SqliteOptimizer {
     [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_close", CallingConvention = CallingConvention.Cdecl)]
     static extern int sqlite3_close(IntPtr db);
 
+    [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_free", CallingConvention = CallingConvention.Cdecl)]
+    static extern void sqlite3_free(IntPtr ptr);
+
     public static bool IsAvailable {
         get {
             try {
@@ -43,15 +46,19 @@ public static class SqliteOptimizer {
     public static bool Vacuum(string path, out long bytesFreed) {
         bytesFreed = 0;
         if (!IsAvailable || !File.Exists(path)) return false;
+        IntPtr db = IntPtr.Zero;
         try {
             long sizeBefore = new FileInfo(path).Length;
-            IntPtr db;
             int rc = sqlite3_open16(path, out db);
-            if (rc != 0) return false;
+            if (rc != 0 || db == IntPtr.Zero) return false;
             try {
-                IntPtr errmsg;
+                IntPtr errmsg = IntPtr.Zero;
                 int execRc = sqlite3_exec(db, "VACUUM; REINDEX;", IntPtr.Zero, IntPtr.Zero, out errmsg);
+                if (errmsg != IntPtr.Zero) {
+                    try { sqlite3_free(errmsg); } catch {}
+                }
                 sqlite3_close(db);
+                db = IntPtr.Zero; // Prevent double close in finally
                 if (execRc == 0) {
                     long sizeAfter = new FileInfo(path).Length;
                     if (sizeBefore > sizeAfter) {
@@ -61,11 +68,28 @@ public static class SqliteOptimizer {
                 }
                 return false;
             } finally {
-                try { sqlite3_close(db); } catch {}
+                if (db != IntPtr.Zero) {
+                    try { sqlite3_close(db); } catch {}
+                    db = IntPtr.Zero;
+                }
             }
         } catch {
             return false;
         }
+    }
+
+    public static bool IsBrowserRunningForDatabase(string path) {
+        if (string.IsNullOrEmpty(path)) return false;
+        string lower = path.ToLowerInvariant();
+        try {
+            if (lower.Contains(@"\google\chrome\") && Process.GetProcessesByName("chrome").Length > 0) return true;
+            if (lower.Contains(@"\microsoft\edge\") && Process.GetProcessesByName("msedge").Length > 0) return true;
+            if (lower.Contains(@"\bravesoftware\") && Process.GetProcessesByName("brave").Length > 0) return true;
+            if (lower.Contains(@"\coccoc\") && (Process.GetProcessesByName("browser").Length > 0 || Process.GetProcessesByName("coccoc").Length > 0)) return true;
+            if (lower.Contains(@"\opera") && (Process.GetProcessesByName("opera").Length > 0 || Process.GetProcessesByName("opera_gx").Length > 0)) return true;
+            if (lower.Contains(@"\mozilla\firefox\") && Process.GetProcessesByName("firefox").Length > 0) return true;
+        } catch {}
+        return false;
     }
 
     public static List<string> FindBrowserDatabases() {
@@ -140,6 +164,7 @@ public static class SqliteOptimizer {
         totalFreed = 0;
         var list = FindBrowserDatabases();
         foreach (var path in list) {
+            if (IsBrowserRunningForDatabase(path)) continue; // skip locked browser DBs safely
             long freed;
             if (Vacuum(path, out freed)) {
                 successCount++;

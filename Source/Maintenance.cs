@@ -41,6 +41,25 @@ partial class DesktopApp {
   var rootPanel=new StackPanel{Margin=new Thickness(0,0,0,16)};
   scroll.Content=rootPanel;
 
+  if(!Engine.IsAdministrator()){
+   var adminPanel=new StackPanel();
+   var hRow=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,4)};
+   hRow.Children.Add(Label("🛡️  ",16,true));
+   hRow.Children.Add(Label(I18n.T("Chạy với quyền Administrator để mở khóa toàn bộ tính năng"),13,true));
+   adminPanel.Children.Add(hRow);
+   adminPanel.Children.Add(Label(I18n.T("Một số công cụ như Dọn Registry HKLM, SFC, DISM, Tối ưu hóa Game & TRIM SSD yêu cầu quyền Quản trị viên để hoạt động chính xác."),11));
+   var rBtn=ActionButton(I18n.T("⚡ Khởi động lại với quyền Administrator"),()=>{
+    if(!Engine.RestartAsAdministrator()){
+     MessageBox.Show(window,"Không thể nâng quyền tự động. Hãy nhấp chuột phải vào PurePC ngoài Desktop và chọn 'Run as administrator'.","Thông báo");
+    }
+   });
+   rBtn.Padding=new Thickness(12,6,12,6);rBtn.HorizontalAlignment=HorizontalAlignment.Left;
+   adminPanel.Children.Add(rBtn);
+   var aCard=Card(adminPanel);
+   aCard.Padding=new Thickness(14,12,14,12);
+   rootPanel.Children.Add(aCard);
+  }
+
   // THANH TÌM KIẾM VÀ BỘ LỌC DANH MỤC TIỆN ÍCH PRO
   var filterBar=new StackPanel{Margin=new Thickness(0,0,0,16)};
   rootPanel.Children.Add(filterBar);

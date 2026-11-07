@@ -161,7 +161,8 @@ public static class SystemPerformance {
   try {
    using (var baseKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}")) {
     if (baseKey != null) {
-     foreach (string sub in new[] { "0000", "0001", "0002" }) {
+     foreach (string sub in baseKey.GetSubKeyNames()) {
+      if (sub.StartsWith("Properties", StringComparison.OrdinalIgnoreCase)) continue;
       using (var k = baseKey.OpenSubKey(sub)) {
        if (k != null) {
         string desc = Convert.ToString(k.GetValue("DriverDesc"));
@@ -171,11 +172,6 @@ public static class SystemPerformance {
      }
     }
    }
-  } catch {}
-  if (gpuName != null) return gpuName;
-  try {
-   var d = VendorDrivers.Scan().FirstOrDefault(x => x.Class == "DISPLAY");
-   if (d != null) gpuName = d.Device;
   } catch {}
   return gpuName ?? "Bộ xử lý đồ họa";
  }

@@ -33,6 +33,18 @@ static partial class Engine {
  public const string Uninstall = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
  public static string Data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PurePC");
  public static bool Testing;
+ public static bool IsAdministrator() {
+  try { return new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator); }
+  catch { return false; }
+ }
+ public static bool RestartAsAdministrator() {
+  try {
+   var psi=new ProcessStartInfo(Process.GetCurrentProcess().MainModule.FileName){Verb="runas",UseShellExecute=true};
+   Process.Start(psi);
+   System.Windows.Application.Current.Shutdown();
+   return true;
+  } catch { return false; }
+ }
  public static void Log(string s) { if(Testing)return; Directory.CreateDirectory(Data); File.AppendAllText(Path.Combine(Data,"activity.log"),DateTime.Now.ToString("s")+" "+s+Environment.NewLine,Encoding.UTF8); }
  public static void Remember(AppEntry a) { Directory.CreateDirectory(Data); using(var f=File.Create(Path.Combine(Data,"last-app.xml")))new System.Xml.Serialization.XmlSerializer(typeof(AppEntry)).Serialize(f,a); RememberHistory(a); }
  public static AppEntry Recall() { try { using(var f=File.OpenRead(Path.Combine(Data,"last-app.xml")))return (AppEntry)new System.Xml.Serialization.XmlSerializer(typeof(AppEntry)).Deserialize(f); }catch{return null;} }

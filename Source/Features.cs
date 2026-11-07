@@ -21,6 +21,9 @@ public class FileScan {
 }
 public class StartupItem {
  public string Name {get;set;}
+ public string OriginalName {get;set;}
+ public string SourceType {get;set;}
+ public string FilePath {get;set;}
  public string Command {get;set;}
  public RegistryValueKind Kind {get;set;}
  public bool Disabled {get;set;}
@@ -127,10 +130,10 @@ static partial class Features {
   var items=new List<StartupItem>();
   using(var r=RegistryKey.OpenBaseKey(RegistryHive.CurrentUser,RegistryView.Registry64))using(var key=r.OpenSubKey(RunKey))if(key!=null)foreach(string name in key.GetValueNames()) {
    var kind=key.GetValueKind(name);if(kind!=RegistryValueKind.String&&kind!=RegistryValueKind.ExpandString)continue;
-   items.Add(new StartupItem{Name=name,Command=Convert.ToString(key.GetValue(name,null,RegistryValueOptions.DoNotExpandEnvironmentNames)),Kind=kind});
+   items.Add(new StartupItem{Name=name,OriginalName=name,SourceType="HKCU",Command=Convert.ToString(key.GetValue(name,null,RegistryValueOptions.DoNotExpandEnvironmentNames)),Kind=kind});
   }
-  string startupDir=Environment.GetFolderPath(Environment.SpecialFolder.Startup);if(Directory.Exists(startupDir))try{foreach(string f in Directory.GetFiles(startupDir,"*.lnk")){string n=System.IO.Path.GetFileNameWithoutExtension(f)+" (Thư mục Startup)";if(!items.Any(x=>x.Name.Equals(n,StringComparison.OrdinalIgnoreCase)))items.Add(new StartupItem{Name=n,Command=f,Kind=RegistryValueKind.String});}}catch{}
-  try{using(var r=RegistryKey.OpenBaseKey(RegistryHive.LocalMachine,RegistryView.Registry64))using(var key=r.OpenSubKey(RunKey))if(key!=null)foreach(string name in key.GetValueNames()){var kind=key.GetValueKind(name);if(kind!=RegistryValueKind.String&&kind!=RegistryValueKind.ExpandString)continue;string n=name+" (Toàn máy)";if(!items.Any(x=>x.Name.Equals(n,StringComparison.OrdinalIgnoreCase)))items.Add(new StartupItem{Name=n,Command=Convert.ToString(key.GetValue(name,null,RegistryValueOptions.DoNotExpandEnvironmentNames)),Kind=kind});}}catch{
+  string startupDir=Environment.GetFolderPath(Environment.SpecialFolder.Startup);if(Directory.Exists(startupDir))try{foreach(string f in Directory.GetFiles(startupDir,"*.lnk")){string n=System.IO.Path.GetFileNameWithoutExtension(f)+" (Thư mục Startup)";if(!items.Any(x=>x.Name.Equals(n,StringComparison.OrdinalIgnoreCase)))items.Add(new StartupItem{Name=n,OriginalName=System.IO.Path.GetFileName(f),SourceType="Folder",FilePath=f,Command=f,Kind=RegistryValueKind.String});}}catch{}
+  try{using(var r=RegistryKey.OpenBaseKey(RegistryHive.LocalMachine,RegistryView.Registry64))using(var key=r.OpenSubKey(RunKey))if(key!=null)foreach(string name in key.GetValueNames()){var kind=key.GetValueKind(name);if(kind!=RegistryValueKind.String&&kind!=RegistryValueKind.ExpandString)continue;string n=name+" (Toàn máy)";if(!items.Any(x=>x.Name.Equals(n,StringComparison.OrdinalIgnoreCase)))items.Add(new StartupItem{Name=n,OriginalName=name,SourceType="HKLM",Command=Convert.ToString(key.GetValue(name,null,RegistryValueOptions.DoNotExpandEnvironmentNames)),Kind=kind});}}catch{
   }
   string dir=System.IO.Path.Combine(Engine.Data,"Startup-backups");if(Directory.Exists(dir))foreach(string path in Directory.GetFiles(dir,"*.xml"))try{var item=ReadStartup(path);if(item.Disabled&&!items.Any(x=>x.Name.Equals(item.Name,StringComparison.OrdinalIgnoreCase))){item.Backup=path;items.Add(item);}}catch{}
   return items.OrderBy(x=>x.Name).ToList();
@@ -139,20 +142,39 @@ static partial class Features {
  static void WriteStartup(string path,StartupItem item){using(var f=new FileStream(path,FileMode.CreateNew,FileAccess.Write))new XmlSerializer(typeof(StartupItem)).Serialize(f,item);}
  public static void Toggle(StartupItem item, string runKey=RunKey, string backupDirectory=null) {
   string dir=backupDirectory??System.IO.Path.Combine(Engine.Data,"Startup-backups");Directory.CreateDirectory(dir);
-  using(var r=RegistryKey.OpenBaseKey(RegistryHive.CurrentUser,RegistryView.Registry64))using(var key=r.CreateSubKey(runKey)) {
-   var current=key.GetValue(item.Name,null,RegistryValueOptions.DoNotExpandEnvironmentNames);
+  string lookupName = item.OriginalName ?? item.Name;
+  if(item.SourceType == "Folder" && !String.IsNullOrEmpty(item.FilePath)) {
    if(!item.Disabled){
-    if(current==null||Convert.ToString(current)!=item.Command||key.GetValueKind(item.Name)!=item.Kind)throw new Exception("Mục khởi động đã thay đổi. Hãy làm mới danh sách.");
-    var backup=new StartupItem{Name=item.Name,Command=item.Command,Kind=item.Kind,Disabled=true};string path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(path,backup);
-    key.DeleteValue(item.Name);Engine.Log("STARTUP_DISABLED "+item.Name+"; backup: "+path);
+    if(!File.Exists(item.FilePath))throw new Exception("Tệp shortcut khởi động không còn tồn tại.");
+    string disabledPath=System.IO.Path.Combine(dir,System.IO.Path.GetFileName(item.FilePath)+".disabled");
+    if(File.Exists(disabledPath))File.Delete(disabledPath);
+    File.Move(item.FilePath,disabledPath);
+    var backup=new StartupItem{Name=item.Name,OriginalName=item.OriginalName,SourceType="Folder",FilePath=disabledPath,Command=disabledPath,Kind=item.Kind,Disabled=true};
+    string path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(path,backup);
+    Engine.Log("STARTUP_DISABLED_FOLDER "+item.Name);
+   }else{
+    string startupDir=Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+    string targetPath=System.IO.Path.Combine(startupDir,item.OriginalName??System.IO.Path.GetFileNameWithoutExtension(item.FilePath));
+    if(File.Exists(item.FilePath))File.Move(item.FilePath,targetPath);
+    if(!String.IsNullOrEmpty(item.Backup)&&File.Exists(item.Backup))File.Delete(item.Backup);
+    Engine.Log("STARTUP_RESTORED_FOLDER "+item.Name);
+   }
+   return;
+  }
+  var hive = item.SourceType == "HKLM" ? RegistryHive.LocalMachine : RegistryHive.CurrentUser;
+  using(var r=RegistryKey.OpenBaseKey(hive,RegistryView.Registry64))using(var key=r.CreateSubKey(runKey)) {
+   var current=key.GetValue(lookupName,null,RegistryValueOptions.DoNotExpandEnvironmentNames);
+   if(!item.Disabled){
+    if(current==null||Convert.ToString(current)!=item.Command||key.GetValueKind(lookupName)!=item.Kind)throw new Exception("Mục khởi động đã thay đổi. Hãy làm mới danh sách.");
+    var backup=new StartupItem{Name=item.Name,OriginalName=lookupName,SourceType=item.SourceType,Command=item.Command,Kind=item.Kind,Disabled=true};string path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(path,backup);
+    key.DeleteValue(lookupName);Engine.Log("STARTUP_DISABLED "+item.Name+"; backup: "+path);
    }else{
     if(current!=null)throw new Exception("Đã có mục trùng tên. Không ghi đè; hãy làm mới danh sách.");
     string full=System.IO.Path.GetFullPath(item.Backup);if(!Engine.Within(full,dir))throw new Exception("Bản sao không hợp lệ.");
     var backup=ReadStartup(full);if(!backup.Disabled||backup.Name!=item.Name||backup.Command!=item.Command)throw new Exception("Bản sao đã thay đổi.");
     if(backup.Kind!=RegistryValueKind.String&&backup.Kind!=RegistryValueKind.ExpandString)throw new Exception("Kiểu dữ liệu không hỗ trợ.");
-    key.SetValue(backup.Name,backup.Command,backup.Kind);backup.Disabled=false;
+    key.SetValue(lookupName,backup.Command,backup.Kind);backup.Disabled=false;
     string archive=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(archive,backup);
-    // Keep original backup for audit, but remove it from the disabled list atomically.
     File.Replace(archive,full,null);Engine.Log("STARTUP_RESTORED "+item.Name);
    }
   }

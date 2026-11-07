@@ -81,6 +81,24 @@ public static class ContextMenuManager {
         return list;
     }
 
+    static void CopyKey(RegistryKey source, RegistryKey destination) {
+        if (source == null || destination == null) return;
+        foreach (string valueName in source.GetValueNames()) {
+            object val = source.GetValue(valueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+            RegistryValueKind kind = source.GetValueKind(valueName);
+            destination.SetValue(valueName, val, kind);
+        }
+        foreach (string subKeyName in source.GetSubKeyNames()) {
+            using (var srcSub = source.OpenSubKey(subKeyName)) {
+                if (srcSub != null) {
+                    using (var dstSub = destination.CreateSubKey(subKeyName)) {
+                        CopyKey(srcSub, dstSub);
+                    }
+                }
+            }
+        }
+    }
+
     public static bool Toggle(ContextMenuItem item, out string error) {
         error = null;
         if (item == null || item.IsSystemProtected) {
@@ -98,15 +116,14 @@ public static class ContextMenuManager {
                 string oldName = item.SubKeyName;
                 string newName = item.IsEnabled ? ("-" + item.Name) : item.Name;
 
-                // Rename subkey by copying value and deleting old
+                // Rename subkey by faithfully copying entire key tree (all values and subkeys like 'command')
                 using (var oldKey = parent.OpenSubKey(oldName)) {
                     if (oldKey == null) {
                         error = "Khóa nguồn không tồn tại.";
                         return false;
                     }
-                    object defaultVal = oldKey.GetValue("");
                     using (var newKey = parent.CreateSubKey(newName)) {
-                        if (defaultVal != null) newKey.SetValue("", defaultVal);
+                        CopyKey(oldKey, newKey);
                     }
                 }
                 parent.DeleteSubKeyTree(oldName, false);
