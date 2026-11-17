@@ -19,7 +19,6 @@ partial class DesktopApp {
   var root=new StackPanel{Margin=new Thickness(0,0,0,16)};
   scroll.Content=root;
 
-  // Grid 3 hàng x 2 cột chứa trọn vẹn 6 Card cân đối, lấp đầy khung hình
   var grid=new Grid{Margin=new Thickness(0,0,0,12)};
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
   grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
@@ -59,31 +58,41 @@ partial class DesktopApp {
   c3.Children.Add(chkStatus);
   var b3Row=new WrapPanel();
   var b3Scan=WorkButton(I18n.T("🔍 Quét kiểm tra ổ C:"),async()=>{
+   if(!Engine.IsAdministrator()){
+    chkStatus.Text="⚠ Cần quyền Administrator để quét chkdsk trực tuyến.";
+    MessageBox.Show(window,"Lệnh chkdsk C: /scan yêu cầu quyền Quản trị viên (Run as Administrator).\nHãy bấm nút nâng quyền trong mục Công cụ Pro hoặc nhấp chuột phải chọn Run as administrator.","Yêu cầu quyền Administrator",MessageBoxButton.OK,MessageBoxImage.Warning);
+    return;
+   }
    chkStatus.Text="Đang tiến hành quét phân vùng C: ở chế độ an toàn (chỉ đọc)…";
    try{
-    var psi=new ProcessStartInfo("chkdsk.exe","C: /scan"){
-     UseShellExecute=false,
-     CreateNoWindow=true,
-     RedirectStandardOutput=true
-    };
+    int exitCode=0;
     string output=await Task.Run(()=>{
+     var psi=new ProcessStartInfo("chkdsk.exe","C: /scan"){
+      UseShellExecute=false,
+      CreateNoWindow=true,
+      RedirectStandardOutput=true,
+      RedirectStandardError=true
+     };
      using(var p=Process.Start(psi)){
-      if(p==null)return "Không thể khởi động chkdsk.";
-      string stdout=p.StandardOutput.ReadToEnd();
+      if(p==null){exitCode=-1;return "Không thể khởi động chkdsk.";}
+      var o=p.StandardOutput.ReadToEndAsync();
+      var e=p.StandardError.ReadToEndAsync();
       p.WaitForExit();
-      return stdout;
+      Task.WaitAll(new Task[]{o,e},3000);
+      exitCode=p.ExitCode;
+      return ((o.Status==TaskStatus.RanToCompletion?o.Result:"")+"\n"+(e.Status==TaskStatus.RanToCompletion?e.Result:"")).Trim();
      }
     });
-    chkStatus.Text="Quét hoàn tất phân vùng C:!";
+    chkStatus.Text=exitCode==0?"Quét hoàn tất phân vùng C:!":"Quét kết thúc (mã: "+exitCode+"). Xem chi tiết báo cáo.";
     ShowLongReport("Kết quả kiểm tra lỗi ổ C: (chkdsk)",output);
    }catch(Exception ex){
-    chkStatus.Text="Lỗi: "+ex.Message+" (Có thể cần quyền Quản trị viên)";
+    chkStatus.Text="Lỗi: "+ex.Message;
    }
   });
   b3Scan.Style=(Style)window.Resources["Primary"];
   b3Scan.Padding=new Thickness(14,8,14,8);
   b3Row.Children.Add(b3Scan);
-  var b3Win=ActionButton(I18n.T("Kiểm tra phân vùng Windows"),()=>Process.Start(new ProcessStartInfo("cmd.exe","/c chkdsk C:"){UseShellExecute=true}));
+  var b3Win=ActionButton(I18n.T("Kiểm tra phân vùng Windows"),()=>Process.Start(new ProcessStartInfo("cmd.exe","/k chkdsk C:"){UseShellExecute=true}));
   b3Win.Padding=new Thickness(12,8,12,8);
   b3Row.Children.Add(b3Win);
   c3.Children.Add(b3Row);
@@ -115,7 +124,7 @@ partial class DesktopApp {
   Grid.SetRow(card4,1);Grid.SetColumn(card4,1);
   grid.Children.Add(card4);
 
-  // HÀNG 3 - CARD 5 (MỚI): Phân tích chiếm dụng dung lượng (Disk Space Analyzer)
+  // HÀNG 3 - CARD 5: Phân tích chiếm dụng dung lượng (Disk Space Analyzer)
   var c5=new StackPanel();
   var t5=Label(I18n.T("▶ PHÂN TÍCH CHIẾM DỤNG Ổ ĐĨA"),14,true);t5.HorizontalAlignment=HorizontalAlignment.Center;t5.Margin=new Thickness(0,0,0,6);c5.Children.Add(t5);
   c5.Children.Add(Label("Phân tích nhanh các thư mục lớn trên ổ hệ thống (Windows, Users, Program Files) để dễ dàng xác định nguồn ngốn dung lượng nhiều nhất.",11));
@@ -142,10 +151,18 @@ partial class DesktopApp {
      foreach(var t in targets.Where(Directory.Exists)){
       try{
        long size=0;int count=0;
-       foreach(var f in Directory.EnumerateFiles(t,"*.*",SearchOption.AllDirectories)){
-        try{size+=new FileInfo(f).Length;count++;if(count>10000)break;}catch{}
+       var stack=new Stack<string>();stack.Push(t);
+       while(stack.Count>0 && count<=15000){
+        string cur=stack.Pop();
+        try{
+         if((File.GetAttributes(cur)&FileAttributes.ReparsePoint)!=0)continue;
+         foreach(var f in Directory.EnumerateFiles(cur)){
+          try{size+=new FileInfo(f).Length;if(++count>15000)break;}catch{}
+         }
+         if(count<=15000)foreach(var sub in Directory.EnumerateDirectories(cur))stack.Push(sub);
+        }catch{}
        }
-       sb.AppendLine(Path.GetFileName(t).PadRight(25)+" : "+Features.Size(size)+(count>10000?" (giới hạn 10.000 tệp đầu)":"")+" ["+t+"]");
+       sb.AppendLine(Path.GetFileName(t).PadRight(25)+" : "+Features.Size(size)+(count>15000?" (mẫu 15.000 tệp đầu)":"")+" ["+t+"]");
       }catch(Exception ex){
        sb.AppendLine(Path.GetFileName(t).PadRight(25)+" : (Không có quyền đọc: "+ex.Message+")");
       }
@@ -170,7 +187,7 @@ partial class DesktopApp {
   Grid.SetRow(card5,2);Grid.SetColumn(card5,0);
   grid.Children.Add(card5);
 
-  // HÀNG 3 - CARD 6 (MỚI): Quản lý Ngủ đông & Nén Compact OS (Hibernation & Compact OS)
+  // HÀNG 3 - CARD 6: Quản lý Ngủ đông & Nén Compact OS (Hibernation & Compact OS)
   var c6=new StackPanel();
   var t6=Label(I18n.T("⚡ TỐI ƯU HIBERNATE & COMPACT OS"),14,true);t6.HorizontalAlignment=HorizontalAlignment.Center;t6.Margin=new Thickness(0,0,0,6);c6.Children.Add(t6);
   c6.Children.Add(Label("Quản lý tệp ngủ đông hiberfil.sys (tiết kiệm 8–16 GB RAM size) và kích hoạt cơ chế nén hệ thống Compact OS giúp tiết kiệm thêm 3–5 GB trên ổ C:.",11));
@@ -179,15 +196,29 @@ partial class DesktopApp {
   c6.Children.Add(c6Status);
   var b6Row=new WrapPanel();
   var b6Hiber=WorkButton(I18n.T("⚡ Tắt Ngủ đông"),async()=>{
-   if(!Confirm("Tắt tính năng Ngủ đông (Hibernate)?\n\nThao tác này sẽ xóa ngay lập tức tệp hiberfil.sys khổng lồ trên ổ C: (thường bằng 75-100% dung lượng RAM máy, khoảng 8GB - 16GB) giúp tăng dung lượng trống ổ C: tức thì.\n(Bạn có thể bật lại bất cứ lúc nào qua cmd: powercfg -h on)"))return;
+   if(!Confirm("Tắt tính năng Ngủ đông (Hibernate)?\n\nThao tác này sẽ xóa ngay lập tức tệp hiberfil.sys trên ổ C: (thường bằng 40–100% dung lượng RAM) giúp tăng dung lượng trống tức thì.\n(Bạn có thể bật lại bất cứ lúc nào qua cmd: powercfg -h on)"))return;
    c6Status.Text="Đang tắt tính năng ngủ đông để giải phóng dung lượng…";
    try{
+    int exitCode=-1;string errMsg="";
     await Task.Run(()=>{
-     var psi=new ProcessStartInfo("powercfg.exe","-h off"){CreateNoWindow=true,UseShellExecute=false};
-     using(var p=Process.Start(psi)){p.WaitForExit();}
+     var psi=new ProcessStartInfo("powercfg.exe","-h off"){CreateNoWindow=true,UseShellExecute=false,RedirectStandardOutput=true,RedirectStandardError=true};
+     using(var p=Process.Start(psi)){
+      if(p==null)return;
+      var o=p.StandardOutput.ReadToEndAsync();
+      var e=p.StandardError.ReadToEndAsync();
+      p.WaitForExit(5000);
+      Task.WaitAll(new Task[]{o,e},1500);
+      exitCode=p.ExitCode;
+      errMsg=((o.Status==TaskStatus.RanToCompletion?o.Result:"")+" "+(e.Status==TaskStatus.RanToCompletion?e.Result:"")).Trim();
+     }
     });
-    c6Status.Text="Đã tắt tính năng ngủ đông! Đã giải phóng dung lượng ổ C:.";
-    MessageBox.Show(window,"Đã tắt Hibernate thành công! Tệp hiberfil.sys trên ổ C: đã được giải phóng.","Thành công",MessageBoxButton.OK,MessageBoxImage.Information);
+    if(exitCode==0){
+     c6Status.Text="✓ Đã tắt tính năng ngủ đông! Đã giải phóng dung lượng ổ C:.";
+     MessageBox.Show(window,"Đã tắt Hibernate thành công! Tệp hiberfil.sys trên ổ C: đã được giải phóng.","Thành công",MessageBoxButton.OK,MessageBoxImage.Information);
+    }else{
+     c6Status.Text="⚠ Cần quyền Administrator để tắt Hibernate.";
+     MessageBox.Show(window,"Không thể tắt Hibernate (yêu cầu quyền Quản trị viên — Run as Administrator).\n"+errMsg,"Yêu cầu quyền Administrator",MessageBoxButton.OK,MessageBoxImage.Warning);
+    }
    }catch(Exception ex){
     c6Status.Text="Cần quyền Administrator để thay đổi: "+ex.Message;
    }
@@ -198,8 +229,15 @@ partial class DesktopApp {
    c6Status.Text="Đang kiểm tra trạng thái Compact OS…";
    try{
     string res=await Task.Run(()=>{
-     var psi=new ProcessStartInfo("compact.exe","/compactos:query"){CreateNoWindow=true,UseShellExecute=false,RedirectStandardOutput=true};
-     using(var p=Process.Start(psi)){return p.StandardOutput.ReadToEnd();}
+     var psi=new ProcessStartInfo("compact.exe","/compactos:query"){CreateNoWindow=true,UseShellExecute=false,RedirectStandardOutput=true,RedirectStandardError=true};
+     using(var p=Process.Start(psi)){
+      if(p==null)return "Không thể khởi chạy compact.exe.";
+      var o=p.StandardOutput.ReadToEndAsync();
+      var e=p.StandardError.ReadToEndAsync();
+      p.WaitForExit(5000);
+      Task.WaitAll(new Task[]{o,e},1500);
+      return ((o.Status==TaskStatus.RanToCompletion?o.Result:"")+"\n"+(e.Status==TaskStatus.RanToCompletion?e.Result:"")).Trim();
+     }
     });
     c6Status.Text="Kiểm tra Compact OS hoàn tất.";
     MessageBox.Show(window,"TRẠNG THÁI NÉN HỆ ĐIỀU HÀNH (COMPACT OS):\n\n"+res,"Thông tin Compact OS",MessageBoxButton.OK,MessageBoxImage.Information);

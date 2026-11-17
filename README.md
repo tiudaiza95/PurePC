@@ -3,7 +3,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6?logo=windows)](https://github.com/tiudaiza95/PurePC)
 [![Framework](https://img.shields.io/badge/.NET-Framework%204.8-512BD4?logo=dotnet)](https://github.com/tiudaiza95/PurePC)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Self--Test-145%2F145%20PASS-brightgreen)](self-test.txt)
+[![Tests](https://img.shields.io/badge/Self--Test-177%2F177%20PASS-brightgreen)](self-test.txt)
 [![UI Engine](https://img.shields.io/badge/UI-Native%20WPF%20%28Hardware%20Accelerated%29-ff69b4)](Preview/)
 [![Language](https://img.shields.io/badge/Languages-English%20%7C%20Ti%E1%BA%BFng%20Vi%E1%BB%87t-blue)]()
 
@@ -95,7 +95,7 @@ cd PurePC
 # Compile using native C# compiler
 powershell -ExecutionPolicy Bypass -File .\Source\build.ps1
 
-# Run the automated verification suite (145 checks)
+# Run the automated verification suite (177 checks)
 .\PurePC.exe --self-test
 
 # Generate updated UI screenshot previews

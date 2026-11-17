@@ -120,7 +120,7 @@ partial class DesktopApp {
   safeCard.Children.Add(Label(I18n.T("Chính sách an toàn dữ liệu 100%"),14,true));
   var c1=new CheckBox{Content="Ưu tiên Thùng rác (Recycle Bin) khi dọn tệp để có thể khôi phục lại",IsChecked=true,IsEnabled=false,Margin=new Thickness(0,4,0,4)};
   c1.SetResourceReference(Control.ForegroundProperty,"Ink");
-  var c2=new CheckBox{Content="Tự động sao lưu Registry (.reg) vào thư mục tạm trước khi xử lý",IsChecked=true,IsEnabled=false,Margin=new Thickness(0,4,0,4)};
+  var c2=new CheckBox{Content="Tự động sao lưu Registry (.reg) vào thư mục dữ liệu an toàn trước khi xử lý",IsChecked=true,IsEnabled=false,Margin=new Thickness(0,4,0,4)};
   c2.SetResourceReference(Control.ForegroundProperty,"Ink");
   var c3=new CheckBox{Content="Tự động sao lưu Driver bên thứ ba trước khi cài đặt gói driver mới",IsChecked=true,IsEnabled=false,Margin=new Thickness(0,4,0,4)};
   c3.SetResourceReference(Control.ForegroundProperty,"Ink");
@@ -190,19 +190,48 @@ partial class DesktopApp {
  void AddActionColumn(DataGrid grid,string caption,Action<AppEntry> action){var template=new DataTemplate();var button=new FrameworkElementFactory(typeof(Button));button.SetValue(Button.ContentProperty,caption);if(caption=="Gỡ cài đặt")button.SetBinding(Button.IsEnabledProperty,new Binding("CanUninstall"));button.SetValue(Button.PaddingProperty,new Thickness(9,7,9,7));button.AddHandler(Button.ClickEvent,new RoutedEventHandler((s,e)=>{if(busy)return;var a=((FrameworkElement)s).DataContext as AppEntry;if(a!=null){e.Handled=true;action(a);}}));template.VisualTree=button;grid.Columns.Add(new DataGridTemplateColumn{Header="",Width=90,CellTemplate=template,CanUserSort=false});}
  async void RunDetached(Func<Task> action){await Work(action);}
  void FilterPro(){if(window==null)return;var grid=C<DataGrid>("AppsGrid");if(grid==null)return;string query=C<TextBox>("Search").Text??"";int filter=C<ComboBox>("AppFilter")==null?0:C<ComboBox>("AppFilter").SelectedIndex;var selected=grid.SelectedItems.Cast<AppEntry>().Select(x=>x.Id).ToArray();var shown=apps.Where(x=>(x.Name??"").IndexOf(query,StringComparison.CurrentCultureIgnoreCase)>=0||(x.Publisher??"").IndexOf(query,StringComparison.CurrentCultureIgnoreCase)>=0).Where(x=>MatchesFilter(x,filter)).ToList();
-  Func<AppEntry,IComparable> key=a=>SortValue(a,sort);shown=(descending?shown.OrderByDescending(key):shown.OrderBy(key)).ToList();for(int i=0;i<shown.Count;i++)shown[i].Number=i+1;grid.ItemsSource=shown;foreach(var a in shown.Where(x=>selected.Contains(x.Id)))grid.SelectedItems.Add(a);Text("ListTitle","Ứng dụng · "+shown.Count);if(filter==3)Text("Status","Không thu thập lịch sử sử dụng; chưa có bằng chứng để gắn nhãn ít sử dụng.");
+  Func<AppEntry,IComparable> key=a=>SortValue(a,sort);shown=(descending?shown.OrderByDescending(key):shown.OrderBy(key)).ToList();for(int i=0;i<shown.Count;i++)shown[i].Number=i+1;grid.ItemsSource=shown;foreach(var a in shown.Where(x=>selected.Contains(x.Id)))grid.SelectedItems.Add(a);Text("ListTitle",I18n.T("Ứng dụng")+" · "+shown.Count);if(filter==3)Text("Status","Không thu thập lịch sử sử dụng; chưa có bằng chứng để gắn nhãn ít sử dụng.");
  }
  internal static IComparable SortValue(AppEntry a,string key){if(key=="InstallBytes")return a.EstimatedBytes;if(key=="InstalledDate")return a.InstalledOn??"";if(key=="Number")return a.Number;var prop=typeof(AppEntry).GetProperty(key);return prop==null?(a.Name??""):(IComparable)(prop.GetValue(a,null)??"");}
  internal static bool MatchesFilter(AppEntry a,int filter){switch(filter){case 1:DateTime d;return DateTime.TryParseExact(a.InstalledOn,"yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out d)&&d>=DateTime.Today.AddDays(-30)&&d<=DateTime.Today;case 2:return a.EstimatedBytes>=1024L*1024*1024;case 3:return false;case 4:return (a.Publisher??"").IndexOf("Microsoft",StringComparison.OrdinalIgnoreCase)>=0;case 5:return !String.IsNullOrEmpty(a.Publisher)&&(a.Publisher??"").IndexOf("Microsoft",StringComparison.OrdinalIgnoreCase)<0;case 6:return a.SystemComponent||a.Protected;case 7:return a.Advice!=null&&!a.Caution;case 8:return a.Caution;case 9:return a.IsUwp;case 10:return !a.IsUwp;default:return true;}}
  void HidePro(){if(proHost==null)return;proHost.Visibility=Visibility.Collapsed;C<FrameworkElement>("GlobalStats").Visibility=Visibility.Collapsed;C<RowDefinition>("StatsRow").Height=new GridLength(0);cleanupSources.Visibility=page=="Temp"?Visibility.Visible:Visibility.Collapsed;}
- void NavigatePro(string name){if(proHost==null)return;page=name;foreach(string panel in new[]{"AppsPage","FilesPage","StartupPage","HistoryPage"})C<FrameworkElement>(panel).Visibility=Visibility.Collapsed;HidePro();proHost.Visibility=Visibility.Visible;proHost.Children.Clear();proControls.RemoveAll(x=>x.Parent==null);if(name=="Health")BuildHealth();if(name=="Duplicates")BuildDuplicatePage();if(name=="Tools")BuildTools();C<RadioButton>("Nav"+name).IsChecked=true;}
+ void NavigatePro(string name){if(proHost==null||(busy&&!Engine.Testing))return;page=name;foreach(string panel in new[]{"AppsPage","FilesPage","StartupPage","HistoryPage"})C<FrameworkElement>(panel).Visibility=Visibility.Collapsed;HidePro();proHost.Visibility=Visibility.Visible;proHost.Children.Clear();proControls.RemoveAll(x=>x.Parent==null);if(name=="Health")BuildHealth();else if(name=="Duplicates")BuildDuplicatePage();else if(name=="Tools")BuildTools();else if(name=="Deep")BuildDeepPage();else if(name=="DiskTools")BuildDiskTools();else if(name=="Drivers")BuildDriverPage();if(C<RadioButton>("Nav"+name)!=null)C<RadioButton>("Nav"+name).IsChecked=true;}
  void StatePro(){if(proHost==null)return;foreach(var control in proControls)control.IsEnabled=!busy;foreach(string n in new[]{"AppInfo","ShowGroups","AppFilter","ToggleTheme","CollapseSidebar","NavHealth","NavDuplicates","NavTools"})C<Control>(n).IsEnabled=!busy;cleanupSources.IsEnabled=!busy;StateV05();}
  void SetTheme(bool value){dark=value;string[] names={"Canvas","Ink","Muted","Panel","Soft","Header","Line","Stripe","Accent","AccentInk","Good","GoodSoft"};string[] values=value?new[]{"#111823","#E8EEF8","#A6B5CC","#1B2636","#243D60","#223044","#344457","#1E2B3E","#337BF0","#9CC4FF","#70DBB4","#183C34"}:new[]{"#F4F6FA","#1C2940","#64748B","#FFFFFF","#E9F0FF","#F1F4F9","#DFE5EF","#FAFBFD","#2875F5","#2563D9","#168569","#E5F6EF"};for(int i=0;i<names.Length;i++)window.Resources[names[i]]=new SolidColorBrush((Color)ColorConverter.ConvertFromString(values[i]));C<Button>("ToggleTheme").Content=value?I18n.T("☀ Sáng"):I18n.T("◐ Tối");if(!Engine.Testing){Directory.CreateDirectory(Engine.Data);string setting=Path.Combine(Engine.Data,"dark-mode");if(value)File.WriteAllText(setting,"dark");else if(File.Exists(setting))File.Delete(setting);}}
- void Collapse(){collapsed=!collapsed;foreach(string n in new[]{"Deep","DiskTools","Drivers"})C<RadioButton>("Nav"+n).Content=collapsed?(n=="Deep"?"⌕":n=="DiskTools"?"▣":"⚙"):(n=="Deep"?I18n.T("Quét chuyên sâu"):n=="DiskTools"?I18n.T("Công cụ ổ đĩa"):I18n.T("Driver & thiết bị"));C<ColumnDefinition>("SidebarColumn").Width=new GridLength(collapsed?80:220);C<FrameworkElement>("BrandName").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;C<FrameworkElement>("BrandCaption").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;C<FrameworkElement>("SidebarFoot").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;C<Image>("BrandImage").Width=collapsed?32:54;foreach(string n in new[]{"Apps","Temp","Large","Startup","Tools","History"}){var nav=C<RadioButton>("Nav"+n);if(nav!=null){var stack=nav.Content as StackPanel;if(stack!=null&&stack.Children.Count>1)((UIElement)stack.Children[1]).Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;nav.ToolTip=I18n.T(n);}}foreach(string n in new[]{"Health","Duplicates"})C<RadioButton>("Nav"+n).Content=collapsed?(n=="Health"?"⌂":"≡"):(n=="Health"?I18n.T("Tổng quan"):I18n.T("Tệp trùng nội dung"));C<Button>("ToggleTheme").Content=collapsed?"◐":(dark?I18n.T("☀ Sáng"):I18n.T("◐ Tối"));if(C<Button>("ToggleLang")!=null)C<Button>("ToggleLang").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;}
+ void Collapse(){
+  collapsed=!collapsed;
+  C<ColumnDefinition>("SidebarColumn").Width=new GridLength(collapsed?80:220);
+  C<FrameworkElement>("BrandName").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;
+  C<FrameworkElement>("BrandCaption").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;
+  C<FrameworkElement>("SidebarFoot").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;
+  C<Image>("BrandImage").Width=collapsed?34:54;
+  C<Image>("BrandImage").Height=collapsed?34:54;
+  foreach(string n in new[]{"Health","Apps","Deep","Temp","Large","Startup","DiskTools","Tools","Drivers","History"}){
+   var nav=C<RadioButton>("Nav"+n);
+   if(nav!=null){
+    nav.Padding=collapsed?new Thickness(0,13,0,13):new Thickness(16,13,16,13);
+    var stack=nav.Content as StackPanel;
+    if(stack!=null&&stack.Children.Count>1){
+     var iconTb=stack.Children[0] as TextBlock;
+     if(iconTb!=null)iconTb.Margin=collapsed?new Thickness(0,2,0,0):new Thickness(0,2,13,0);
+     ((UIElement)stack.Children[1]).Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;
+     stack.HorizontalAlignment=collapsed?HorizontalAlignment.Center:HorizontalAlignment.Left;
+    }
+   }
+  }
+  if(C<RadioButton>("NavDuplicates")!=null)C<RadioButton>("NavDuplicates").Content=collapsed?"≡":I18n.T("Tệp trùng nội dung");
+  var themeBtn=C<Button>("ToggleTheme");
+  if(themeBtn!=null){
+   themeBtn.Content=collapsed?"◐":(dark?I18n.T("☀ Sáng"):I18n.T("◐ Tối"));
+   Grid.SetColumnSpan(themeBtn,collapsed?2:1);
+   themeBtn.Margin=collapsed?new Thickness(0):new Thickness(0,0,4,0);
+  }
+  if(C<Button>("ToggleLang")!=null)C<Button>("ToggleLang").Visibility=collapsed?Visibility.Collapsed:Visibility.Visible;
+ }
  void OpenInstall(AppEntry a){if(a==null)return;if(String.IsNullOrWhiteSpace(a.Location)||!Directory.Exists(a.Location))throw new Exception("Không có đường dẫn cài đặt đã đăng ký còn tồn tại. Xem tệp tham chiếu trong Thông tin.");Process.Start(new ProcessStartInfo(a.Location){UseShellExecute=true});}
  string DetailText(AppEntry a){var d=a.Advice??new Advisory();return a.Name+"\n\nTHÔNG TIN TẠI MÁY\nNhà phát hành: "+a.Vendor+"\nQuốc gia: "+d.Country+"\nPhiên bản: "+a.Release+"\nDanh mục: "+d.Category+"\nNgày: "+a.InstalledDate+" (Registry InstallDate; có thể là ngày cập nhật)\nDung lượng: "+a.SizeLabel+"\nNguồn/cách tính: "+a.SizeSource+"\nVị trí cài: "+(String.IsNullOrWhiteSpace(a.Location)?"Chưa được trình cài khai báo":a.Location)+"\nTệp tham chiếu: "+Engine.KnownExecutable(a)+"\nPhạm vi: "+a.Scope+"\n"+a.Architecture+"\n\nCHỨC NĂNG\n"+d.Description+"\n\nĐÁNH GIÁ\n"+d.Level+"\nLý do: "+d.Reason+"\nTin cậy: "+d.Confidence+"\nẢnh hưởng: "+d.Impact+"\nSao lưu: "+d.Backup+"\n\nNGUỒN\n"+d.Source+"\nNgày xác minh nguồn: "+d.Checked+"\nNguồn cục bộ: "+a.Hive+" / "+a.View+" / "+a.Key+"\nURL do trình cài khai báo (chưa xác minh): "+(a.Website??"");}
  void ShowInfo(AppEntry a){if(a==null){Text("Status","Chọn một ứng dụng trước.");return;}var dialog=new Window{Title="Thông tin · "+a.Name,Owner=window,Width=820,Height=780,MinWidth=650,MinHeight=500,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.SetResourceReference(Window.ForegroundProperty,"Ink");EnableEscapeClose(dialog);var root=new DockPanel();var frame=new Border{Padding=new Thickness(24),Child=root};frame.SetResourceReference(Border.BackgroundProperty,"Canvas");dialog.Content=frame;var title=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,0,18)};title.Children.Add(new Image{Source=a.Icon,Width=40,Height=40,Margin=new Thickness(0,0,14,0)});title.Children.Add(Label(a.Name,22,true));DockPanel.SetDock(title,Dock.Top);root.Children.Add(title);
-  var actions=new WrapPanel{Margin=new Thickness(0,16,0,0)};DockPanel.SetDock(actions,Dock.Bottom);root.Children.Add(actions);var body=new StackPanel();root.Children.Add(new ScrollViewer{Content=body,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled});var d=a.Advice??new Advisory();
+  var actions=new WrapPanel{Margin=new Thickness(0,16,0,0)};DockPanel.SetDock(actions,Dock.Bottom);root.Children.Add(actions);var body=new StackPanel{Margin=new Thickness(0,0,8,0)};root.Children.Add(new ScrollViewer{Content=body,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});var d=a.Advice??new Advisory();
   var basic=new StackPanel();basic.Children.Add(Label("Thông tin tại máy",17,true));
   var facts=new Grid();facts.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(150)});facts.ColumnDefinitions.Add(new ColumnDefinition());
   string[,] pairs={{"Nhà phát hành",a.Vendor},{"Quốc gia",d.Country},{"Phiên bản",a.Release},{"Danh mục",a.Category},{"Ngày đăng ký",a.InstalledDate+" · InstallDate có thể là ngày cập nhật"},{"Dung lượng",a.SizeLabel+" — "+a.SizeSource},{"Vị trí",String.IsNullOrWhiteSpace(a.Location)?"Trình cài chưa khai báo":a.Location},{"Phạm vi",a.Scope+" · "+a.Architecture}};
@@ -325,7 +354,12 @@ partial class DesktopApp {
   filterRow.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(200)});
   filterRow.ColumnDefinitions.Add(new ColumnDefinition());
   header.Children.Add(filterRow);
-  var searchBox=new TextBox{Margin=new Thickness(0,0,10,0)};Grid.SetColumn(searchBox,0);filterRow.Children.Add(searchBox);
+  var searchBox=new TextBox();
+  var svcHint=Label("🔍 Tìm dịch vụ...",12);svcHint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");svcHint.Margin=new Thickness(12,0,0,0);svcHint.VerticalAlignment=VerticalAlignment.Center;svcHint.IsHitTestVisible=false;
+  searchBox.TextChanged+=(s,e)=>{svcHint.Visibility=String.IsNullOrEmpty(searchBox.Text)?Visibility.Visible:Visibility.Collapsed;};
+  var svcBorder=new Border{CornerRadius=new CornerRadius(10),Margin=new Thickness(0,0,10,0)};svcBorder.SetResourceReference(Border.BackgroundProperty,"Header");
+  var svcSearchGrid=new Grid();svcSearchGrid.Children.Add(searchBox);svcSearchGrid.Children.Add(svcHint);svcBorder.Child=svcSearchGrid;
+  Grid.SetColumn(svcBorder,0);filterRow.Children.Add(svcBorder);
   var filterCombo=new ComboBox{ItemsSource=new[]{"Tất cả dịch vụ","Khởi động Tự động (Auto)","Khởi động Thủ công (Manual)","Đã vô hiệu hóa (Disabled)"},SelectedIndex=0};
   Grid.SetColumn(filterCombo,1);filterRow.Children.Add(filterCombo);
   var statusText=Label("Đang đọc dịch vụ…",12);statusText.VerticalAlignment=VerticalAlignment.Center;statusText.Margin=new Thickness(12,0,0,0);Grid.SetColumn(statusText,2);filterRow.Children.Add(statusText);
@@ -507,9 +541,10 @@ partial class DesktopApp {
   var card3=new StackPanel();
   card3.Children.Add(Label("3. BƯỚC 3: HOÀN TẤT VÀ TẠO NHẬT KÝ GIÁM SÁT",14,true));
   card3.Children.Add(Label("Nhập tên phần mềm và bấm nút hoàn tất để hệ thống đối chiếu diff và lưu nhật ký.",12));
-  var txtName=new TextBox{Margin=new Thickness(0,0,0,8),Padding=new Thickness(8,6,8,6),MinWidth=250};
-  txtName.Text="Phần mềm mới";
-  card3.Children.Add(txtName);
+  var txtName=new TextBox{Padding=new Thickness(10,8,10,8),MinWidth=250,Text="Phần mềm mới"};
+  var txtNameBorder=new Border{CornerRadius=new CornerRadius(10),Margin=new Thickness(0,4,0,8),Child=txtName};
+  txtNameBorder.SetResourceReference(Border.BackgroundProperty,"Header");
+  card3.Children.Add(txtNameBorder);
   var step3Status=Label("Chưa tạo nhật ký",12);step3Status.SetResourceReference(TextBlock.ForegroundProperty,"Muted");
   var btnFinish=ActionButton("✔ Hoàn tất cài đặt & Tạo nhật ký",()=>{
    if(activeSession==null){MessageBox.Show(dialog,"Vui lòng thực hiện Bước 1 trước khi hoàn tất!","Chưa chụp ảnh");return;}
@@ -582,7 +617,7 @@ partial class DesktopApp {
   var root=new DockPanel{Margin=new Thickness(20)};dialog.Content=root;
   var header=new StackPanel{Margin=new Thickness(0,0,0,12)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
   header.Children.Add(Label("DỌN DẸP REGISTRY HỆ THỐNG AN TOÀN",19,true));
-  header.Children.Add(Label("Tự động quét và loại bỏ các mục đăng ký lỗi thời: Trình gỡ cài đặt mồ côi, Lối tắt khởi động đã xóa, MuiCache rác, App Paths hỏng.\n★ Tự động sao lưu khóa Registry (.reg) vào thư mục tạm trước khi sửa lỗi để có thể khôi phục 100%.",12));
+  header.Children.Add(Label("Tự động quét và loại bỏ các mục đăng ký lỗi thời: Trình gỡ cài đặt mồ côi, Lối tắt khởi động đã xóa, MuiCache rác, App Paths hỏng.\n★ Tự động sao lưu đệ quy khóa Registry (.reg) vào thư mục sao lưu an toàn trước khi sửa lỗi để khôi phục 100%.",12));
   var bottom=new StackPanel{Margin=new Thickness(0,12,0,0)};DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
   var btnRow=new WrapPanel();bottom.Children.Add(btnRow);
   var statusText=Label("Bấm 'Quét Registry' để bắt đầu kiểm tra lỗi hệ thống.",12);
@@ -610,10 +645,15 @@ partial class DesktopApp {
    if(!Confirm("Sửa chữa và dọn "+chosen.Count+" mục Registry đã chọn?\n\nHệ thống sẽ tự động xuất một bản sao lưu (.reg) trước khi thực hiện để đảm bảo an toàn tuyệt đối."))return;
    string backupFile;List<string> errors;
    int cleaned=RegistryTools.CleanIssues(chosen,out backupFile,out errors);
-   foreach(var item in chosen)currentIssues.Remove(item);
+   currentIssues.RemoveAll(x=>x.Cleaned);
    grid.ItemsSource=null;grid.ItemsSource=currentIssues;
-   statusText.Text="Đã dọn thành công "+cleaned+" mục Registry. Bản sao lưu được lưu an toàn tại: "+backupFile;
-   MessageBox.Show(dialog,"ĐÃ HOÀN TẤT DỌN DẸP REGISTRY!\n\nSố mục đã xử lý: "+cleaned+" / "+chosen.Count+"\n\nBản sao lưu hoàn tác (.reg):\n"+backupFile+(errors.Count>0?"\n\n(Có "+errors.Count+" mục cần quyền Administrator)":""),"Thành công",MessageBoxButton.OK,MessageBoxImage.Information);
+   if(cleaned>0){
+    statusText.Text="Đã dọn thành công "+cleaned+" mục Registry. Bản sao lưu tại: "+backupFile;
+    MessageBox.Show(dialog,"ĐÃ HOÀN TẤT DỌN DẸP REGISTRY!\n\nSố mục đã xử lý: "+cleaned+" / "+chosen.Count+"\n\nBản sao lưu hoàn tác (.reg):\n"+backupFile+(errors.Count>0?"\n\n(Giữ lại "+errors.Count+" mục HKLM cần quyền Administrator)":""),"Thành công",MessageBoxButton.OK,MessageBoxImage.Information);
+   }else{
+    statusText.Text="Không thể xóa các mục HKLM khi chưa có quyền Administrator.";
+    MessageBox.Show(dialog,"Các mục bạn chọn nằm trong nhánh hệ thống (HKLM) nên yêu cầu quyền Quản trị viên (Run as Administrator) để xóa.\n\nHãy khởi động lại PurePC dưới quyền Administrator để xử lý.","Yêu cầu quyền Administrator",MessageBoxButton.OK,MessageBoxImage.Warning);
+   }
   });
   btnRow.Children.Add(btnFix);
   btnRow.Children.Add(ActionButton("Chọn tất cả",()=>{foreach(var item in currentIssues)item.Selected=true;grid.Items.Refresh();}));
@@ -638,7 +678,12 @@ partial class DesktopApp {
   filterRow.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(190)});
   filterRow.ColumnDefinitions.Add(new ColumnDefinition());
   header.Children.Add(filterRow);
-  var searchBox=new TextBox{Margin=new Thickness(0,0,10,0)};Grid.SetColumn(searchBox,0);filterRow.Children.Add(searchBox);
+  var searchBox=new TextBox();
+  var extHint=Label("🔍 Tìm tiện ích...",12);extHint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");extHint.Margin=new Thickness(12,0,0,0);extHint.VerticalAlignment=VerticalAlignment.Center;extHint.IsHitTestVisible=false;
+  searchBox.TextChanged+=(s,e)=>{extHint.Visibility=String.IsNullOrEmpty(searchBox.Text)?Visibility.Visible:Visibility.Collapsed;};
+  var extBorder=new Border{CornerRadius=new CornerRadius(10),Margin=new Thickness(0,0,10,0)};extBorder.SetResourceReference(Border.BackgroundProperty,"Header");
+  var extSearchGrid=new Grid();extSearchGrid.Children.Add(searchBox);extSearchGrid.Children.Add(extHint);extBorder.Child=extSearchGrid;
+  Grid.SetColumn(extBorder,0);filterRow.Children.Add(extBorder);
   var browserCombo=new ComboBox{ItemsSource=new[]{"Tất cả trình duyệt","Google Chrome","Microsoft Edge","Brave Browser","Cốc Cốc"},SelectedIndex=0};
   Grid.SetColumn(browserCombo,1);filterRow.Children.Add(browserCombo);
   var statusText=Label("Đang quét tiện ích…",12);statusText.VerticalAlignment=VerticalAlignment.Center;statusText.Margin=new Thickness(12,0,0,0);Grid.SetColumn(statusText,2);filterRow.Children.Add(statusText);
@@ -730,16 +775,21 @@ partial class DesktopApp {
    if(isBusy)return;
    isBusy=true;
    statusText.Text=I18n.T("Đang tiến hành tối ưu hóa các cơ sở dữ liệu...");
-   int count=0;long freedTotal=0;
-   await Task.Run(()=>{
-    foreach(var p in dbs){
-     long freed;
-     if(SqliteOptimizer.Vacuum(p,out freed)){
-      count++;freedTotal+=freed;
+   btnRow.IsEnabled=false;
+   int count=0;int skippedOpen=0;long freedTotal=0;
+   try{
+    await Task.Run(()=>{
+     foreach(var p in dbs){
+      if(SqliteOptimizer.IsBrowserRunningForDatabase(p)){skippedOpen++;continue;}
+      long freed;
+      if(SqliteOptimizer.Vacuum(p,out freed)){
+       count++;freedTotal+=freed;
+      }
      }
-    }
-   });
-   statusText.Text=I18n.T("Hoàn tất! Đã tối ưu thành công ") + count + " / " + dbs.Count + I18n.T(" database, thu gọn được ") + Features.Size(freedTotal) + ".";
+    });
+   }finally{btnRow.IsEnabled=true;}
+   string skipNote=skippedOpen>0?(" (Bỏ qua "+skippedOpen+" database do trình duyệt đang mở)"):"";
+   statusText.Text=I18n.T("Hoàn tất! Đã tối ưu thành công ") + count + " / " + dbs.Count + I18n.T(" database, thu gọn được ") + Features.Size(freedTotal) + "." + skipNote;
    MessageBox.Show(dialog, statusText.Text, I18n.T("Tối ưu Database SQLite"), MessageBoxButton.OK, MessageBoxImage.Information);
    isBusy=false;
   }));
@@ -874,18 +924,19 @@ partial class DesktopApp {
   AddColumn(grid,"TRẠNG THÁI","UwpStatus",140);
 
   List<AppEntry> uwpApps=new List<AppEntry>();
-  Action loadUwp=()=>{
+  Action loadUwp=async()=>{
    btnRow.IsEnabled=false;statusText.Text="Đang kiểm tra các gói Appx/UWP đã cài đặt…";
-   Task.Run(()=>{
-    return UwpManager.GetInstalledApps(true);
-   }).ContinueWith(t=>{
-    window.Dispatcher.Invoke(()=>{
-     uwpApps=t.Result;
-     grid.ItemsSource=null;grid.ItemsSource=uwpApps;
-     statusText.Text="Đã tìm thấy "+uwpApps.Count+" ứng dụng UWP trên máy ("+uwpApps.Count(x=>!UwpManager.IsProtected(x.PackageFullName))+" ứng dụng có thể gỡ bỏ an toàn).";
-     btnRow.IsEnabled=true;
-    });
-   });
+   try{
+    var loaded=await Task.Run(()=>UwpManager.GetInstalledApps(true));
+    if(!dialog.IsVisible)return;
+    uwpApps=loaded;
+    grid.ItemsSource=null;grid.ItemsSource=uwpApps;
+    statusText.Text="Đã tìm thấy "+uwpApps.Count+" ứng dụng UWP trên máy ("+uwpApps.Count(x=>!UwpManager.IsProtected(x.PackageFullName))+" ứng dụng có thể gỡ bỏ an toàn).";
+   }catch(Exception ex){
+    if(dialog.IsVisible)statusText.Text="Lỗi tải danh sách UWP: "+ex.Message;
+   }finally{
+    if(dialog.IsVisible)btnRow.IsEnabled=true;
+   }
   };
   loadUwp();
 

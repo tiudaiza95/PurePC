@@ -268,7 +268,7 @@ partial class DesktopApp {
 
   var logBox = new TextBox {
    IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
    FontFamily = new FontFamily("Consolas"), FontSize = 11,
    Margin = new Thickness(0, 4, 0, 0),
    Text = "Nhật ký DISM Console sẵn sàng…"
@@ -277,25 +277,42 @@ partial class DesktopApp {
   logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
   root.Children.Add(logBox);
 
+  CancellationTokenSource dismCts = null;
+  dialog.Closed += (s, e) => { if (dismCts != null) { try { dismCts.Cancel(); } catch {} } };
+
   var btnAnalyze = ActionButton(I18n.T("🔍 Phân tích WinSxS (Analyze)"), async () => {
    btnRow.IsEnabled = false;
+   dismCts = new CancellationTokenSource();
    statusText.Text = "Đang chạy DISM /AnalyzeComponentStore… Vui lòng chờ 1-2 phút…";
    logBox.Text = "Bắt đầu phân tích kho thành phần Windows…\r\n";
    try {
-    var res = await ComponentStoreManager.AnalyzeAsync(CancellationToken.None);
-    lblExp.Text = res.ExplorerSize;
-    lblAct.Text = res.ActualSize;
-    lblPkg.Text = res.ReclaimablePackages;
-    lblRec.Text = res.CleanupRecommended ? "CÓ (Nên dọn dẹp)" : "KHÔNG (Đã tối ưu)";
-    lblRec.Foreground = res.CleanupRecommended ? Brushes.OrangeRed : Brushes.MediumSeaGreen;
+    var res = await ComponentStoreManager.AnalyzeAsync(dismCts.Token);
+    if (!dialog.IsVisible) return;
     logBox.Text = res.RawOutput;
-    statusText.Text = res.CleanupRecommended ? "Phân tích xong: Khuyến nghị dọn dẹp kho thành phần!" : "Phân tích xong: Kho thành phần WinSxS đang trong trạng thái tối ưu.";
-    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    if (res.RequiresElevation || res.ExitCode != 0) {
+     lblRec.Text = "CẦN QUYỀN ADMIN";
+     lblRec.Foreground = Brushes.OrangeRed;
+     statusText.Text = "⚠ DISM yêu cầu quyền Quản trị viên (Run as Administrator) để phân tích WinSxS.";
+     MessageBox.Show(dialog, "Công cụ DISM yêu cầu quyền Quản trị viên (Error 740).\nHãy khởi động lại PurePC dưới quyền Administrator để phân tích và tối ưu WinSxS.", "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+    } else {
+     lblExp.Text = res.ExplorerSize;
+     lblAct.Text = res.ActualSize;
+     lblPkg.Text = res.ReclaimablePackages;
+     lblRec.Text = res.CleanupRecommended ? "CÓ (Nên dọn dẹp)" : "KHÔNG (Đã tối ưu)";
+     lblRec.Foreground = res.CleanupRecommended ? Brushes.OrangeRed : Brushes.MediumSeaGreen;
+     statusText.Text = res.CleanupRecommended ? "Phân tích xong: Khuyến nghị dọn dẹp kho thành phần!" : "Phân tích xong: Kho thành phần WinSxS đang trong trạng thái tối ưu.";
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    }
+   } catch (OperationCanceledException) {
+    if (dialog.IsVisible) statusText.Text = "Đã hủy phân tích WinSxS.";
    } catch (Exception ex) {
-    statusText.Text = "Lỗi khi phân tích: " + ex.Message;
-    logBox.Text += "\r\n[Lỗi] " + ex.Message;
+    if (dialog.IsVisible) {
+     statusText.Text = "Lỗi khi phân tích: " + ex.Message;
+     logBox.Text += "\r\n[Lỗi] " + ex.Message;
+    }
    } finally {
-    btnRow.IsEnabled = true;
+    if (dismCts != null) { dismCts.Dispose(); dismCts = null; }
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
    }
   });
   btnAnalyze.Style = (Style)window.Resources["Primary"];
@@ -304,23 +321,36 @@ partial class DesktopApp {
   var btnClean = ActionButton(I18n.T("⚡ Dọn dẹp kho thành phần (StartComponentCleanup)"), async () => {
    if (!Confirm("Khởi chạy DISM /StartComponentCleanup để dọn dẹp các bản cập nhật đã thay thế?\nQuá trình có thể mất từ 3 đến 8 phút tùy tốc độ ổ cứng.")) return;
    btnRow.IsEnabled = false;
+   dismCts = new CancellationTokenSource();
    statusText.Text = "Đang dọn dẹp WinSxS… Quá trình đang diễn ra ngầm…";
    logBox.Text = "Bắt đầu dọn dẹp WinSxS qua DISM /StartComponentCleanup…\r\n";
    try {
     int code = await ComponentStoreManager.StartCleanupAsync(false, line => {
-     window.Dispatcher.Invoke(new Action(() => {
+     dialog.Dispatcher.BeginInvoke(new Action(() => {
+      if (!dialog.IsVisible) return;
       logBox.AppendText(line + "\r\n");
       logBox.ScrollToEnd();
      }));
-    }, CancellationToken.None);
-    statusText.Text = string.Format("Dọn dẹp hoàn tất với mã thoát: {0}.", code);
-    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-    MessageBox.Show(dialog, "Đã hoàn tất dọn dẹp kho thành phần Windows WinSxS!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    }, dismCts.Token);
+    if (!dialog.IsVisible) return;
+    if (code == 0) {
+     statusText.Text = "✓ Đã dọn dẹp kho thành phần WinSxS thành công!";
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+     MessageBox.Show(dialog, "Đã hoàn tất dọn dẹp kho thành phần Windows WinSxS!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    } else {
+     statusText.Text = string.Format("⚠ DISM kết thúc với mã lỗi {0} (Cần quyền Administrator).", code);
+     MessageBox.Show(dialog, string.Format("Không thể hoàn tất dọn dẹp WinSxS (Mã thoát: {0}).\nCông cụ DISM yêu cầu chạy PurePC dưới quyền Administrator.", code), "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+   } catch (OperationCanceledException) {
+    if (dialog.IsVisible) statusText.Text = "Đã dừng dọn dẹp WinSxS.";
    } catch (Exception ex) {
-    statusText.Text = "Lỗi khi dọn dẹp: " + ex.Message;
-    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    if (dialog.IsVisible) {
+     statusText.Text = "Lỗi khi dọn dẹp: " + ex.Message;
+     logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    }
    } finally {
-    btnRow.IsEnabled = true;
+    if (dismCts != null) { dismCts.Dispose(); dismCts = null; }
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
    }
   });
   btnRow.Children.Add(btnClean);
@@ -405,7 +435,7 @@ partial class DesktopApp {
 
   var logBox = new TextBox {
    IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
    FontFamily = new FontFamily("Consolas"), FontSize = 11,
    Margin = new Thickness(0, 4, 0, 0),
    Text = "Chi tiết các thiết lập tối ưu hóa độ trễ sẽ hiển thị tại đây…"
@@ -434,12 +464,17 @@ partial class DesktopApp {
   btnRow.Children.Add(ActionButton(I18n.T("🔄 Khôi phục mặc định Windows"), () => {
    if (!Confirm("Khôi phục toàn bộ thiết lập mạng TCP/IP và luồng đa phương tiện về mặc định Windows?")) return;
    string report;
-   GameBooster.RestoreDefaults(out report);
+   bool ok = GameBooster.RestoreDefaults(out report);
    logBox.Text = report;
    updateStatus();
-   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-   statusText.Text = "Đã khôi phục thiết lập mặc định Windows.";
-   MessageBox.Show(dialog, "Đã khôi phục thiết lập mạng và Multimedia về mặc định của Windows!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+   if (ok) {
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    statusText.Text = "Đã khôi phục thiết lập mặc định Windows.";
+    MessageBox.Show(dialog, "Đã khôi phục thiết lập mạng và Multimedia về mặc định của Windows!", "Khôi phục", MessageBoxButton.OK, MessageBoxImage.Information);
+   } else {
+    statusText.Text = "Cần quyền Administrator để khôi phục các khóa HKLM.";
+    MessageBox.Show(dialog, "Không thể ghi khóa hệ thống HKLM. Hãy chạy PurePC dưới quyền Administrator.", "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
+   }
   }));
 
   dialog.ShowDialog();
@@ -525,7 +560,7 @@ partial class DesktopApp {
 
   var logBox = new TextBox {
    IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
    FontFamily = new FontFamily("Consolas"), FontSize = 11,
    Margin = new Thickness(0, 4, 0, 0),
    Text = "Chi tiết các thiết lập bảo vệ quyền riêng tư sẽ hiển thị tại đây…"
@@ -608,7 +643,7 @@ partial class DesktopApp {
 
   var logBox = new TextBox {
    IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
    FontFamily = new FontFamily("Consolas"), FontSize = 11,
    Margin = new Thickness(0, 4, 0, 0),
    Text = "Nhật ký sửa chữa hệ thống Windows sẵn sàng..."
@@ -617,26 +652,42 @@ partial class DesktopApp {
   logBox.SetResourceReference(Control.ForegroundProperty, "Ink");
   root.Children.Add(logBox);
 
+  CancellationTokenSource repairCts = null;
+  dialog.Closed += (s, e) => { if (repairCts != null) { try { repairCts.Cancel(); } catch {} } };
+
   var btnSfc = ActionButton(I18n.T("🛠️ Quét & Sửa tệp hệ thống (SFC Scannow)"), async () => {
    if (!Confirm("Khởi chạy System File Checker (sfc /scannow)?\nQuá trình sẽ kiểm tra toàn bộ tệp DLL/EXE hệ thống và mất từ 3 đến 10 phút.")) return;
    btnRow.IsEnabled = false;
+   repairCts = new CancellationTokenSource();
    statusText.Text = "Đang chạy sfc /scannow… Vui lòng không tắt ứng dụng…";
    logBox.Text = "Bắt đầu quét kiểm tra và sửa lỗi tệp hệ thống qua SFC…\r\n";
    try {
     int code = await SystemRepair.RunSfcScanAsync(line => {
-     window.Dispatcher.Invoke(new Action(() => {
+     dialog.Dispatcher.BeginInvoke(new Action(() => {
+      if (!dialog.IsVisible) return;
       logBox.AppendText(line + "\r\n");
       logBox.ScrollToEnd();
      }));
-    }, CancellationToken.None);
-    statusText.Text = string.Format("Quét SFC kết thúc với mã thoát: {0}.", code);
-    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-    MessageBox.Show(dialog, "Đã hoàn tất quá trình quét sửa lỗi tệp hệ thống SFC!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    }, repairCts.Token);
+    if (!dialog.IsVisible) return;
+    if (code == 0) {
+     statusText.Text = "✓ Quét SFC hoàn tất thành công!";
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+     MessageBox.Show(dialog, "Đã hoàn tất quá trình quét sửa lỗi tệp hệ thống SFC!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    } else {
+     statusText.Text = string.Format("⚠ Quét SFC không thể thực thi (Mã thoát: {0}). Xem chi tiết nhật ký.", code);
+     MessageBox.Show(dialog, string.Format("SFC kết thúc với mã {0}.\nLưu ý: Công cụ sfc /scannow yêu cầu chạy PurePC dưới quyền Administrator.", code), "Lưu ý", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+   } catch (OperationCanceledException) {
+    if (dialog.IsVisible) statusText.Text = "Đã dừng quét SFC.";
    } catch (Exception ex) {
-    statusText.Text = "Lỗi khi chạy SFC: " + ex.Message;
-    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    if (dialog.IsVisible) {
+     statusText.Text = "Lỗi khi chạy SFC: " + ex.Message;
+     logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    }
    } finally {
-    btnRow.IsEnabled = true;
+    if (repairCts != null) { repairCts.Dispose(); repairCts = null; }
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
    }
   });
   btnSfc.Style = (Style)window.Resources["Primary"];
@@ -645,35 +696,60 @@ partial class DesktopApp {
   var btnDism = ActionButton(I18n.T("⚡ Phục hồi kho ảnh Windows (DISM RestoreHealth)"), async () => {
    if (!Confirm("Khởi chạy DISM /Online /Cleanup-Image /RestoreHealth?\nQuá trình sẽ kết nối Windows Update và phục hồi toàn bộ kho ảnh hệ thống.")) return;
    btnRow.IsEnabled = false;
+   repairCts = new CancellationTokenSource();
    statusText.Text = "Đang chạy DISM /RestoreHealth… Vui lòng chờ…";
    logBox.Text = "Bắt đầu phục hồi kho ảnh hệ thống Windows qua DISM RestoreHealth…\r\n";
    try {
     int code = await SystemRepair.RunDismRestoreHealthAsync(line => {
-     window.Dispatcher.Invoke(new Action(() => {
+     dialog.Dispatcher.BeginInvoke(new Action(() => {
+      if (!dialog.IsVisible) return;
       logBox.AppendText(line + "\r\n");
       logBox.ScrollToEnd();
      }));
-    }, CancellationToken.None);
-    statusText.Text = string.Format("DISM RestoreHealth kết thúc với mã thoát: {0}.", code);
-    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-    MessageBox.Show(dialog, "Đã hoàn tất quá trình phục hồi kho ảnh Windows DISM!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    }, repairCts.Token);
+    if (!dialog.IsVisible) return;
+    if (code == 0) {
+     statusText.Text = "✓ Phục hồi kho ảnh DISM RestoreHealth thành công!";
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+     MessageBox.Show(dialog, "Đã hoàn tất quá trình phục hồi kho ảnh Windows DISM!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    } else {
+     statusText.Text = string.Format("⚠ DISM RestoreHealth kết thúc với mã lỗi: {0}.", code);
+     MessageBox.Show(dialog, string.Format("DISM kết thúc với mã {0}.\nLưu ý: DISM yêu cầu chạy PurePC dưới quyền Administrator.", code), "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+   } catch (OperationCanceledException) {
+    if (dialog.IsVisible) statusText.Text = "Đã dừng DISM RestoreHealth.";
    } catch (Exception ex) {
-    statusText.Text = "Lỗi khi chạy DISM: " + ex.Message;
-    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    if (dialog.IsVisible) {
+     statusText.Text = "Lỗi khi chạy DISM: " + ex.Message;
+     logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    }
    } finally {
-    btnRow.IsEnabled = true;
+    if (repairCts != null) { repairCts.Dispose(); repairCts = null; }
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
    }
   });
   btnRow.Children.Add(btnDism);
 
-  btnRow.Children.Add(ActionButton(I18n.T("🌐 Đặt lại mạng TCP/IP & Winsock"), () => {
+  btnRow.Children.Add(ActionButton(I18n.T("🌐 Đặt lại mạng TCP/IP & Winsock"), async () => {
    if (!Confirm("Khôi phục và thiết lập lại toàn bộ cấu hình mạng Winsock & TCP/IP?\nBạn nên khởi động lại máy tính sau khi hoàn tất.")) return;
-   string rep;
-   SystemRepair.ResetNetworkStack(out rep);
-   logBox.Text = rep;
-   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-   statusText.Text = "Đã thiết lập lại ngăn xếp mạng TCP/IP & Winsock thành công.";
-   MessageBox.Show(dialog, "Đã thiết lập lại cấu hình mạng Winsock & TCP/IP thành công!\nHãy khởi động lại máy tính để thay đổi có hiệu lực đầy đủ.", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   btnRow.IsEnabled = false;
+   statusText.Text = "Đang thiết lập lại Winsock & TCP/IP…";
+   try {
+    string rep = "";
+    bool ok = await Task.Run(() => SystemRepair.ResetNetworkStack(out rep));
+    if (!dialog.IsVisible) return;
+    logBox.Text = rep;
+    if (ok) {
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+     statusText.Text = "✓ Đã thiết lập lại ngăn xếp mạng TCP/IP & Winsock thành công.";
+     MessageBox.Show(dialog, "Đã thiết lập lại cấu hình mạng Winsock & TCP/IP thành công!\nHãy khởi động lại máy tính để thay đổi có hiệu lực đầy đủ.", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    } else {
+     statusText.Text = "⚠ Chỉ làm sạch được DNS Cache. Lệnh netsh reset cần quyền Administrator.";
+     MessageBox.Show(dialog, "Đã làm sạch bộ đệm DNS, nhưng lệnh đặt lại Winsock & TCP/IP yêu cầu quyền Quản trị viên (Run as Administrator).", "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+   } finally {
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
+   }
   }));
 
   btnRow.Children.Add(ActionButton(I18n.T("Sao chép nhật ký"), () => {
@@ -736,13 +812,19 @@ partial class DesktopApp {
    var chosen = items.Where(x => x.Selected && !x.IsSystemProtected).ToList();
    if (chosen.Count == 0) { MessageBox.Show(dialog, "Vui lòng chọn ít nhất 1 mục không phải hệ thống.", "Thông báo"); return; }
    int count = 0;
+   int failed = 0;
    foreach (var item in chosen) {
     string err;
     if (ContextMenuManager.Toggle(item, out err)) count++;
+    else failed++;
    }
    loadItems();
-   try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-   MessageBox.Show(dialog, string.Format("Đã cập nhật trạng thái cho {0} mục menu chuột phải!", count), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   if (count > 0) {
+    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+    MessageBox.Show(dialog, string.Format("Đã cập nhật trạng thái cho {0} mục menu chuột phải!" + (failed > 0 ? "\n(Giữ lại {1} mục hệ thống cần quyền Administrator)" : ""), count, failed), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+   } else {
+    MessageBox.Show(dialog, "Không thể thay đổi khóa HKEY_CLASSES_ROOT (HKLM).\nHãy khởi động lại PurePC dưới quyền Quản trị viên (Run as Administrator) để bật/tắt menu chuột phải toàn máy.", "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+   }
   });
   btnToggle.Style = (Style)window.Resources["Primary"];
   btnRow.Children.Add(btnToggle);
@@ -788,7 +870,7 @@ partial class DesktopApp {
   Action checkTrim = () => {
    var st = SsdTrimOptimizer.QueryTrimStatus();
    lblTrim.Text = st.StatusText;
-   lblTrim.Foreground = st.IsTrimOptimal ? Brushes.MediumSeaGreen : Brushes.OrangeRed;
+   lblTrim.Foreground = !st.QuerySucceeded ? Brushes.Orange : (st.IsTrimOptimal ? Brushes.MediumSeaGreen : Brushes.OrangeRed);
    lblReFs.Text = st.IsReFsTrimEnabled ? "✓ ReFS TRIM Bật" : "● ReFS TRIM Mặc định";
   };
   checkTrim();
@@ -825,7 +907,7 @@ partial class DesktopApp {
 
   var logBox = new TextBox {
    IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
    FontFamily = new FontFamily("Consolas"), FontSize = 11,
    Margin = new Thickness(0, 4, 0, 0),
    Text = "Nhật ký kiểm tra TRIM SSD sẵn sàng..."
@@ -850,25 +932,41 @@ partial class DesktopApp {
   btnEnable.Style = (Style)window.Resources["Primary"];
   btnRow.Children.Add(btnEnable);
 
+  CancellationTokenSource trimCts = null;
+  dialog.Closed += (s, e) => { if (trimCts != null) { try { trimCts.Cancel(); } catch {} } };
+
   var btnRetrim = ActionButton(I18n.T("🚀 Chạy Re-TRIM ổ C: (defrag /L)"), async () => {
    btnRow.IsEnabled = false;
+   trimCts = new CancellationTokenSource();
    statusText.Text = "Đang phát lệnh Re-TRIM cho ổ C:...";
    logBox.Text = "Khởi chạy defrag.exe C: /L (Re-TRIM SSD)...\r\n";
    try {
     int code = await SsdTrimOptimizer.RunRetrimAsync("C", line => {
-     window.Dispatcher.Invoke(new Action(() => {
+     dialog.Dispatcher.BeginInvoke(new Action(() => {
+      if (!dialog.IsVisible) return;
       logBox.AppendText(line + "\r\n");
       logBox.ScrollToEnd();
      }));
-    }, CancellationToken.None);
-    statusText.Text = string.Format("Re-TRIM kết thúc với mã: {0}.", code);
-    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-    MessageBox.Show(dialog, "Đã gửi tín hiệu Re-TRIM cho chip điều khiển SSD thành công!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    }, trimCts.Token);
+    if (!dialog.IsVisible) return;
+    if (code == 0) {
+     statusText.Text = "✓ Đã phát lệnh Re-TRIM cho ổ C: hoàn tất!";
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+     MessageBox.Show(dialog, "Đã gửi tín hiệu Re-TRIM cho chip điều khiển SSD thành công!", "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    } else {
+     statusText.Text = string.Format("⚠ Lệnh defrag /L kết thúc với mã {0} (Cần quyền Administrator).", code);
+     MessageBox.Show(dialog, "Lệnh Re-TRIM (defrag.exe C: /L) yêu cầu quyền Quản trị viên (Run as Administrator).", "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+   } catch (OperationCanceledException) {
+    if (dialog.IsVisible) statusText.Text = "Đã dừng Re-TRIM.";
    } catch (Exception ex) {
-    statusText.Text = "Lỗi khi Re-TRIM: " + ex.Message;
-    logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    if (dialog.IsVisible) {
+     statusText.Text = "Lỗi khi Re-TRIM: " + ex.Message;
+     logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");
+    }
    } finally {
-    btnRow.IsEnabled = true;
+    if (trimCts != null) { trimCts.Dispose(); trimCts = null; }
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
    }
   });
   btnRow.Children.Add(btnRetrim);
@@ -908,6 +1006,10 @@ partial class DesktopApp {
 
   selRow.Children.Add(ActionButton("Ổ C:\\", () => txtPath.Text = @"C:\"));
   selRow.Children.Add(ActionButton("Thư mục cá nhân", () => txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+  selRow.Children.Add(ActionButton("📁 Chọn thư mục...", () => {
+   string picked = PickFolder("Chọn ổ đĩa hoặc thư mục muốn phân tích dung lượng");
+   if (!string.IsNullOrEmpty(picked)) txtPath.Text = picked;
+  }));
 
   var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
   DockPanel.SetDock(bottom, Dock.Bottom);
@@ -928,22 +1030,32 @@ partial class DesktopApp {
   AddColumn(grid, "SỐ TỆP TIN", "FileCount", 100);
   AddColumn(grid, "ĐƯỜNG DẪN ĐẦY ĐỦ", "FullPath", 360);
 
+  CancellationTokenSource folderCts = null;
+  dialog.Closed += (s, e) => { if (folderCts != null) { try { folderCts.Cancel(); } catch {} } };
+
   List<FolderSpaceItem> items = new List<FolderSpaceItem>();
   var btnScan = ActionButton(I18n.T("🔍 Bắt đầu phân tích"), async () => {
    string path = txtPath.Text.Trim();
    if (!Directory.Exists(path)) { MessageBox.Show(dialog, "Đường dẫn không tồn tại.", "Thông báo"); return; }
+   if (folderCts != null) return;
    btnRow.IsEnabled = false;
+   folderCts = new CancellationTokenSource();
+   var prog = new Progress<string>(msg => { if (dialog.IsVisible) statusText.Text = msg; });
    statusText.Text = "Đang quét và tính toán kích thước các thư mục con...";
    try {
-    items = await Task.Run(() => FolderSpaceVisualizer.Analyze(path, CancellationToken.None, null));
+    items = await Task.Run(() => FolderSpaceVisualizer.Analyze(path, folderCts.Token, prog));
+    if (!dialog.IsVisible) return;
     grid.ItemsSource = null;
     grid.ItemsSource = items;
     statusText.Text = string.Format("Phân tích xong {0} thư mục tại {1}. Tổng cộng: {2}.", items.Count, path, Features.Size(items.Sum(x => x.Bytes)));
     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+   } catch (OperationCanceledException) {
+    if (dialog.IsVisible) statusText.Text = "Đã dừng phân tích dung lượng.";
    } catch (Exception ex) {
-    statusText.Text = "Lỗi khi phân tích: " + ex.Message;
+    if (dialog.IsVisible) statusText.Text = "Lỗi khi phân tích: " + ex.Message;
    } finally {
-    btnRow.IsEnabled = true;
+    if (folderCts != null) { folderCts.Dispose(); folderCts = null; }
+    if (dialog.IsVisible) btnRow.IsEnabled = true;
    }
   });
   btnScan.Style = (Style)window.Resources["Primary"];
@@ -1027,7 +1139,7 @@ partial class DesktopApp {
 
   var logBox = new TextBox {
    IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
-   VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+   VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
    FontFamily = new FontFamily("Consolas"), FontSize = 11,
    Margin = new Thickness(0, 4, 0, 0),
    Text = "Nhật ký làm mới Windows Update sẵn sàng..."
@@ -1043,12 +1155,18 @@ partial class DesktopApp {
    try {
     string report = "";
     long freed = 0;
-    await Task.Run(() => WindowsUpdateCleaner.Purge(out report, out freed));
+    bool ok = await Task.Run(() => WindowsUpdateCleaner.Purge(out report, out freed));
+    if (!dialog.IsVisible) return;
     logBox.Text = report;
     checkCache();
-    try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
-    statusText.Text = string.Format("Đã dọn sạch {0} tệp bản cập nhật cũ.", Features.Size(freed));
-    MessageBox.Show(dialog, string.Format("Đã làm sạch thành công {0} cache Windows Update!", Features.Size(freed)), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    if (ok) {
+     try { System.Media.SystemSounds.Asterisk.Play(); } catch {}
+     statusText.Text = string.Format("✓ Đã dọn sạch {0} bộ đệm bản cập nhật cũ.", Features.Size(freed));
+     MessageBox.Show(dialog, string.Format("Đã làm sạch thành công {0} cache Windows Update và khởi động lại dịch vụ!", Features.Size(freed)), "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+    } else {
+     statusText.Text = "⚠ Cần quyền Administrator để dọn SoftwareDistribution.";
+     MessageBox.Show(dialog, "Dọn dẹp Windows Update Cache yêu cầu quyền Quản trị viên (Run as Administrator) để tạm dừng dịch vụ wuauserv & xóa gói tải về.", "Yêu cầu quyền Administrator", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
    } catch (Exception ex) {
     statusText.Text = "Lỗi khi dọn dẹp: " + ex.Message;
     logBox.AppendText("\r\n[Lỗi] " + ex.Message + "\r\n");

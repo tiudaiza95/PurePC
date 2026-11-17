@@ -230,9 +230,9 @@ public static class SystemPerformance {
      if (ni.OperationalStatus == OperationalStatus.Up && 
          ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
          ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel) {
-      IPv4InterfaceStatistics stats = ni.GetIPv4Statistics();
-      totalRecv += stats.BytesReceived;
-      totalSent += stats.BytesSent;
+      try { IPv4InterfaceStatistics stats = ni.GetIPv4Statistics(); totalRecv += stats.BytesReceived; totalSent += stats.BytesSent; } catch {}
+
+
      }
     }
    } catch {}

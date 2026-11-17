@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 
 public class GameBoostStatus {
@@ -20,6 +22,7 @@ public static class GameBooster {
     const string SysProfileKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile";
     const string GamesKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games";
     const string TcpInterfacesKey = @"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces";
+    const string UltimateTemplateGuid = "e9a42b02-d5df-448d-aa00-03f14749eb61";
 
     public static GameBoostStatus GetStatus() {
         var status = new GameBoostStatus();
@@ -72,6 +75,34 @@ public static class GameBooster {
         return status;
     }
 
+    static bool RunPowerCfg(string args, out string output) {
+        output = "";
+        try {
+            var psi = new ProcessStartInfo("powercfg", args) {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using (var proc = Process.Start(psi)) {
+                if (proc == null) return false;
+                var o = proc.StandardOutput.ReadToEndAsync();
+                var e = proc.StandardError.ReadToEndAsync();
+                if (!proc.WaitForExit(4000)) {
+                    try { proc.Kill(); } catch {}
+                    return false;
+                }
+                proc.WaitForExit();
+                Task.WaitAll(new Task[] { o, e }, 1500);
+                output = (o.Status == TaskStatus.RanToCompletion ? o.Result : "") + "\n" +
+                         (e.Status == TaskStatus.RanToCompletion ? e.Result : "");
+                return proc.ExitCode == 0;
+            }
+        } catch {
+            return false;
+        }
+    }
+
     public static bool ApplyOptimizations(out string report) {
         var sb = new System.Text.StringBuilder();
         int successCount = 0;
@@ -87,7 +118,7 @@ public static class GameBooster {
                 }
             }
         } catch (Exception ex) {
-            sb.AppendLine("! Lỗi cấu hình Multimedia SystemProfile: " + ex.Message);
+            sb.AppendLine("! Lỗi cấu hình Multimedia SystemProfile (cần quyền Administrator): " + ex.Message);
         }
 
         // 2. Games Task Priority
@@ -103,7 +134,7 @@ public static class GameBooster {
                 }
             }
         } catch (Exception ex) {
-            sb.AppendLine("! Lỗi cấu hình Tasks Games: " + ex.Message);
+            sb.AppendLine("! Lỗi cấu hình Tasks Games (cần quyền Administrator): " + ex.Message);
         }
 
         // 3. TCP/IP Latency & Ack Frequency
@@ -115,7 +146,6 @@ public static class GameBooster {
                     for (int i = 0; i < subKeys.Length; i++) {
                         using (var sub = k.OpenSubKey(subKeys[i], true)) {
                             if (sub != null) {
-                                // Only configure if adapter has IPAddress or DhcpIPAddress
                                 object ip = sub.GetValue("IPAddress");
                                 object dhcp = sub.GetValue("DhcpIPAddress");
                                 if (ip != null || dhcp != null) {
@@ -133,20 +163,39 @@ public static class GameBooster {
                 successCount++;
             }
         } catch (Exception ex) {
-            sb.AppendLine("! Lỗi cấu hình card mạng TCP/IP: " + ex.Message);
+            sb.AppendLine("! Lỗi cấu hình card mạng TCP/IP (cần quyền Administrator): " + ex.Message);
         }
 
-        // 4. Windows Ultimate Performance Scheme
-        try {
-            var psi = new ProcessStartInfo("powercfg", "/duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61");
-            psi.CreateNoWindow = true;
-            psi.UseShellExecute = false;
-            using (var proc = Process.Start(psi)) {
-                proc.WaitForExit(3000);
-            }
-            sb.AppendLine("✓ Mở khóa gói năng lượng Ultimate Performance (Hiệu năng tối đa).");
-            successCount++;
-        } catch {}
+        // 4. Windows Ultimate Performance Scheme (Kiểm tra tồn tại trước để không nhân bản trùng lặp!)
+        if (Engine.IsAdministrator()) {
+            try {
+                string listOut;
+                string targetGuid = null;
+                if (RunPowerCfg("/list", out listOut)) {
+                    foreach (string line in listOut.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                        if (line.IndexOf("Ultimate", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            line.IndexOf("Hiệu suất tối tối đa", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            line.IndexOf(UltimateTemplateGuid, StringComparison.OrdinalIgnoreCase) >= 0) {
+                            Match m = Regex.Match(line, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+                            if (m.Success) { targetGuid = m.Value; break; }
+                        }
+                    }
+                }
+                if (targetGuid == null) {
+                    string dupOut;
+                    if (RunPowerCfg("/duplicatescheme " + UltimateTemplateGuid, out dupOut)) {
+                        Match m = Regex.Match(dupOut, @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+                        if (m.Success) targetGuid = m.Value;
+                    }
+                }
+                if (targetGuid != null) {
+                    string actOut;
+                    if (RunPowerCfg("/setactive " + targetGuid, out actOut)) {
+                        sb.AppendLine("✓ Đã kích hoạt gói năng lượng Ultimate Performance (" + targetGuid + ").");
+                    }
+                }
+            } catch {}
+        }
 
         report = sb.ToString();
         return successCount >= 2;
@@ -167,7 +216,7 @@ public static class GameBooster {
                 }
             }
         } catch (Exception ex) {
-            sb.AppendLine("! Lỗi khôi phục Multimedia SystemProfile: " + ex.Message);
+            sb.AppendLine("! Lỗi khôi phục Multimedia SystemProfile (cần quyền Administrator): " + ex.Message);
         }
 
         // 2. Restore Games Task Priority
@@ -183,7 +232,7 @@ public static class GameBooster {
                 }
             }
         } catch (Exception ex) {
-            sb.AppendLine("! Lỗi khôi phục Tasks Games: " + ex.Message);
+            sb.AppendLine("! Lỗi khôi phục Tasks Games (cần quyền Administrator): " + ex.Message);
         }
 
         // 3. Restore TCP/IP Interfaces
@@ -208,10 +257,18 @@ public static class GameBooster {
                 restoredCount++;
             }
         } catch (Exception ex) {
-            sb.AppendLine("! Lỗi khôi phục card mạng: " + ex.Message);
+            sb.AppendLine("! Lỗi khôi phục card mạng (cần quyền Administrator): " + ex.Message);
+        }
+
+        // 4. Khôi phục gói nguồn Balanced mặc định của Windows
+        if (Engine.IsAdministrator()) {
+            string balOut;
+            if (RunPowerCfg("/setactive 381b4222-f694-41f0-9685-ff5bb260df2e", out balOut)) {
+                sb.AppendLine("✓ Đã chuyển gói năng lượng về mặc định Balanced của Windows.");
+            }
         }
 
         report = sb.ToString();
-        return restoredCount > 0;
+        return restoredCount >= 2;
     }
 }

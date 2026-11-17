@@ -20,24 +20,28 @@ partial class DesktopApp {
 
  void BuildV04(){
   var navStack=(StackPanel)C<RadioButton>("NavApps").Parent;
-  AddNavV04(navStack,"Deep","Quét chuyên sâu",BuildDeepPage,navStack.Children.IndexOf(C<RadioButton>("NavApps"))+1);
-  AddNavV04(navStack,"DiskTools","Công cụ ổ đĩa",BuildDiskTools,navStack.Children.IndexOf(C<RadioButton>("NavStartup"))+1);
-  AddNavV04(navStack,"Drivers","Driver & thiết bị",BuildDriverPage,navStack.Children.IndexOf(C<RadioButton>("NavHistory")));
+  AddNavV04(navStack,"Deep","\uE721","Quét chuyên sâu",BuildDeepPage,navStack.Children.IndexOf(C<RadioButton>("NavApps"))+1);
+  AddNavV04(navStack,"DiskTools","\uEDA2","Công cụ ổ đĩa",BuildDiskTools,navStack.Children.IndexOf(C<RadioButton>("NavStartup"))+1);
+  AddNavV04(navStack,"Drivers","\uE772","Driver & thiết bị",BuildDriverPage,navStack.Children.IndexOf(C<RadioButton>("NavHistory")));
 
   var menu=C<DataGrid>("FilesGrid").ContextMenu;
   AddMenu(menu,"Chuyển các tệp được đánh dấu vào Thùng rác",()=>RunDetached(CleanFilesPro));
  }
 
- void AddNavV04(StackPanel parent,string name,string caption,Action build,int index){
-  var nav=new RadioButton{Content=caption,GroupName="Nav",Style=(Style)window.Resources["Nav"],ToolTip=caption};
+ void AddNavV04(StackPanel parent,string name,string iconGlyph,string caption,Action build,int index){
+  var stack=new StackPanel{Orientation=Orientation.Horizontal};
+  stack.Children.Add(new TextBlock{FontFamily=new FontFamily("Segoe MDL2 Assets"),Text=iconGlyph,Margin=new Thickness(0,2,13,0)});
+  stack.Children.Add(new TextBlock{Text=caption});
+  var nav=new RadioButton{Content=stack,GroupName="Nav",Style=(Style)window.Resources["Nav"],ToolTip=caption};
   window.RegisterName("Nav"+name,nav);
-  nav.Checked+=(s,e)=>{if(!busy)OpenV04(name,build);};
+  nav.Checked+=(s,e)=>{if(!busy||Engine.Testing)OpenV04(name,build);};
   if(index>=0&&index<=parent.Children.Count)parent.Children.Insert(index,nav);
   else parent.Children.Add(nav);
   proControls.Add(nav);
  }
 
  void OpenV04(string name,Action build){
+  if(busy&&!Engine.Testing)return;
   page=name;
   foreach(string panel in new[]{"AppsPage","FilesPage","StartupPage","HistoryPage"})C<FrameworkElement>(panel).Visibility=Visibility.Collapsed;
   HidePro();
@@ -139,7 +143,6 @@ partial class DesktopApp {
   DockPanel.SetDock(top,Dock.Top);
   dock.Children.Add(top);
 
-  // Thanh chuyển chế độ 3 trong 1
   var modeRow=new WrapPanel{Margin=new Thickness(0,0,0,10)};
   top.Children.Add(modeRow);
 
@@ -155,7 +158,6 @@ partial class DesktopApp {
   modeRow.Children.Add(btnTabShort);
   modeRow.Children.Add(btnTabDev);
 
-  // 3 Grid tương ứng
   var deepGrid=new DataGrid{IsReadOnly=true,ItemsSource=deepItems};
   AddChecks(deepGrid,"Selected","Actionable");
   AddColumn(deepGrid,"ỨNG DỤNG","Name",190);
@@ -170,6 +172,7 @@ partial class DesktopApp {
   AddColumn(largeGrid,"ĐƯỜNG DẪN","Path",480);
 
   var dupGrid=new DataGrid{IsReadOnly=true,ItemsSource=duplicateFiles};
+  AddChecks(dupGrid,"Selected");
   AddColumn(dupGrid,"NHÓM","Group",80);
   AddColumn(dupGrid,"DUNG LƯỢNG","SizeLabel",110);
   AddColumn(dupGrid,"ĐƯỜNG DẪN","Path",520);
@@ -177,10 +180,10 @@ partial class DesktopApp {
 
   var shortGrid=new DataGrid{IsReadOnly=true,ItemsSource=brokenShortcuts};
   AddChecks(shortGrid,"Selected");
-  AddColumn(shortGrid,"TÊN LỐI TẮT","Name",200);
-  AddColumn(shortGrid,"VỊ TRÍ","LocationCategory",180);
-  AddColumn(shortGrid,"ĐƯỜNG DẪN HỎNG","TargetPath",380);
-  AddColumn(shortGrid,"LÝ DO","Reason",260);
+  AddColumn(shortGrid,I18n.T("TÊN LỐI TẮT"),"Name",200);
+  AddColumn(shortGrid,I18n.T("VỊ TRÍ"),"LocationCategory",180);
+  AddColumn(shortGrid,I18n.T("ĐƯỜNG DẪN HỎNG"),"TargetPath",380);
+  AddColumn(shortGrid,I18n.T("LÝ DO"),"Reason",260);
 
   var contentHolder=new Grid();
   dock.Children.Add(contentHolder);
@@ -204,7 +207,7 @@ partial class DesktopApp {
   emptyCard.Padding=new Thickness(32,24,32,24);
   var emptyStack=(StackPanel)emptyCard.Child;
   var emptyIcon=Label("🔍",24,true);emptyIcon.HorizontalAlignment=HorizontalAlignment.Center;emptyIcon.Margin=new Thickness(0,0,0,8);
-  var emptyText=Label("Chưa có dữ liệu cho mục này. Hãy bấm '⚡ Quét toàn bộ chuyên sâu (Cả 3 mục)' để bắt đầu phân tích!",13,true);
+  var emptyText=Label(I18n.T("Chưa có dữ liệu cho mục này. Hãy bấm '⚡ Quét toàn bộ chuyên sâu' để bắt đầu phân tích!"),13,true);
   emptyText.HorizontalAlignment=HorizontalAlignment.Center;
   emptyStack.Children.Add(emptyIcon);
   emptyStack.Children.Add(emptyText);
@@ -251,7 +254,6 @@ partial class DesktopApp {
   btnTabShort.Click+=(s,e)=>{currentTab=3;updateTabUI();};
   btnTabDev.Click+=(s,e)=>{currentTab=4;updateTabUI();};
 
-  // Nút hành động chính và các nút theo ngữ cảnh tab
   var actionRow=new WrapPanel{Margin=new Thickness(0,0,0,10)};
   top.Children.Add(actionRow);
 
@@ -305,7 +307,6 @@ partial class DesktopApp {
   btnScanAll.Margin=new Thickness(0,0,10,0);
   actionRow.Children.Add(btnScanAll);
 
-  // Nút xử lý tàn dư (chỉ hiện khi ở Tab 0)
   btnCleanDeep=WorkButton(I18n.T("🧹 Dọn tàn dư đã chọn"),async()=>{ await Task.Yield();
    var selected=deepItems.Where(x=>x.Selected&&x.Actionable).ToList();
    if(selected.Count==0){Text("Status","Chưa chọn mục tàn dư có đủ điều kiện xử lý.");return;}
@@ -326,12 +327,14 @@ partial class DesktopApp {
   btnCleanDeep.Margin=new Thickness(0,0,8,0);
   actionRow.Children.Add(btnCleanDeep);
 
-  // Nút dọn tệp lớn (chỉ hiện khi ở Tab 1)
-  btnCleanLarge=WorkButton(I18n.T("🧹 Dọn tệp lớn đã chọn"),DeleteLargeFiles);
+  btnCleanLarge=WorkButton(I18n.T("🧹 Dọn tệp lớn đã chọn"),async()=>{
+   await DeleteLargeFiles();
+   largeGrid.ItemsSource=null;largeGrid.ItemsSource=files;
+   updateTabUI();
+  });
   btnCleanLarge.Margin=new Thickness(0,0,8,0);
   actionRow.Children.Add(btnCleanLarge);
 
-  // Nút chọn tự động tệp trùng (chỉ hiện khi ở Tab 2)
   btnAutoDup=ActionButton(I18n.T("✨ Tự chọn bản trùng dư thừa"),()=>{
    if(duplicateFiles==null||duplicateFiles.Count==0){Text("Status","Chưa có dữ liệu tệp trùng.");return;}
    int count=WholeMachine.SelectDuplicateExtras(duplicateFiles);
@@ -342,7 +345,6 @@ partial class DesktopApp {
   btnAutoDup.Margin=new Thickness(0,0,8,0);
   actionRow.Children.Add(btnAutoDup);
 
-  // Nút dọn tệp trùng đã chọn (chỉ hiện khi ở Tab 2)
   btnCleanDup=WorkButton(I18n.T("🧹 Dọn tệp trùng đã chọn"),async()=>{ await Task.Yield();
    var chosen=duplicateFiles==null?new List<FileItem>():duplicateFiles.Where(x=>x.Selected).ToList();
    if(chosen.Count==0){Text("Status","Chưa đánh dấu bản trùng muốn xóa. Hãy bấm 'Tự chọn bản trùng dư thừa' hoặc chọn thủ công.");return;}
@@ -366,14 +368,13 @@ partial class DesktopApp {
   btnCleanDup.Margin=new Thickness(0,0,8,0);
   actionRow.Children.Add(btnCleanDup);
 
-  // Nút dọn lối tắt hỏng (chỉ hiện khi ở Tab 3)
   btnCleanShort=WorkButton(I18n.T("🧹 Dọn lối tắt đã chọn"),async()=>{ await Task.Yield();
    var chosen=brokenShortcuts.Where(x=>x.Selected).ToList();
    if(chosen.Count==0){Text("Status","Chưa chọn lối tắt hỏng.");return;}
    if(!Confirm("Chuyển "+chosen.Count+" lối tắt hỏng vào Thùng rác để an toàn?"))return;
    List<string> errors;
    int cleaned=ShortcutCleaner.Clean(chosen,out errors);
-   foreach(var item in chosen)brokenShortcuts.Remove(item);
+   brokenShortcuts.RemoveAll(x=>x.Cleaned);
    shortGrid.ItemsSource=null;shortGrid.ItemsSource=brokenShortcuts;
    updateTabUI();
    Text("Status","Đã dọn "+cleaned+" lối tắt hỏng; giữ lại "+errors.Count+" mục.");
@@ -382,7 +383,6 @@ partial class DesktopApp {
   btnCleanShort.Margin=new Thickness(0,0,8,0);
   actionRow.Children.Add(btnCleanShort);
 
-  // Nút dọn rác Dev & AI (chỉ hiện khi ở Tab 4)
   btnCleanDev=WorkButton(I18n.T("🧹 Dọn rác Dev & AI đã chọn"),async()=>{ await Task.Yield();
    var chosen=devAiItems.Where(x=>x.Selected).ToList();
    if(chosen.Count==0){Text("Status","Chưa chọn kho bộ đệm nào.");return;}
@@ -390,7 +390,7 @@ partial class DesktopApp {
    if(!Confirm("Dọn sạch "+chosen.Count+" thư mục bộ đệm lập trình & AI ("+Features.Size(total)+")?\nToàn bộ tệp sẽ được chuyển vào Thùng rác để đảm bảo an toàn."))return;
    int done=0;
    foreach(var item in chosen){
-    if(DevAiCacheCleaner.Clean(item,true)){done++;devAiItems.Remove(item);}
+    if(await Task.Run(()=>DevAiCacheCleaner.Clean(item,true))){done++;devAiItems.Remove(item);}
    }
    devAiGrid.ItemsSource=null;devAiGrid.ItemsSource=devAiItems;
    updateTabUI();

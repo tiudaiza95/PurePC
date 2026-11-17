@@ -121,9 +121,8 @@ static partial class Features {
  }
  public static void CleanTemp(FileItem item) {
   var f=new FileInfo(item.Path);if(!EligibleTemp(f,DateTime.UtcNow)||f.Length!=item.Size||f.LastWriteTimeUtc!=item.Modified)throw new Exception("Tệp mới thay đổi hoặc không còn đủ điều kiện; giữ lại.");
-  // Do not clean files held by another application. Recycle operation remains visible to the user.
   using(var stream=new FileStream(item.Path,FileMode.Open,FileAccess.Read,FileShare.None)){}
-  FileSystem.DeleteFile(item.Path,UIOption.AllDialogs,RecycleOption.SendToRecycleBin,UICancelOption.ThrowException);
+  FileSystem.DeleteFile(item.Path,UIOption.OnlyErrorDialogs,RecycleOption.SendToRecycleBin,UICancelOption.ThrowException);
   Engine.Log("TEMP_RECYCLED "+item.Path);
  }
  public static List<StartupItem> Startups() {
@@ -155,6 +154,7 @@ static partial class Features {
    }else{
     string startupDir=Environment.GetFolderPath(Environment.SpecialFolder.Startup);
     string targetPath=System.IO.Path.Combine(startupDir,item.OriginalName??System.IO.Path.GetFileNameWithoutExtension(item.FilePath));
+    if(File.Exists(targetPath))throw new Exception("Đã có shortcut trùng tên trong thư mục Startup.");
     if(File.Exists(item.FilePath))File.Move(item.FilePath,targetPath);
     if(!String.IsNullOrEmpty(item.Backup)&&File.Exists(item.Backup))File.Delete(item.Backup);
     Engine.Log("STARTUP_RESTORED_FOLDER "+item.Name);
@@ -162,21 +162,27 @@ static partial class Features {
    return;
   }
   var hive = item.SourceType == "HKLM" ? RegistryHive.LocalMachine : RegistryHive.CurrentUser;
-  using(var r=RegistryKey.OpenBaseKey(hive,RegistryView.Registry64))using(var key=r.CreateSubKey(runKey)) {
-   var current=key.GetValue(lookupName,null,RegistryValueOptions.DoNotExpandEnvironmentNames);
-   if(!item.Disabled){
-    if(current==null||Convert.ToString(current)!=item.Command||key.GetValueKind(lookupName)!=item.Kind)throw new Exception("Mục khởi động đã thay đổi. Hãy làm mới danh sách.");
-    var backup=new StartupItem{Name=item.Name,OriginalName=lookupName,SourceType=item.SourceType,Command=item.Command,Kind=item.Kind,Disabled=true};string path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(path,backup);
-    key.DeleteValue(lookupName);Engine.Log("STARTUP_DISABLED "+item.Name+"; backup: "+path);
-   }else{
-    if(current!=null)throw new Exception("Đã có mục trùng tên. Không ghi đè; hãy làm mới danh sách.");
-    string full=System.IO.Path.GetFullPath(item.Backup);if(!Engine.Within(full,dir))throw new Exception("Bản sao không hợp lệ.");
-    var backup=ReadStartup(full);if(!backup.Disabled||backup.Name!=item.Name||backup.Command!=item.Command)throw new Exception("Bản sao đã thay đổi.");
-    if(backup.Kind!=RegistryValueKind.String&&backup.Kind!=RegistryValueKind.ExpandString)throw new Exception("Kiểu dữ liệu không hỗ trợ.");
-    key.SetValue(lookupName,backup.Command,backup.Kind);backup.Disabled=false;
-    string archive=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(archive,backup);
-    File.Replace(archive,full,null);Engine.Log("STARTUP_RESTORED "+item.Name);
+  try {
+   using(var r=RegistryKey.OpenBaseKey(hive,RegistryView.Registry64))using(var key=r.CreateSubKey(runKey)) {
+    var current=key.GetValue(lookupName,null,RegistryValueOptions.DoNotExpandEnvironmentNames);
+    if(!item.Disabled){
+     if(current==null||Convert.ToString(current)!=item.Command||key.GetValueKind(lookupName)!=item.Kind)throw new Exception("Mục khởi động đã thay đổi. Hãy làm mới danh sách.");
+     var backup=new StartupItem{Name=item.Name,OriginalName=lookupName,SourceType=item.SourceType,Command=item.Command,Kind=item.Kind,Disabled=true};string path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(path,backup);
+     key.DeleteValue(lookupName);Engine.Log("STARTUP_DISABLED "+item.Name+"; backup: "+path);
+    }else{
+     if(current!=null)throw new Exception("Đã có mục trùng tên. Không ghi đè; hãy làm mới danh sách.");
+     string full=System.IO.Path.GetFullPath(item.Backup);if(!Engine.Within(full,dir))throw new Exception("Bản sao không hợp lệ.");
+     var backup=ReadStartup(full);if(!backup.Disabled||backup.Name!=item.Name||backup.Command!=item.Command)throw new Exception("Bản sao đã thay đổi.");
+     if(backup.Kind!=RegistryValueKind.String&&backup.Kind!=RegistryValueKind.ExpandString)throw new Exception("Kiểu dữ liệu không hỗ trợ.");
+     key.SetValue(lookupName,backup.Command,backup.Kind);backup.Disabled=false;
+     string archive=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".xml");WriteStartup(archive,backup);
+     File.Replace(archive,full,null);Engine.Log("STARTUP_RESTORED "+item.Name);
+    }
    }
+  } catch (UnauthorizedAccessException) {
+   throw new Exception("Mục khởi động Toàn máy (HKLM) yêu cầu quyền Quản trị viên (Run as Administrator) để bật/tắt.");
+  } catch (System.Security.SecurityException) {
+   throw new Exception("Mục khởi động Toàn máy (HKLM) yêu cầu quyền Quản trị viên (Run as Administrator) để bật/tắt.");
   }
  }
 }

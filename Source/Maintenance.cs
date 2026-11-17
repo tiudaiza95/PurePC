@@ -192,7 +192,7 @@ partial class DesktopApp {
    Text("Status","Đã nhận kết quả từ WinGet.");await Reload();
   });
   updates.Children.Add(toolUpdate);
-  toolOutput=new TextBox{IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,Height=130,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Text="Chưa kiểm tra trực tuyến.",FontFamily=new System.Windows.Media.FontFamily("Consolas"),FontSize=11,Margin=new Thickness(0,8,0,0)};
+  toolOutput=new TextBox{IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,Height=130,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalContentAlignment=VerticalAlignment.Top,Text="Chưa kiểm tra trực tuyến.",FontFamily=new System.Windows.Media.FontFamily("Consolas"),FontSize=11,Margin=new Thickness(0,8,0,0)};toolOutput.SetResourceReference(Control.BackgroundProperty,"Header");
   updates.Children.Add(toolOutput);
   var c9=Card(updates);c9.Padding=new Thickness(16,14,16,14);
   toolList.Add(new ProToolItem{Category=4,Title="Software Updater · WinGet",Keywords="software updater winget cap nhat phan mem official microsoft package",Card=c9});

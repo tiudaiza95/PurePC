@@ -103,7 +103,7 @@ partial class DesktopApp {
   var cpuBox=new StackPanel();cpuBox.Children.Add(cpuTitle);cpuBox.Children.Add(cpuVal);cpuBox.Children.Add(cpuBar);cpuBox.Children.Add(cpuWave);cpuBox.Children.Add(cpuSub);
   var cpuCard=Card(cpuBox);cpuCard.Margin=new Thickness(0,0,6,0);cpuCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(cpuCard,0);perfGrid.Children.Add(cpuCard);
   cpuCard.Cursor=System.Windows.Input.Cursors.Hand;cpuCard.ToolTip=I18n.T("Bấm để mở Bộ Tăng Tốc Game & Giảm Ping");
-  cpuCard.MouseLeftButtonUp+=(s,e)=>OpenGameBoosterDialog();
+  cpuCard.MouseLeftButtonUp+=(s,e)=>{if(!busy)OpenGameBoosterDialog();};
 
   // Ô 2: RAM
   var ramTitle=Label(I18n.T("BỘ NHỚ RAM"),14,true);ramTitle.HorizontalAlignment=HorizontalAlignment.Center;
@@ -114,7 +114,7 @@ partial class DesktopApp {
   var ramBox=new StackPanel();ramBox.Children.Add(ramTitle);ramBox.Children.Add(ramVal);ramBox.Children.Add(ramBar);ramBox.Children.Add(ramWave);ramBox.Children.Add(ramSub);
   var ramCard=Card(ramBox);ramCard.Margin=new Thickness(3,0,3,0);ramCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(ramCard,1);perfGrid.Children.Add(ramCard);
   ramCard.Cursor=System.Windows.Input.Cursors.Hand;ramCard.ToolTip=I18n.T("Bấm để mở Bộ Tối Ưu RAM Chuyên Sâu & Quản Lý Tiến Trình");
-  ramCard.MouseLeftButtonUp+=(s,e)=>OpenRamOptimizerDialog();
+  ramCard.MouseLeftButtonUp+=(s,e)=>{if(!busy)OpenRamOptimizerDialog();};
 
   // Ô 3: Ổ ĐĨA (Hỗ trợ đa phân vùng C:, D:,...)
   int selectedDriveIdx=0;
@@ -126,7 +126,13 @@ partial class DesktopApp {
   var diskBox=new StackPanel();diskBox.Children.Add(diskTitle);diskBox.Children.Add(driveChips);diskBox.Children.Add(diskVal);diskBox.Children.Add(diskBar);diskBox.Children.Add(diskSub);
   var diskCard=Card(diskBox);diskCard.Margin=new Thickness(6,0,0,0);diskCard.Padding=new Thickness(18,16,18,16);Grid.SetColumn(diskCard,2);perfGrid.Children.Add(diskCard);
   diskCard.Cursor=System.Windows.Input.Cursors.Hand;diskCard.ToolTip=I18n.T("Bấm để mở Quét Chuyên Sâu Toàn Diện");
-  diskCard.MouseLeftButtonUp+=(s,e)=>NavigatePro("Deep");
+  diskCard.MouseLeftButtonUp+=(s,e)=>{
+   if(busy)return;
+   DependencyObject src=e.OriginalSource as DependencyObject;
+   while(src!=null&&src!=diskCard){if(src is Button)return;src=VisualTreeHelper.GetParent(src);}
+   OpenV04("Deep",BuildDeepPage);
+   if(C<RadioButton>("NavDeep")!=null)C<RadioButton>("NavDeep").IsChecked=true;
+  };
 
   mainStack.Children.Add(perfGrid);
 
@@ -177,7 +183,6 @@ partial class DesktopApp {
    drawWave(ramWave,ramPts,0,Color.FromRgb(22,133,105),Color.FromArgb(45,22,133,105),false);
   };
 
-  // Cập nhật real-time metrics & biểu đồ sóng động
   Action updateM=()=>{
    var m=SystemPerformance.Sample();
    cpuVal.Text=m.CpuUsage.ToString("0.0")+"%";cpuBar.Value=m.CpuUsage;cpuSub.Text=I18n.T("Xung nhịp & tiến trình Windows");
@@ -220,7 +225,6 @@ partial class DesktopApp {
   };
   onHealthPerfTick=updateM;
 
-  // Khởi tạo điểm ban đầu để biểu đồ hiển thị ngay tức thì
   var initPerf=SystemPerformance.Sample();
   cpuPts.Add(initPerf.CpuUsage);cpuPts.Add(initPerf.CpuUsage);
   ramPts.Add((double)initPerf.RamPercent);ramPts.Add((double)initPerf.RamPercent);
@@ -235,7 +239,6 @@ partial class DesktopApp {
    perfTimer.Start();
   }
 
-  // Logic lọc tệp Chrome nếu người dùng bỏ tích
   Func<JunkItem,bool> allowItem=item=>{
    if(chkChrome.IsChecked!=true){
     string p=(item.Path??"")+" "+(item.Category??"");
@@ -245,7 +248,7 @@ partial class DesktopApp {
    return true;
   };
 
-  // NÚT 1: ⚡ Quét & Tối ưu toàn diện (1-Click) (Hàng 0, Cột 0)
+  // NÚT 1: ⚡ Quét & Tối ưu toàn diện (1-Click)
   var smartCare=WorkButton(I18n.T("⚡ Quét & Tối ưu (1-Click)"),async()=>{
    await WithScan(async token=>{
     var progress=new Progress<string>(s=>{junkStatus.Text=s;Text("Status",s);});
@@ -253,7 +256,7 @@ partial class DesktopApp {
     long freedRam=await Task.Run(()=>SystemPerformance.OptimizeMemory());
     bool dnsOk=await Task.Run(()=>SystemPerformance.FlushDnsCache());
     int optDbs=0;long freedDbBytes=0;
-    try{optDbs=await Task.Run(()=>SqliteOptimizer.OptimizeAll(out optDbs,out freedDbBytes));}catch{}
+    try{await Task.Run(()=>{int okCount;long okBytes;SqliteOptimizer.OptimizeAll(out okCount,out okBytes);optDbs=okCount;freedDbBytes=okBytes;});}catch{}
     junkStatus.Text="Đang quét tệp tạm (%TEMP%), cache trình duyệt & tệp rác…";
     var found=await Task.Run(()=>JunkOverview.Scan(false,token,progress));
     junkReport=found;
@@ -282,7 +285,7 @@ partial class DesktopApp {
   Grid.SetRow(smartCare,0);Grid.SetColumn(smartCare,0);
   btnGrid.Children.Add(smartCare);
 
-  // NÚT 2: 🧹 Dọn mục đã chọn (Hàng 0, Cột 1)
+  // NÚT 2: 🧹 Dọn mục đã chọn
   var btnClean=WorkButton(I18n.T("🧹 Dọn mục đã chọn"),async()=>{
    var chosen=junkReport.Items.Where(x=>x.Selected&&x.CanClean&&allowItem(x)).ToList();
    if(chosen.Count==0){
@@ -300,12 +303,12 @@ partial class DesktopApp {
    int done=0,failed=0;long bytes=0;
    foreach(var item in chosen){
     try{
-     JunkOverview.Clean(item);item.Selected=false;done++;bytes+=item.Bytes;
+     JunkOverview.Clean(item);item.Outcome="Đã xử lý";item.Selected=false;done++;bytes+=item.Bytes;
     }catch{failed++;}
     junkStatus.Text="Đang dọn dẹp: "+done+" / "+chosen.Count+" tệp…";
     await Task.Delay(1);
    }
-   junkStatus.Text="Hoàn tất! Đã dọn sạch "+done+" tệp tạm ("+Features.Size(bytes)+") an toàn vào Thùng rác.";
+   junkStatus.Text="Hoàn tất! Đã dọn sạch "+done+" tệp tạm ("+Features.Size(bytes)+") an toàn vào Thùng rác"+(failed>0?" (giữ lại "+failed+" tệp đang bận).":".");
    Text("Status","Đã dọn sạch "+done+" tệp tạm ("+Features.Size(bytes)+").");
   });
   btnClean.Padding=new Thickness(12,10,12,10);
@@ -313,14 +316,14 @@ partial class DesktopApp {
   Grid.SetRow(btnClean,0);Grid.SetColumn(btnClean,1);
   btnGrid.Children.Add(btnClean);
 
-  // NÚT 3: 🧹 Dọn dẹp Registry (Hàng 1, Cột 0)
+  // NÚT 3: 🧹 Dọn dẹp Registry
   var btnReg=ActionButton(I18n.T("🧹 Dọn dẹp Registry"),OpenRegistryCleanerDialog);
   btnReg.Padding=new Thickness(12,10,12,10);
   btnReg.Margin=new Thickness(0,4,4,0);
   Grid.SetRow(btnReg,1);Grid.SetColumn(btnReg,0);
   btnGrid.Children.Add(btnReg);
 
-  // NÚT 4: ⚡ Tối ưu RAM (Hàng 1, Cột 1)
+  // NÚT 4: ⚡ Tối ưu RAM
   var btnRam=ActionButton(I18n.T("⚡ Tối ưu RAM"),()=>{
    OpenRamOptimizerDialog();
    updateM();
@@ -331,7 +334,28 @@ partial class DesktopApp {
   btnGrid.Children.Add(btnRam);
  }
  string JunkSummary(){var remaining=junkReport.Items.Where(x=>x.CanClean).ToList();return remaining.Count+" tệp có thể xem xét · "+Features.Size(remaining.Sum(x=>x.Bytes))+"\nĐã chọn "+remaining.Count(x=>x.Selected)+" tệp · "+Features.Size(remaining.Where(x=>x.Selected).Sum(x=>x.Bytes))+". Phần dư cần xem: "+remaining.Count(x=>!x.Recommended)+" tệp. Quét "+junkReport.Roots+" vị trí rác.";}
- void ShowLongReport(string title,string text){var dialog=new Window{Title=title,Owner=window,Width=850,Height=600,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources};dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");dialog.Content=new TextBox{Text=text,IsReadOnly=true,TextWrapping=TextWrapping.Wrap,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Margin=new Thickness(18)};dialog.ShowDialog();}
+ void ShowLongReport(string title,string text){
+  var dialog=new Window{Title=title,Owner=window,Width=880,Height=620,MinWidth=640,MinHeight=420,WindowStartupLocation=WindowStartupLocation.CenterOwner,Resources=window.Resources,FontFamily=window.FontFamily,FontSize=13};
+  dialog.SetResourceReference(Window.BackgroundProperty,"Canvas");
+  dialog.SetResourceReference(Window.ForegroundProperty,"Ink");
+  EnableEscapeClose(dialog);
+  var dock=new DockPanel{Margin=new Thickness(20)};
+  dialog.Content=dock;
+  var btnRow=new WrapPanel{Margin=new Thickness(0,12,0,0)};
+  DockPanel.SetDock(btnRow,Dock.Bottom);
+  dock.Children.Add(btnRow);
+  var box=new TextBox{
+   Text=text??"",IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,
+   VerticalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalContentAlignment=VerticalAlignment.Top,
+   FontFamily=new FontFamily("Consolas"),FontSize=12,Padding=new Thickness(14)
+  };
+  box.SetResourceReference(Control.BackgroundProperty,"Header");
+  box.SetResourceReference(Control.ForegroundProperty,"Ink");
+  dock.Children.Add(box);
+  btnRow.Children.Add(ActionButton("📋 Sao chép báo cáo",()=>{try{Clipboard.SetText(box.Text);MessageBox.Show(dialog,"Đã sao chép báo cáo vào Clipboard!","Thông báo");}catch{}}));
+  btnRow.Children.Add(ActionButton(I18n.T("Đóng"),()=>dialog.Close()));
+  dialog.ShowDialog();
+ }
  async Task VendorActivity(Func<Task> action){var clock=Stopwatch.StartNew();var timer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};string last="";timer.Tick+=(s,e)=>{if(driverStatus.Text!=last)last=driverStatus.Text.Split(new[]{"\nThời gian:"},StringSplitOptions.None)[0];driverStatus.Text=last+"\nThời gian: "+clock.Elapsed.ToString(@"mm\:ss");};timer.Start();try{await action();}catch(Exception ex){driverStatus.Text="Không hoàn tất: "+ex.Message;throw;}finally{timer.Stop();}}
 
  void ExportDriverList(){

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 
 public class ThirdPartyService {
@@ -50,15 +51,25 @@ public static class ServiceTools {
                     try {
                         using (var sk = servicesKey.OpenSubKey(name)) {
                             if (sk == null) continue;
+                            // Chỉ xét Win32 Own/Share Process services (Type 0x10 hoặc 0x20), bỏ qua Kernel/FileSystem Drivers (Type 1, 2)!
+                            object rawType = sk.GetValue("Type");
+                            if (rawType is int) {
+                                int svcType = (int)rawType;
+                                if ((svcType & 0x10) == 0 && (svcType & 0x20) == 0) continue;
+                            }
+
                             string image = sk.GetValue("ImagePath") as string;
                             if (String.IsNullOrWhiteSpace(image)) continue;
 
-                            string lower = image.ToLowerInvariant();
-                            // Bỏ qua các service lõi của Windows và svchost mặc định
-                            bool isWindowsInternal = lower.Contains(@"system32\svchost.exe") ||
-                                                     lower.Contains(@"syswow64\svchost.exe") ||
-                                                     (lower.Contains(@"\windows\system32\") && !lower.Contains("driver") && !lower.Contains("nvidia") && !lower.Contains("realtek") && !lower.Contains("amd")) ||
-                                                     (lower.Contains(@"\windows\syswow64\") && !lower.Contains("driver") && !lower.Contains("nvidia") && !lower.Contains("realtek") && !lower.Contains("amd"));
+                            string lower = Environment.ExpandEnvironmentVariables(image).ToLowerInvariant();
+                            // Bảo vệ toàn bộ các service lõi nằm trong thư mục hệ thống Windows (System32, SysWOW64, WindowsApps, Microsoft.NET, Defender)
+                            bool isWindowsInternal = lower.Contains(@"\windows\system32\") ||
+                                                     lower.Contains(@"\windows\syswow64\") ||
+                                                     lower.Contains(@"\windows\servicing\") ||
+                                                     lower.Contains(@"\windows\microsoft.net\") ||
+                                                     lower.Contains(@"\windows defender\") ||
+                                                     lower.Contains(@"system32\svchost.exe") ||
+                                                     lower.Contains(@"syswow64\svchost.exe");
 
                             if (isWindowsInternal) continue;
 
@@ -67,9 +78,10 @@ public static class ServiceTools {
                             if (rawStart is int) start = (int)rawStart;
 
                             string disp = sk.GetValue("DisplayName") as string;
-                            if (String.IsNullOrWhiteSpace(disp)) disp = name;
+                            if (String.IsNullOrWhiteSpace(disp) || disp.StartsWith("@")) disp = name;
 
                             string desc = sk.GetValue("Description") as string ?? "";
+                            if (desc.StartsWith("@")) desc = "";
 
                             string vendor = DetectVendor(disp, name, image);
 
@@ -106,8 +118,9 @@ public static class ServiceTools {
         if (t.Contains("virtualbox") || t.Contains("oracle")) return "Oracle";
         if (t.Contains("anydesk")) return "AnyDesk Software";
         if (t.Contains("teamviewer")) return "TeamViewer";
+        if (t.Contains("ultraviewer")) return "UltraViewer";
         if (t.Contains("epic") || t.Contains("unreal")) return "Epic Games";
-        if (t.Contains("riot")) return "Riot Games";
+        if (t.Contains("riot") || t.Contains("vanguard")) return "Riot Games";
         if (t.Contains("blizzard") || t.Contains("battle.net")) return "Blizzard Entertainment";
         if (t.Contains("asus")) return "ASUSTeK Computer";
         if (t.Contains("gigabyte")) return "Giga-Byte Technology";
@@ -117,6 +130,11 @@ public static class ServiceTools {
 
     public static bool SetStartType(string serviceName, int newStartType, out string message) {
         message = "";
+        if (String.IsNullOrWhiteSpace(serviceName) || serviceName.IndexOfAny(new[] { '\"', '\r', '\n', '&', '|' }) >= 0) {
+            message = "Tên dịch vụ không hợp lệ.";
+            return false;
+        }
+
         string arg = "";
         switch (newStartType) {
             case 2: arg = "start= auto"; break;
@@ -139,16 +157,24 @@ public static class ServiceTools {
                     message = "Không thể khởi động sc.exe.";
                     return false;
                 }
-                string stdout = proc.StandardOutput.ReadToEnd();
-                string stderr = proc.StandardError.ReadToEnd();
+                var outTask = proc.StandardOutput.ReadToEndAsync();
+                var errTask = proc.StandardError.ReadToEndAsync();
+                if (!proc.WaitForExit(5000)) {
+                    try { proc.Kill(); } catch {}
+                    message = "Quá thời gian chờ sc.exe.";
+                    return false;
+                }
                 proc.WaitForExit();
+                Task.WaitAll(new Task[] { outTask, errTask }, 1500);
+
+                string stdout = outTask.Status == TaskStatus.RanToCompletion ? outTask.Result : "";
+                string stderr = errTask.Status == TaskStatus.RanToCompletion ? errTask.Result : "";
 
                 if (proc.ExitCode == 0) {
                     message = "Cập nhật thành công!";
                     return true;
                 }
 
-                // Nếu sc.exe thất bại do quyền (Access Denied = 5)
                 if (proc.ExitCode == 5 || stderr.ToLowerInvariant().Contains("access is denied") || stdout.ToLowerInvariant().Contains("access is denied")) {
                     message = "Cần quyền Quản trị viên (Run as administrator) để thay đổi thiết lập dịch vụ này.";
                     return false;

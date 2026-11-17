@@ -8,6 +8,7 @@ using Microsoft.Win32;
 
 public class RegistryIssue {
     public bool Selected { get; set; }
+    public bool Cleaned { get; set; }
     public string Category { get; set; }
     public RegistryHive Hive { get; set; }
     public RegistryView View { get; set; }
@@ -25,6 +26,19 @@ public class RegistryIssue {
 }
 
 public static class RegistryTools {
+    public static bool DriveIsReady(string path) {
+        if (String.IsNullOrWhiteSpace(path)) return false;
+        try {
+            string expanded = Environment.ExpandEnvironmentVariables(path).Trim('\"', ' ');
+            if (!Path.IsPathRooted(expanded) || expanded.StartsWith(@"\\")) return false;
+            string root = Path.GetPathRoot(expanded);
+            if (String.IsNullOrEmpty(root)) return false;
+            return new DriveInfo(root).IsReady;
+        } catch {
+            return false;
+        }
+    }
+
     public static List<RegistryIssue> ScanIssues() {
         var issues = new List<RegistryIssue>();
 
@@ -44,9 +58,10 @@ public static class RegistryTools {
                                     string loc = sk.GetValue("InstallLocation") as string;
 
                                     if (String.IsNullOrWhiteSpace(disp)) continue;
+                                    string expLoc = String.IsNullOrWhiteSpace(loc) ? "" : Environment.ExpandEnvironmentVariables(loc).Trim('\"', ' ');
 
-                                    // Nếu InstallLocation được chỉ định nhưng không tồn tại
-                                    if (!String.IsNullOrWhiteSpace(loc) && loc.Length > 3 && !Directory.Exists(loc)) {
+                                    // Chỉ xét khi ổ đĩa cài đặt đang kết nối sẵn sàng (không xóa nhầm ổ di động đang rút)
+                                    if (!String.IsNullOrWhiteSpace(expLoc) && expLoc.Length > 3 && DriveIsReady(expLoc) && !Directory.Exists(expLoc)) {
                                         string exe = ExtractExe(cmd);
                                         if (String.IsNullOrWhiteSpace(exe) || !ExeExists(exe)) {
                                             issues.Add(new RegistryIssue {
@@ -56,7 +71,7 @@ public static class RegistryTools {
                                                 View = view,
                                                 KeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" + subName,
                                                 ValueName = "",
-                                                ProblemValue = loc,
+                                                ProblemValue = expLoc,
                                                 Reason = "Ứng dụng '" + disp + "' không còn tồn tại tại thư mục cài đặt."
                                             });
                                         }
@@ -77,9 +92,13 @@ public static class RegistryTools {
                     if (runKey != null) {
                         foreach (string valName in runKey.GetValueNames()) {
                             try {
-                                string val = runKey.GetValue(valName) as string;
+                                string val = runKey.GetValue(valName, null, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
                                 string exe = ExtractExe(val);
-                                if (!String.IsNullOrWhiteSpace(exe) && !ExeExists(exe) && !exe.ToLowerInvariant().Contains("system32") && !exe.ToLowerInvariant().Contains("syswow64")) {
+                                if (!String.IsNullOrWhiteSpace(exe) &&
+                                    (!Path.IsPathRooted(exe) || DriveIsReady(exe)) &&
+                                    !ExeExists(exe) &&
+                                    !exe.ToLowerInvariant().Contains("system32") &&
+                                    !exe.ToLowerInvariant().Contains("syswow64")) {
                                     issues.Add(new RegistryIssue {
                                         Selected = true,
                                         Category = "Mục Khởi động mồ côi",
@@ -107,12 +126,12 @@ public static class RegistryTools {
                         try {
                             if (!valName.EndsWith(".ApplicationCompany", StringComparison.OrdinalIgnoreCase) &&
                                 !valName.EndsWith(".FriendlyAppName", StringComparison.OrdinalIgnoreCase)) {
-                                string path = valName;
+                                string path = Environment.ExpandEnvironmentVariables(valName);
                                 int pipe = path.IndexOf('|');
                                 if (pipe > 0) path = path.Substring(0, pipe);
 
                                 if ((path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) &&
-                                    path.Contains(":\\") && !File.Exists(path) && !path.ToLowerInvariant().Contains(@"\windows\")) {
+                                    path.Contains(":\\") && DriveIsReady(path) && !File.Exists(path) && !path.ToLowerInvariant().Contains(@"\windows\")) {
                                     issues.Add(new RegistryIssue {
                                         Selected = true,
                                         Category = "MuiCache lỗi thời",
@@ -142,7 +161,10 @@ public static class RegistryTools {
                                 if (sk == null) continue;
                                 string p = sk.GetValue("") as string;
                                 string exe = ExtractExe(p);
-                                if (!String.IsNullOrWhiteSpace(exe) && !ExeExists(exe) && !exe.ToLowerInvariant().Contains(@"\windows\")) {
+                                if (!String.IsNullOrWhiteSpace(exe) &&
+                                    (!Path.IsPathRooted(exe) || DriveIsReady(exe)) &&
+                                    !ExeExists(exe) &&
+                                    !exe.ToLowerInvariant().Contains(@"\windows\")) {
                                     issues.Add(new RegistryIssue {
                                         Selected = true,
                                         Category = "App Paths mồ côi",
@@ -164,6 +186,7 @@ public static class RegistryTools {
         // 5. Quét Phông chữ mồ côi (Orphaned Fonts)
         try {
             string fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            string userFontsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\Fonts");
             using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
             using (var fontsKey = baseKey.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts")) {
                 if (fontsKey != null) {
@@ -171,8 +194,10 @@ public static class RegistryTools {
                         try {
                             string fontFile = fontsKey.GetValue(fontName) as string;
                             if (string.IsNullOrWhiteSpace(fontFile)) continue;
-                            string fullFont = Path.IsPathRooted(fontFile) ? fontFile : Path.Combine(fontsDir, fontFile);
-                            if (!File.Exists(fullFont) && !fontFile.Contains("%SystemRoot%")) {
+                            string expanded = Environment.ExpandEnvironmentVariables(fontFile).Trim('\"', ' ');
+                            string fullFont = Path.IsPathRooted(expanded) ? expanded : Path.Combine(fontsDir, expanded);
+                            string userFont = Path.IsPathRooted(expanded) ? expanded : Path.Combine(userFontsDir, expanded);
+                            if (DriveIsReady(fullFont) && !File.Exists(fullFont) && !File.Exists(userFont)) {
                                 issues.Add(new RegistryIssue {
                                     Selected = true,
                                     Category = "Phông chữ mồ côi",
@@ -195,20 +220,37 @@ public static class RegistryTools {
 
     public static bool ExeExists(string exe) {
         if (String.IsNullOrWhiteSpace(exe)) return false;
-        if (File.Exists(exe)) return true;
-        if (!Path.IsPathRooted(exe)) {
-            string sys = Path.Combine(Environment.SystemDirectory, exe);
+        string expanded = Environment.ExpandEnvironmentVariables(exe).Trim('\"', ' ');
+        if (File.Exists(expanded)) return true;
+        if (!Path.IsPathRooted(expanded)) {
+            string nameWithExt = expanded.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? expanded : expanded + ".exe";
+            string sys = Path.Combine(Environment.SystemDirectory, nameWithExt);
             if (File.Exists(sys)) return true;
-            string win = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), exe);
+            string win = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), nameWithExt);
             if (File.Exists(win)) return true;
+            string wow = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SysWOW64", nameWithExt);
+            if (File.Exists(wow)) return true;
         }
         return false;
     }
 
-    static void ExportKeyToReg(StringBuilder sb, RegistryKey baseKey, string keyPath, string hiveHeader) {
+    static string GetRegExportKeyHeader(RegistryIssue item) {
+        string h = item.Hive == RegistryHive.LocalMachine ? "HKEY_LOCAL_MACHINE" : "HKEY_CURRENT_USER";
+        string kp = item.KeyPath ?? "";
+        if (Environment.Is64BitOperatingSystem &&
+            item.Hive == RegistryHive.LocalMachine &&
+            item.View == RegistryView.Registry32 &&
+            kp.StartsWith(@"SOFTWARE\", StringComparison.OrdinalIgnoreCase) &&
+            !kp.StartsWith(@"SOFTWARE\WOW6432Node\", StringComparison.OrdinalIgnoreCase)) {
+            kp = @"SOFTWARE\WOW6432Node\" + kp.Substring(9);
+        }
+        return h + "\\" + kp;
+    }
+
+    public static void ExportKeyToReg(StringBuilder sb, RegistryKey baseKey, string keyPath, string fullKeyHeader) {
         using (var k = baseKey.OpenSubKey(keyPath)) {
             if (k == null) return;
-            ExportSubKeyRecursive(sb, k, hiveHeader + "\\" + keyPath);
+            ExportSubKeyRecursive(sb, k, fullKeyHeader);
         }
     }
 
@@ -218,31 +260,7 @@ public static class RegistryTools {
             object val = key.GetValue(vName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
             RegistryValueKind kind = key.GetValueKind(vName);
             string vPrefix = String.IsNullOrEmpty(vName) ? "@" : "\"" + vName.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-            if (kind == RegistryValueKind.DWord) {
-                int d = val is int ? (int)val : 0;
-                sb.AppendLine(vPrefix + "=dword:" + d.ToString("x8"));
-            } else if (kind == RegistryValueKind.QWord) {
-                long q = val is long ? (long)val : 0;
-                sb.AppendLine(vPrefix + "=hex(b):" + String.Join(",", BitConverter.GetBytes(q).Select(b => b.ToString("x2"))));
-            } else if (kind == RegistryValueKind.Binary) {
-                byte[] bytes = val as byte[] ?? new byte[0];
-                sb.AppendLine(vPrefix + "=hex:" + String.Join(",", bytes.Select(b => b.ToString("x2"))));
-            } else if (kind == RegistryValueKind.MultiString) {
-                string[] arr = val as string[] ?? new string[0];
-                var rawBytes = new List<byte>();
-                foreach (string s in arr) {
-                    rawBytes.AddRange(Encoding.Unicode.GetBytes(s));
-                    rawBytes.Add(0); rawBytes.Add(0);
-                }
-                rawBytes.Add(0); rawBytes.Add(0);
-                sb.AppendLine(vPrefix + "=hex(7):" + String.Join(",", rawBytes.Select(b => b.ToString("x2"))));
-            } else if (kind == RegistryValueKind.ExpandString) {
-                byte[] bytes = Encoding.Unicode.GetBytes((val as string ?? "") + "\0");
-                sb.AppendLine(vPrefix + "=hex(2):" + String.Join(",", bytes.Select(b => b.ToString("x2"))));
-            } else {
-                string str = (val ?? "").ToString();
-                sb.AppendLine(vPrefix + "=\"" + str.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"");
-            }
+            AppendRegValue(sb, vPrefix, val, kind);
         }
         sb.AppendLine();
         foreach (string sub in key.GetSubKeyNames()) {
@@ -254,15 +272,45 @@ public static class RegistryTools {
         }
     }
 
+    static void AppendRegValue(StringBuilder sb, string vPrefix, object val, RegistryValueKind kind) {
+        if (kind == RegistryValueKind.DWord) {
+            int d = val is int ? (int)val : 0;
+            sb.AppendLine(vPrefix + "=dword:" + d.ToString("x8"));
+        } else if (kind == RegistryValueKind.QWord) {
+            long q = val is long ? (long)val : 0;
+            sb.AppendLine(vPrefix + "=hex(b):" + String.Join(",", BitConverter.GetBytes(q).Select(b => b.ToString("x2"))));
+        } else if (kind == RegistryValueKind.Binary) {
+            byte[] bytes = val as byte[] ?? new byte[0];
+            sb.AppendLine(vPrefix + "=hex:" + String.Join(",", bytes.Select(b => b.ToString("x2"))));
+        } else if (kind == RegistryValueKind.MultiString) {
+            string[] arr = val as string[] ?? new string[0];
+            var rawBytes = new List<byte>();
+            foreach (string s in arr) {
+                rawBytes.AddRange(Encoding.Unicode.GetBytes(s));
+                rawBytes.Add(0); rawBytes.Add(0);
+            }
+            rawBytes.Add(0); rawBytes.Add(0);
+            sb.AppendLine(vPrefix + "=hex(7):" + String.Join(",", rawBytes.Select(b => b.ToString("x2"))));
+        } else if (kind == RegistryValueKind.ExpandString) {
+            byte[] bytes = Encoding.Unicode.GetBytes((val as string ?? "") + "\0");
+            sb.AppendLine(vPrefix + "=hex(2):" + String.Join(",", bytes.Select(b => b.ToString("x2"))));
+        } else {
+            string str = (val ?? "").ToString();
+            sb.AppendLine(vPrefix + "=\"" + str.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"");
+        }
+    }
+
     public static string ExtractExe(string cmd) {
         if (String.IsNullOrWhiteSpace(cmd)) return null;
-        cmd = cmd.Trim();
+        cmd = Environment.ExpandEnvironmentVariables(cmd.Trim());
         if (cmd.StartsWith("\"")) {
             int close = cmd.IndexOf('\"', 1);
             if (close > 1) return cmd.Substring(1, close - 1);
         }
         int exeIdx = cmd.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
         if (exeIdx > 0) return cmd.Substring(0, exeIdx + 4).Trim('\"');
+        int sp = cmd.IndexOf(' ');
+        if (sp > 0) return cmd.Substring(0, sp).Trim('\"');
         return cmd;
     }
 
@@ -272,28 +320,37 @@ public static class RegistryTools {
 
         string backupDir = Path.Combine(Engine.Data, "Registry-backups");
         Directory.CreateDirectory(backupDir);
-        backupFile = Path.Combine(backupDir, "Registry_Backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".reg");
+        backupFile = Path.Combine(backupDir, "Registry_Backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ".reg");
 
         var sb = new StringBuilder();
         sb.AppendLine("Windows Registry Editor Version 5.00");
         sb.AppendLine();
 
-        // Ghi backup
+        // Ghi backup đầy đủ đệ quy
         foreach (var item in chosen) {
-            string h = item.Hive == RegistryHive.LocalMachine ? "HKEY_LOCAL_MACHINE" : "HKEY_CURRENT_USER";
+            string header = GetRegExportKeyHeader(item);
             sb.AppendLine("; Backup: " + item.Category + " - " + item.Reason);
             try {
                 using (var baseKey = RegistryKey.OpenBaseKey(item.Hive, item.View)) {
                     if (String.IsNullOrEmpty(item.ValueName)) {
-                        ExportKeyToReg(sb, baseKey, item.KeyPath, h);
+                        ExportKeyToReg(sb, baseKey, item.KeyPath, header);
                     } else {
-                        sb.AppendLine("[" + h + "\\" + item.KeyPath + "]");
-                        sb.AppendLine("\"" + item.ValueName.Replace("\"", "\\\"") + "\"=\"" + (item.ProblemValue ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"");
+                        sb.AppendLine("[" + header + "]");
+                        using (var k = baseKey.OpenSubKey(item.KeyPath)) {
+                            if (k != null && k.GetValue(item.ValueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames) != null) {
+                                object rawVal = k.GetValue(item.ValueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+                                RegistryValueKind kind = k.GetValueKind(item.ValueName);
+                                string vPrefix = "\"" + item.ValueName.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                                AppendRegValue(sb, vPrefix, rawVal, kind);
+                            } else {
+                                sb.AppendLine("\"" + item.ValueName.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"=\"" + (item.ProblemValue ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"");
+                            }
+                        }
                         sb.AppendLine();
                     }
                 }
             } catch {
-                sb.AppendLine("[" + h + "\\" + item.KeyPath + "]");
+                sb.AppendLine("[" + header + "]");
                 sb.AppendLine();
             }
         }
@@ -302,14 +359,15 @@ public static class RegistryTools {
             File.WriteAllText(backupFile, sb.ToString(), Encoding.Unicode);
         } catch (Exception ex) {
             errors.Add("Lỗi tạo bản sao lưu: " + ex.Message);
+            return 0; // Tuyệt đối không xóa Registry nếu sao lưu thất bại!
         }
 
-        // Tiến hành xóa
+        // Tiến hành xóa và đánh dấu chính xác mục nào đã xóa thành công
         foreach (var item in chosen) {
+            item.Cleaned = false;
             try {
                 using (var baseKey = RegistryKey.OpenBaseKey(item.Hive, item.View)) {
                     if (String.IsNullOrEmpty(item.ValueName)) {
-                        // Xóa cả SubKey
                         int lastSlash = item.KeyPath.LastIndexOf('\\');
                         if (lastSlash > 0) {
                             string parent = item.KeyPath.Substring(0, lastSlash);
@@ -317,16 +375,21 @@ public static class RegistryTools {
                             using (var pk = baseKey.OpenSubKey(parent, true)) {
                                 if (pk != null) {
                                     pk.DeleteSubKeyTree(child, false);
+                                    item.Cleaned = true;
                                     cleaned++;
+                                } else {
+                                    errors.Add(item.DisplayKey + ": Cần quyền Administrator.");
                                 }
                             }
                         }
                     } else {
-                        // Xóa ValueName
                         using (var k = baseKey.OpenSubKey(item.KeyPath, true)) {
                             if (k != null) {
                                 k.DeleteValue(item.ValueName, false);
+                                item.Cleaned = true;
                                 cleaned++;
+                            } else {
+                                errors.Add(item.DisplayKey + ": Cần quyền Administrator.");
                             }
                         }
                     }

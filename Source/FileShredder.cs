@@ -5,20 +5,54 @@ using System.Security.Cryptography;
 
 public static class FileShredder {
     public static bool IsProtected(string path) {
-        if (string.IsNullOrEmpty(path)) return true;
+        if (string.IsNullOrWhiteSpace(path)) return true;
         try {
             string full = Path.GetFullPath(path).TrimEnd('\\');
-            string win = Environment.GetFolderPath(Environment.SpecialFolder.Windows).TrimEnd('\\');
-            string sys = Environment.SystemDirectory.TrimEnd('\\');
-            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles).TrimEnd('\\');
-            string pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86).TrimEnd('\\');
+            if (full.StartsWith(@"\\")) return true;
 
-            if (full.Equals(win, StringComparison.OrdinalIgnoreCase) || full.StartsWith(win + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-            if (full.Equals(sys, StringComparison.OrdinalIgnoreCase) || full.StartsWith(sys + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-            if (full.Equals(pf, StringComparison.OrdinalIgnoreCase) || full.StartsWith(pf + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-            if (!string.IsNullOrEmpty(pf86) && (full.Equals(pf86, StringComparison.OrdinalIgnoreCase) || full.StartsWith(pf86 + "\\", StringComparison.OrdinalIgnoreCase))) return true;
+            string root = Path.GetPathRoot(full);
+            if (!string.IsNullOrEmpty(root) && root.TrimEnd('\\').Equals(full, StringComparison.OrdinalIgnoreCase)) return true;
 
-            if (Path.GetPathRoot(full).Equals(full, StringComparison.OrdinalIgnoreCase)) return true;
+            // Khu vực hệ thống không bao giờ được phép hủy (kể cả tệp/thư mục con bên trong)
+            string[] forbiddenTrees = {
+                Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+                Environment.SystemDirectory,
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                Engine.Data,
+                AppDomain.CurrentDomain.BaseDirectory
+            };
+
+            for (int i = 0; i < forbiddenTrees.Length; i++) {
+                string tree = (forbiddenTrees[i] ?? "").TrimEnd('\\');
+                if (string.IsNullOrEmpty(tree)) continue;
+                if (full.Equals(tree, StringComparison.OrdinalIgnoreCase) ||
+                    full.StartsWith(tree + "\\", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+
+            // Các thư mục gốc của người dùng (chặn hủy cả thư mục gốc, vẫn cho phép chọn từng tệp cụ thể bên trong)
+            string[] protectedExactRoots = {
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) // C:\Users
+            };
+
+            for (int i = 0; i < protectedExactRoots.Length; i++) {
+                string exact = (protectedExactRoots[i] ?? "").TrimEnd('\\');
+                if (!string.IsNullOrEmpty(exact) && full.Equals(exact, StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
 
             return false;
         } catch {
@@ -28,11 +62,15 @@ public static class FileShredder {
 
     public static void ShredFile(string path, int passes = 3) {
         if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
-        if (IsProtected(path)) throw new InvalidOperationException("Không được phép hủy tệp thuộc khu vực hệ thống Windows: " + path);
+        if (IsProtected(path)) throw new InvalidOperationException("Không được phép hủy tệp thuộc khu vực được bảo vệ: " + path);
+        if (!Features.NoLinks(path)) throw new InvalidOperationException("Không hủy tệp đi qua liên kết tượng trưng (Symlink/Junction): " + path);
 
         var fi = new FileInfo(path);
+        if ((fi.Attributes & FileAttributes.ReparsePoint) != 0) return;
+
         File.SetAttributes(path, FileAttributes.Normal);
         long length = fi.Length;
+        if (passes < 1) passes = 1;
 
         using (var rng = new RNGCryptoServiceProvider())
         using (var stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None)) {
@@ -47,19 +85,23 @@ public static class FileShredder {
                 else if (pass == 2) fillByte = 0xFF;
                 else isRandom = true;
 
+                if (!isRandom) {
+                    int fillLen = (int)Math.Min(buffer.Length, length);
+                    for (int i = 0; i < fillLen; i++) buffer[i] = fillByte;
+                }
+
                 while (written < length) {
                     int toWrite = (int)Math.Min(buffer.Length, length - written);
                     if (isRandom) {
                         rng.GetBytes(buffer);
-                    } else {
-                        for (int i = 0; i < toWrite; i++) buffer[i] = fillByte;
                     }
                     stream.Write(buffer, 0, toWrite);
                     written += toWrite;
                 }
-                stream.Flush();
+                stream.Flush(true);
             }
             stream.SetLength(0);
+            stream.Flush(true);
         }
 
         string dir = Path.GetDirectoryName(path);
@@ -74,14 +116,42 @@ public static class FileShredder {
 
     public static void ShredDirectory(string dirPath, int passes = 3) {
         if (string.IsNullOrEmpty(dirPath) || !Directory.Exists(dirPath)) return;
-        if (IsProtected(dirPath)) throw new InvalidOperationException("Không được phép hủy thư mục thuộc khu vực hệ thống Windows: " + dirPath);
+        if (IsProtected(dirPath)) throw new InvalidOperationException("Không được phép hủy thư mục thuộc khu vực được bảo vệ: " + dirPath);
+        if (!Features.NoLinks(dirPath)) throw new InvalidOperationException("Không hủy thư mục đi qua liên kết (Symlink/Junction): " + dirPath);
 
-        foreach (var file in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories)) {
-            try { ShredFile(file, passes); } catch {}
+        var allDirs = new List<string>();
+        var stack = new Stack<string>();
+        stack.Push(Path.GetFullPath(dirPath));
+
+        while (stack.Count > 0) {
+            string cur = stack.Pop();
+            try {
+                var attr = File.GetAttributes(cur);
+                if ((attr & FileAttributes.ReparsePoint) != 0) continue;
+                allDirs.Add(cur);
+
+                foreach (var file in Directory.GetFiles(cur)) {
+                    try { ShredFile(file, passes); } catch {}
+                }
+                foreach (var sub in Directory.GetDirectories(cur)) {
+                    try {
+                        if ((File.GetAttributes(sub) & FileAttributes.ReparsePoint) == 0) {
+                            stack.Push(sub);
+                        }
+                    } catch {}
+                }
+            } catch {}
         }
-        foreach (var sub in Directory.GetDirectories(dirPath, "*", SearchOption.AllDirectories)) {
-            try { Directory.Delete(sub, true); } catch {}
+
+        // Xóa thư mục từ sâu nhất ngược lên gốc
+        for (int i = allDirs.Count - 1; i >= 0; i--) {
+            try {
+                string d = allDirs[i];
+                if (Directory.Exists(d)) {
+                    File.SetAttributes(d, FileAttributes.Directory);
+                    Directory.Delete(d, false);
+                }
+            } catch {}
         }
-        try { Directory.Delete(dirPath, true); } catch {}
     }
 }

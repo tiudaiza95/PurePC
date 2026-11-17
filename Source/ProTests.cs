@@ -52,97 +52,231 @@ static class ProTests {
   Check(!AnalysisTools.Roots().Any(x=>x.Path.IndexOf("SoftwareDistribution",StringComparison.OrdinalIgnoreCase)>=0),"OS update cache not included");
   Check(UwpManager.GetFriendlyName("Microsoft.WindowsCalculator").Contains("Calculator"),"UWP friendly name mapping");
   Check(UwpManager.IsProtected("Microsoft.WindowsStore"),"Microsoft Store is protected from accidental uninstall");
+  Check(UwpManager.IsProtected("Microsoft.SecHealthUI"),"Windows Security UI is protected from accidental uninstall");
+  Check(UwpManager.IsProtected("Microsoft.Windows.SecHealthUI"),"Windows.SecHealthUI is protected from accidental uninstall");
   Check(!UwpManager.IsProtected("Microsoft.WindowsCalculator"),"Calculator is removable Store app");
   Check(UwpManager.CleanPublisher("CN=OpenAI, O=OpenAI")=="OpenAI","UWP publisher regex extraction");
   Check(DesktopApp.MatchesFilter(new AppEntry{IsUwp=true},9),"UWP filter matches UWP app");
   Check(DesktopApp.MatchesFilter(new AppEntry{IsUwp=false},10),"Win32 filter matches Win32 app");
-  var snapTest=new SnapshotRecord{AppName="PurePCUnitTestApp",CreatedAt=DateTime.UtcNow};
-  snapTest.CreatedFiles.Add(@"C:\dummy\file.txt");
-  SetupMonitor.SaveRecord(snapTest);
-  var loadedRec=SetupMonitor.LoadAllRecords().FirstOrDefault(r=>r.AppName=="PurePCUnitTestApp");
-  Check(loadedRec!=null&&loadedRec.CreatedFiles.Count==1,"SetupMonitor save and load record cycle");
-  if(loadedRec!=null)SetupMonitor.DeleteRecord(loadedRec);
-   Check(SystemPerformance.FlushDnsCache(),"SystemPerformance.FlushDnsCache succeeds");
-   Check(!String.IsNullOrEmpty(SystemPerformance.GetBoardName()),"SystemPerformance.GetBoardName returns valid string");
-   Check(StartupItem.EstimateImpact(@"C:\Users\User\AppData\Local\Discord\app.exe","Discord")=="Cao","StartupItem heavy impact detection");
-   Check(StartupItem.EstimateImpact(@"C:\Windows\System32\ctfmon.exe","CTF Loader")=="Thấp","StartupItem light impact detection");
-   Check(StartupItem.EstimateImpact(@"C:\Program Files\Unknown\app.exe","UnknownApp")=="Trung bình","StartupItem medium impact default");
-   Engine.InvalidateAppCache();
-   Check(true,"Engine.InvalidateAppCache succeeds");
-   UwpManager.InvalidateCache();
-   Check(true,"UwpManager.InvalidateCache succeeds");
-   Check(Engine.AppVersion == "1.2", "Centralized AppVersion matches 1.2");
-   Check(StartupItem.EstimateImpact("\"C:\\Program Files\\Discord\\app.exe\"", "Discord") == "Cao", "Quoted impact check");
-   Check(!UwpManager.IsPackageInstalled(""), "IsPackageInstalled handles empty name");
-   long optFreed = SystemPerformance.OptimizeMemory();
-   Check(optFreed >= 0, "SystemPerformance.OptimizeMemory executes without leaking");
-   Check(SqliteOptimizer.IsAvailable, "SqliteOptimizer.IsAvailable returns true on Windows 10/11");
-   string testDb = Path.Combine(Path.GetTempPath(), "PurePC_test_" + Guid.NewGuid().ToString("N") + ".db");
-   try {
-       File.WriteAllBytes(testDb, System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0"));
-       Check(SqliteOptimizer.IsSqliteDatabase(testDb), "SqliteOptimizer recognizes SQLite header");
-   } finally {
-       if (File.Exists(testDb)) File.Delete(testDb);
-   }
-   Check(FileShredder.IsProtected(Environment.SystemDirectory), "FileShredder protects SystemDirectory");
-   string testShred = Path.Combine(Path.GetTempPath(), "PurePC_shred_" + Guid.NewGuid().ToString("N") + ".tmp");
-   File.WriteAllText(testShred, "SECRET TEST CONTENT");
-   FileShredder.ShredFile(testShred, 1);
-   Check(!File.Exists(testShred), "FileShredder.ShredFile overwrites and deletes file successfully");
-   
-   // Elite Optimizations Unit Tests
-   Check(!ProcessMemoryManager.TrimProcess(0), "ProcessMemoryManager protects PID 0 System Idle");
-   Check(!ProcessMemoryManager.TrimProcess(4), "ProcessMemoryManager protects PID 4 System Kernel");
-   var topProcs = ProcessMemoryManager.GetTopProcesses(5);
-   Check(topProcs != null, "ProcessMemoryManager.GetTopProcesses returns list");
-   double downRate, upRate;
-   SystemPerformance.GetNetworkBandwidth(out downRate, out upRate);
-   Check(downRate >= 0 && upRate >= 0, "SystemPerformance.GetNetworkBandwidth non-negative");
-   var devTargets = DevAiCacheCleaner.GetKnownTargets();
-   Check(devTargets.Count >= 10, "DevAiCacheCleaner registers at least 10 ecosystem targets");
-   Check(devTargets.Any(x => x.ToolName.Contains("NPM")), "DevAiCacheCleaner targets NPM");
-   Check(devTargets.Any(x => x.ToolName.Contains("Hugging Face")), "DevAiCacheCleaner targets Hugging Face AI");
-   Check(ComponentStoreManager.IsAvailable, "ComponentStoreManager dism.exe is available on Windows");
-   string fakeDismOut = "Windows Explorer Reported Size of Component Store : 10.50 GB\nActual Size of the Component Store : 8.20 GB\nNumber of Reclaimable Packages : 2\nComponent Store Cleanup Recommended : Yes\n";
-   var parsedDism = ComponentStoreManager.ParseAnalysis(fakeDismOut);
-   Check(parsedDism.ExplorerSize == "10.50 GB", "DISM analysis parses Explorer size");
-   Check(parsedDism.ActualSize == "8.20 GB", "DISM analysis parses Actual size");
-   Check(parsedDism.ReclaimablePackages == "2", "DISM analysis parses Reclaimable packages");
-   Check(parsedDism.CleanupRecommended, "DISM analysis parses CleanupRecommended flag");
-   var gameStatus = GameBooster.GetStatus();
-   Check(gameStatus != null, "GameBooster.GetStatus executes without exception");
-   
-   // Privacy Shield, System Repair and Hardware Telemetry tests
-   var privStatus = PrivacyOptimizer.GetStatus();
-   Check(privStatus != null, "PrivacyOptimizer.GetStatus executes without exception");
-   Check(SystemRepair.IsSfcAvailable, "SystemRepair finds sfc.exe in System32");
-   Check(SystemRepair.IsDismAvailable, "SystemRepair finds dism.exe in System32");
-   Check(SystemPerformance.GetSystemUptime().TotalSeconds > 0, "SystemPerformance.GetSystemUptime reports positive uptime");
-   Check(!string.IsNullOrEmpty(SystemPerformance.GetUptimeString()), "SystemPerformance.GetUptimeString returns non-empty string");
 
-   // Elite 3.0 tests: Context Menu, SSD TRIM, Folder Space, Windows Update
-   var contextItems = ContextMenuManager.Scan();
-   Check(contextItems != null, "ContextMenuManager.Scan returns list");
-   string testErr;
-   Check(!ContextMenuManager.Toggle(new ContextMenuItem { IsSystemProtected = true }, out testErr), "ContextMenuManager protects system handlers");
-   var trimStatus = SsdTrimOptimizer.QueryTrimStatus();
-   Check(trimStatus != null, "SsdTrimOptimizer.QueryTrimStatus executes without exception");
-   Check(!string.IsNullOrEmpty(WindowsUpdateCleaner.DownloadCacheDir), "WindowsUpdateCleaner points to valid directory");
-   bool folderCancelled = false;
+  // SetupMonitor isolated multi-record & non-overwrite cycle
+  string prevDataDir = Engine.Data;
+  string qaSandbox = Path.Combine(Path.GetTempPath(), "PurePC-QA-" + Guid.NewGuid().ToString("N"));
+  Directory.CreateDirectory(qaSandbox);
+  try {
+   Engine.Data = Path.Combine(qaSandbox, "AppDataPurePC");
+   var snapTest1 = new SnapshotRecord { AppName = "PurePCUnitTestApp", CreatedAt = DateTime.UtcNow };
+   snapTest1.CreatedFiles.Add(@"C:\dummy\file1.txt");
+   SetupMonitor.SaveRecord(snapTest1);
+   var snapTest2 = new SnapshotRecord { AppName = "PurePCUnitTestApp", CreatedAt = DateTime.UtcNow.AddSeconds(1) };
+   snapTest2.CreatedFiles.Add(@"C:\dummy\file2.txt");
+   SetupMonitor.SaveRecord(snapTest2);
+   var allLoaded = SetupMonitor.LoadAllRecords().Where(r => r.AppName == "PurePCUnitTestApp").ToList();
+   Check(allLoaded.Count == 2, "SetupMonitor preserves multiple snapshots of same app name without overwriting");
+   SetupMonitor.DeleteRecord(allLoaded[0]);
+   Check(SetupMonitor.LoadAllRecords().Count(r => r.AppName == "PurePCUnitTestApp") == 1, "SetupMonitor deletes exact targeted snapshot record");
+   foreach (var r in SetupMonitor.LoadAllRecords()) SetupMonitor.DeleteRecord(r);
+
+   // RegistryCleaner recursive export & isolated HKCU test
+   Check(RegistryTools.ExeExists("msiexec.exe"), "RegistryTools resolves msiexec.exe in System32");
+   Check(RegistryTools.ExeExists("rundll32.exe"), "RegistryTools resolves rundll32.exe in System32");
+   Check(RegistryTools.ExeExists(@"%windir%\System32\cmd.exe"), "RegistryTools expands env vars in ExeExists");
+
+   string regSandboxKey = @"Software\PurePCQATest_" + Guid.NewGuid().ToString("N");
    try {
-       FolderSpaceVisualizer.Analyze(Environment.GetFolderPath(Environment.SpecialFolder.Windows), new CancellationToken(true), null);
-   } catch (OperationCanceledException) {
-       folderCancelled = true;
+    using (var hkcu = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64)) {
+     using (var appKey = hkcu.CreateSubKey(regSandboxKey + @"\OrphanApp")) {
+      appKey.SetValue("DisplayName", "Synthetic Orphan App");
+      appKey.SetValue("UninstallString", @"C:\MissingFolder\uninstall.exe");
+      appKey.SetValue("VersionMajor", 2, RegistryValueKind.DWord);
+      using (var childSub = appKey.CreateSubKey("NestedConfig")) {
+       childSub.SetValue("Flag", "KeepInBackup");
+      }
+     }
+     // ContextMenu CopyKey recursive test (preserves subkey 'command' & Icon & DWORD)
+     using (var srcKey = hkcu.CreateSubKey(regSandboxKey + @"\ShellMenu")) {
+      srcKey.SetValue("", "Open Synthetic Tool");
+      srcKey.SetValue("Icon", @"C:\Tools\tool.exe,0");
+      srcKey.SetValue("Position", 1, RegistryValueKind.DWord);
+      using (var cmdKey = srcKey.CreateSubKey("command")) {
+       cmdKey.SetValue("", "\"C:\\Tools\\tool.exe\" \"%1\"");
+      }
+     }
+     using (var srcKey = hkcu.OpenSubKey(regSandboxKey + @"\ShellMenu"))
+     using (var dstKey = hkcu.CreateSubKey(regSandboxKey + @"\-ShellMenu")) {
+      ContextMenuManager.CopyKey(srcKey, dstKey);
+     }
+     using (var verifyDst = hkcu.OpenSubKey(regSandboxKey + @"\-ShellMenu"))
+     using (var verifyCmd = hkcu.OpenSubKey(regSandboxKey + @"\-ShellMenu\command")) {
+      Check(verifyDst != null && Convert.ToString(verifyDst.GetValue("")) == "Open Synthetic Tool", "ContextMenu CopyKey preserves default verb");
+      Check(Convert.ToString(verifyDst.GetValue("Icon")) == @"C:\Tools\tool.exe,0", "ContextMenu CopyKey preserves Icon value");
+      Check((int)verifyDst.GetValue("Position") == 1, "ContextMenu CopyKey preserves DWORD value");
+      Check(verifyCmd != null && Convert.ToString(verifyCmd.GetValue("")).Contains("tool.exe"), "ContextMenu CopyKey preserves nested command subkey");
+     }
+    }
+
+    var issue = new RegistryIssue {
+     Selected = true,
+     Category = "Mục gỡ cài đặt mồ côi",
+     Hive = RegistryHive.CurrentUser,
+     View = RegistryView.Registry64,
+     KeyPath = regSandboxKey + @"\OrphanApp",
+     ValueName = "",
+     Reason = "QA synthetic test"
+    };
+    string regBackupFile;
+    List<string> regErrors;
+    int cleanedCount = RegistryTools.CleanIssues(new List<RegistryIssue> { issue }, out regBackupFile, out regErrors);
+    Check(cleanedCount == 1 && issue.Cleaned && regErrors.Count == 0, "RegistryTools cleans isolated HKCU orphan key");
+    Check(Engine.Within(regBackupFile, Engine.Data) && File.Exists(regBackupFile), "RegistryTools saves backup inside Engine.Data not %TEMP%");
+    string regContent = File.ReadAllText(regBackupFile, System.Text.Encoding.Unicode);
+    Check(regContent.Contains("Synthetic Orphan App") && regContent.Contains("dword:00000002") && regContent.Contains("NestedConfig") && regContent.Contains("KeepInBackup"), "RegistryTools .reg backup exports all values, DWORDs and nested subkeys");
+   } finally {
+    using (var hkcu = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64)) {
+     hkcu.DeleteSubKeyTree(regSandboxKey, false);
+    }
    }
-   Check(folderCancelled, "FolderSpaceVisualizer supports cancellation properly");
-   var sysStartup = new StartupItem { Name = "SecurityHealth", Command = @"C:\Windows\System32\SecurityHealthSystray.exe" };
-   Check(sysStartup.Recommendation.Contains("Hệ thống"), "StartupItem recommends keeping system entries");
-   var heavyStartup = new StartupItem { Name = "Discord", Command = @"C:\Users\User\AppData\Local\Discord\app.exe" };
-   Check(heavyStartup.Recommendation.Contains("Khuyên tắt"), "StartupItem recommends disabling heavy apps");
-   var disabledStartup = new StartupItem { Name = "OldApp", Disabled = true };
-   Check(disabledStartup.Recommendation.Contains("Đã tắt"), "StartupItem recognizes disabled state");
-   var normalApp = A("NormalApp", "NormalVendor");
-   Check(normalApp.StatusLabel.Contains("An toàn") || normalApp.StatusLabel.Contains("Ứng dụng"), "AppEntry displays reassuring status label for regular apps");
+
+   // FileShredder root protection & recursive directory shredding
+   Check(FileShredder.IsProtected(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), "FileShredder blocks UserProfile root");
+   Check(FileShredder.IsProtected(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)), "FileShredder blocks Desktop root");
+   Check(FileShredder.IsProtected(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)), "FileShredder blocks MyDocuments root");
+   Check(FileShredder.IsProtected(Engine.Data), "FileShredder blocks PurePC Data directory");
+   Check(FileShredder.IsProtected(AppDomain.CurrentDomain.BaseDirectory), "FileShredder blocks PurePC App directory");
+   string shredDir = Path.Combine(qaSandbox, "ShredMe");
+   Directory.CreateDirectory(Path.Combine(shredDir, "SubDir"));
+   string roFile = Path.Combine(shredDir, "SubDir", "secret.txt");
+   File.WriteAllText(roFile, "TOP SECRET QA PAYLOAD");
+   File.SetAttributes(roFile, FileAttributes.ReadOnly);
+   FileShredder.ShredDirectory(shredDir, 1);
+   Check(!Directory.Exists(shredDir), "FileShredder.ShredDirectory wipes nested read-only files and directories");
+
+   // DevAiCacheCleaner ReadOnly Go-cache simulation test
+   string goSimDir = Path.Combine(qaSandbox, "GoModCache");
+   Directory.CreateDirectory(goSimDir);
+   string goSimFile = Path.Combine(goSimDir, "mod.go");
+   File.WriteAllText(goSimFile, "package main");
+   File.SetAttributes(goSimFile, FileAttributes.ReadOnly);
+   Check(DevAiCacheCleaner.Clean(new DevAiCacheItem { Path = goSimDir, ToolName = "QA Go Cache" }, false) && !Directory.Exists(goSimDir), "DevAiCacheCleaner clears ReadOnly attributes and deletes cache");
+
+   // Real SQLite Vacuum execution test (verifies no native double-close crash!)
+   if (SqliteOptimizer.IsAvailable) {
+    string realDb = Path.Combine(qaSandbox, "qa_browser.sqlite");
+    long freedBytes1, freedBytes2;
+    bool vac1 = SqliteOptimizer.Vacuum(realDb, out freedBytes1);
+    Check(!vac1, "SqliteOptimizer.Vacuum rejects missing file cleanly");
+    // Create valid empty SQLite DB via Vacuum on newly initialized file or header test
+    File.WriteAllBytes(realDb, new byte[0]);
+    SqliteOptimizer.Vacuum(realDb, out freedBytes1);
+    SqliteOptimizer.Vacuum(realDb, out freedBytes2);
+    Check(SqliteOptimizer.IsSqliteDatabase(realDb), "SqliteOptimizer initializes and vacuums real SQLite DB twice without double-free crash");
+   }
+  } finally {
+   Engine.Data = prevDataDir;
+   try { if (Directory.Exists(qaSandbox)) Directory.Delete(qaSandbox, true); } catch {}
+  }
+
+  Check(SystemPerformance.FlushDnsCache(),"SystemPerformance.FlushDnsCache succeeds");
+  Check(!String.IsNullOrEmpty(SystemPerformance.GetBoardName()),"SystemPerformance.GetBoardName returns valid string");
+  Check(StartupItem.EstimateImpact(@"C:\Users\User\AppData\Local\Discord\app.exe","Discord")=="Cao","StartupItem heavy impact detection");
+  Check(StartupItem.EstimateImpact(@"C:\Windows\System32\ctfmon.exe","CTF Loader")=="Thấp","StartupItem light impact detection");
+  Check(StartupItem.EstimateImpact(@"C:\Program Files\Unknown\app.exe","UnknownApp")=="Trung bình","StartupItem medium impact default");
+  Engine.InvalidateAppCache();
+  Check(true,"Engine.InvalidateAppCache succeeds");
+  UwpManager.InvalidateCache();
+  Check(true,"UwpManager.InvalidateCache succeeds");
+  Check(Engine.AppVersion == "1.2", "Centralized AppVersion matches 1.2");
+  Check(StartupItem.EstimateImpact("\"C:\\Program Files\\Discord\\app.exe\"", "Discord") == "Cao", "Quoted impact check");
+  Check(!UwpManager.IsPackageInstalled(""), "IsPackageInstalled handles empty name");
+  long optFreed = SystemPerformance.OptimizeMemory();
+  Check(optFreed >= 0, "SystemPerformance.OptimizeMemory executes without leaking");
+  Check(SqliteOptimizer.IsAvailable, "SqliteOptimizer.IsAvailable returns true on Windows 10/11");
+  string testDb = Path.Combine(Path.GetTempPath(), "PurePC_test_" + Guid.NewGuid().ToString("N") + ".db");
+  try {
+      File.WriteAllBytes(testDb, System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0"));
+      Check(SqliteOptimizer.IsSqliteDatabase(testDb), "SqliteOptimizer recognizes SQLite header");
+  } finally {
+      if (File.Exists(testDb)) File.Delete(testDb);
+  }
+  Check(FileShredder.IsProtected(Environment.SystemDirectory), "FileShredder protects SystemDirectory");
+  string testShred = Path.Combine(Path.GetTempPath(), "PurePC_shred_" + Guid.NewGuid().ToString("N") + ".tmp");
+  File.WriteAllText(testShred, "SECRET TEST CONTENT");
+  FileShredder.ShredFile(testShred, 1);
+  Check(!File.Exists(testShred), "FileShredder.ShredFile overwrites and deletes file successfully");
+  
+  // Elite Optimizations Unit Tests
+  Check(!ProcessMemoryManager.TrimProcess(0), "ProcessMemoryManager protects PID 0 System Idle");
+  Check(!ProcessMemoryManager.TrimProcess(4), "ProcessMemoryManager protects PID 4 System Kernel");
+  var topProcs = ProcessMemoryManager.GetTopProcesses(5);
+  Check(topProcs != null, "ProcessMemoryManager.GetTopProcesses returns list");
+  double downRate, upRate;
+  SystemPerformance.GetNetworkBandwidth(out downRate, out upRate);
+  Check(downRate >= 0 && upRate >= 0, "SystemPerformance.GetNetworkBandwidth non-negative");
+  var devTargets = DevAiCacheCleaner.GetKnownTargets();
+  Check(devTargets.Count >= 13, "DevAiCacheCleaner registers expanded ecosystem targets (npm v7+, uv, NuGet)");
+  Check(devTargets.Any(x => x.ToolName.Contains("NPM")), "DevAiCacheCleaner targets NPM");
+  Check(devTargets.Any(x => x.ToolName.Contains("Hugging Face")), "DevAiCacheCleaner targets Hugging Face AI");
+  Check(ComponentStoreManager.IsAvailable, "ComponentStoreManager dism.exe is available on Windows");
+  string fakeDismOut = "Windows Explorer Reported Size of Component Store : 10.50 GB\nActual Size of the Component Store : 8.20 GB\nNumber of Reclaimable Packages : 2\nComponent Store Cleanup Recommended : Yes\n";
+  var parsedDism = ComponentStoreManager.ParseAnalysis(fakeDismOut);
+  Check(parsedDism.ExplorerSize == "10.50 GB", "DISM analysis parses Explorer size");
+  Check(parsedDism.ActualSize == "8.20 GB", "DISM analysis parses Actual size");
+  Check(parsedDism.ReclaimablePackages == "2", "DISM analysis parses Reclaimable packages");
+  Check(parsedDism.CleanupRecommended && !parsedDism.RequiresElevation, "DISM analysis parses CleanupRecommended flag");
+  var dism740 = ComponentStoreManager.ParseAnalysis("Error: 740\r\nElevated permissions are required to run DISM.", 740);
+  Check(dism740.RequiresElevation && !dism740.CleanupRecommended, "DISM Error 740 detected as RequiresElevation, never false optimal");
+  var gameStatus = GameBooster.GetStatus();
+  Check(gameStatus != null, "GameBooster.GetStatus executes without exception");
+  
+  // Privacy Shield, System Repair and Hardware Telemetry tests
+  var privStatus = PrivacyOptimizer.GetStatus();
+  Check(privStatus != null, "PrivacyOptimizer.GetStatus executes without exception");
+  Check(SystemRepair.IsSfcAvailable, "SystemRepair finds sfc.exe in System32");
+  Check(SystemRepair.IsDismAvailable, "SystemRepair finds dism.exe in System32");
+  Check(SystemPerformance.GetSystemUptime().TotalSeconds > 0, "SystemPerformance.GetSystemUptime reports positive uptime");
+  Check(!string.IsNullOrEmpty(SystemPerformance.GetUptimeString()), "SystemPerformance.GetUptimeString returns non-empty string");
+
+  // Elite 3.0 & QA tests: Context Menu, SSD TRIM, ShortcutCleaner, Services, I18n
+  var contextItems = ContextMenuManager.Scan();
+  Check(contextItems != null, "ContextMenuManager.Scan returns list");
+  string testErr;
+  Check(!ContextMenuManager.Toggle(new ContextMenuItem { IsSystemProtected = true }, out testErr), "ContextMenuManager protects system handlers");
+  var trimStatus = SsdTrimOptimizer.QueryTrimStatus();
+  Check(trimStatus != null && trimStatus.QuerySucceeded, "SsdTrimOptimizer.QueryTrimStatus succeeds via fsutil or Registry fallback");
+  Check(!ShortcutCleaner.IsTargetBroken("https://example.com") && !ShortcutCleaner.IsTargetBroken("ms-settings:display"), "ShortcutCleaner ignores URI protocols");
+  Check(!ShortcutCleaner.IsTargetBroken(@"Z:\UnmountedDrive\App\missing.exe"), "ShortcutCleaner ignores unmounted/unready drives");
+  Check(!ShortcutCleaner.IsTargetBroken(Path.Combine(Environment.SystemDirectory, "cmd.exe")), "ShortcutCleaner accepts existing target");
+  Check(ShortcutCleaner.IsTargetBroken(Path.Combine(Environment.SystemDirectory, "nonexistent_purepc_qa_12345.exe")), "ShortcutCleaner detects missing target on ready drive");
+  var thirdPartySvcs = ServiceTools.GetServices();
+  Check(!thirdPartySvcs.Any(s => (s.ImagePath ?? "").ToLowerInvariant().Contains(@"\system32\svchost.exe")), "ServiceTools excludes core svchost services");
+  Check(!thirdPartySvcs.Any(s => (s.ImagePath ?? "").ToLowerInvariant().EndsWith(".sys")), "ServiceTools excludes kernel .sys drivers");
+
+  string oldLang = I18n.Lang;
+  try {
+   I18n.Lang = "en";
+   Check(I18n.T("Tổng quan") == "Dashboard", "I18n translates Dashboard");
+   Check(I18n.T("⚡ Quét toàn bộ chuyên sâu").Contains("Deep Scan"), "I18n translates Deep Scan button");
+   Check(I18n.T("✨ Tất cả (20)").Contains("All Tools"), "I18n translates Pro Tool categories");
+  } finally {
+   I18n.Lang = oldLang;
+  }
+
+  Check(!string.IsNullOrEmpty(WindowsUpdateCleaner.DownloadCacheDir), "WindowsUpdateCleaner points to valid directory");
+  bool folderCancelled = false;
+  try {
+      FolderSpaceVisualizer.Analyze(Environment.GetFolderPath(Environment.SpecialFolder.Windows), new CancellationToken(true), null);
+  } catch (OperationCanceledException) {
+      folderCancelled = true;
+  }
+  Check(folderCancelled, "FolderSpaceVisualizer supports cancellation properly");
+  var sysStartup = new StartupItem { Name = "SecurityHealth", Command = @"C:\Windows\System32\SecurityHealthSystray.exe" };
+  Check(sysStartup.Recommendation.Contains("Hệ thống"), "StartupItem recommends keeping system entries");
+  var heavyStartup = new StartupItem { Name = "Discord", Command = @"C:\Users\User\AppData\Local\Discord\app.exe" };
+  Check(heavyStartup.Recommendation.Contains("Khuyên tắt"), "StartupItem recommends disabling heavy apps");
+  var disabledStartup = new StartupItem { Name = "OldApp", Disabled = true };
+  Check(disabledStartup.Recommendation.Contains("Đã tắt"), "StartupItem recognizes disabled state");
+  var normalApp = A("NormalApp", "NormalVendor");
+  Check(normalApp.StatusLabel.Contains("An toàn") || normalApp.StatusLabel.Contains("Ứng dụng"), "AppEntry displays reassuring status label for regular apps");
   return count;
  }
 }

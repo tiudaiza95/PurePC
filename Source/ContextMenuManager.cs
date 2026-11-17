@@ -81,7 +81,7 @@ public static class ContextMenuManager {
         return list;
     }
 
-    static void CopyKey(RegistryKey source, RegistryKey destination) {
+    public static void CopyKey(RegistryKey source, RegistryKey destination) {
         if (source == null || destination == null) return;
         foreach (string valueName in source.GetValueNames()) {
             object val = source.GetValue(valueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);

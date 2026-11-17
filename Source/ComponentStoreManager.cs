@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,6 +15,8 @@ public class ComponentStoreAnalysisResult {
     public string CacheSize { get; set; }
     public string ReclaimablePackages { get; set; }
     public bool CleanupRecommended { get; set; }
+    public int ExitCode { get; set; }
+    public bool RequiresElevation { get; set; }
     public string RawOutput { get; set; }
 
     public ComponentStoreAnalysisResult() {
@@ -24,6 +27,8 @@ public class ComponentStoreAnalysisResult {
         CacheSize = "Chưa rõ";
         ReclaimablePackages = "0";
         CleanupRecommended = false;
+        ExitCode = 0;
+        RequiresElevation = false;
         RawOutput = "";
     }
 }
@@ -41,9 +46,24 @@ public static class ComponentStoreManager {
         }
     }
 
-    public static ComponentStoreAnalysisResult ParseAnalysis(string output) {
+    static Encoding GetConsoleOemEncoding() {
+        try {
+            return Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
+        } catch {
+            return Encoding.UTF8;
+        }
+    }
+
+    public static ComponentStoreAnalysisResult ParseAnalysis(string output, int exitCode = 0) {
         var res = new ComponentStoreAnalysisResult();
         res.RawOutput = output ?? "";
+        res.ExitCode = exitCode;
+
+        if (exitCode == 740 ||
+            res.RawOutput.IndexOf("Error: 740", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            res.RawOutput.IndexOf("Elevated permissions", StringComparison.OrdinalIgnoreCase) >= 0) {
+            res.RequiresElevation = true;
+        }
 
         Match mExp = Regex.Match(res.RawOutput, @"(?:Windows Explorer Reported Size[^\r\n:]*|Dung lượng hiển thị trong Windows Explorer[^\r\n:]*)\s*:\s*([^\r\n]+)", RegexOptions.IgnoreCase);
         if (mExp.Success) res.ExplorerSize = mExp.Groups[1].Value.Trim();
@@ -76,52 +96,66 @@ public static class ComponentStoreManager {
         return Task.Factory.StartNew(delegate() {
             if (!IsAvailable) throw new FileNotFoundException("Không tìm thấy dism.exe trên hệ thống Windows.");
 
+            Encoding oem = GetConsoleOemEncoding();
             var psi = new ProcessStartInfo(DismPath, "/Online /Cleanup-Image /AnalyzeComponentStore");
             psi.CreateNoWindow = true;
             psi.UseShellExecute = false;
             psi.RedirectStandardOutput = true;
             psi.RedirectStandardError = true;
-            psi.StandardOutputEncoding = Encoding.UTF8;
-            psi.StandardErrorEncoding = Encoding.UTF8;
+            psi.StandardOutputEncoding = oem;
+            psi.StandardErrorEncoding = oem;
 
             using (var proc = Process.Start(psi)) {
-                var sb = new StringBuilder();
+                if (proc == null) throw new InvalidOperationException("Không thể khởi chạy dism.exe.");
+
+                // Đọc đồng thời cả stdout và stderr để chống kẹt pipe buffer (Deadlock)
+                var outTask = proc.StandardOutput.ReadToEndAsync();
+                var errTask = proc.StandardError.ReadToEndAsync();
+
                 while (!proc.WaitForExit(100)) {
                     if (token.IsCancellationRequested) {
                         try { proc.Kill(); } catch {}
                         throw new OperationCanceledException("Đã hủy phân tích WinSxS.");
                     }
                 }
-                sb.Append(proc.StandardOutput.ReadToEnd());
-                sb.Append(proc.StandardError.ReadToEnd());
-                return ParseAnalysis(sb.ToString());
+                proc.WaitForExit();
+                Task.WaitAll(new Task[] { outTask, errTask }, 3000);
+
+                var sb = new StringBuilder();
+                if (outTask.Status == TaskStatus.RanToCompletion) sb.Append(outTask.Result);
+                if (errTask.Status == TaskStatus.RanToCompletion && !string.IsNullOrWhiteSpace(errTask.Result)) {
+                    if (sb.Length > 0) sb.AppendLine();
+                    sb.Append(errTask.Result);
+                }
+                return ParseAnalysis(sb.ToString(), proc.ExitCode);
             }
-        });
+        }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     public static Task<int> StartCleanupAsync(bool resetBase, Action<string> onOutputLine, CancellationToken token) {
         return Task.Factory.StartNew(delegate() {
             if (!IsAvailable) throw new FileNotFoundException("Không tìm thấy dism.exe trên hệ thống Windows.");
 
+            Encoding oem = GetConsoleOemEncoding();
             string args = "/Online /Cleanup-Image /StartComponentCleanup" + (resetBase ? " /ResetBase" : "");
             var psi = new ProcessStartInfo(DismPath, args);
             psi.CreateNoWindow = true;
             psi.UseShellExecute = false;
             psi.RedirectStandardOutput = true;
             psi.RedirectStandardError = true;
-            psi.StandardOutputEncoding = Encoding.UTF8;
-            psi.StandardErrorEncoding = Encoding.UTF8;
+            psi.StandardOutputEncoding = oem;
+            psi.StandardErrorEncoding = oem;
 
             using (var proc = new Process()) {
                 proc.StartInfo = psi;
                 proc.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) {
                     if (!string.IsNullOrEmpty(e.Data) && onOutputLine != null) {
-                        onOutputLine(e.Data);
+                        onOutputLine(e.Data.Replace("\0", ""));
                     }
                 };
                 proc.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) {
                     if (!string.IsNullOrEmpty(e.Data) && onOutputLine != null) {
-                        onOutputLine("[Error] " + e.Data);
+                        onOutputLine("[Error] " + e.Data.Replace("\0", ""));
                     }
                 };
 
@@ -135,9 +169,10 @@ public static class ComponentStoreManager {
                         throw new OperationCanceledException("Đã dừng tác vụ dọn dẹp WinSxS.");
                     }
                 }
+                proc.WaitForExit(); // Flush toàn bộ dòng cuối cùng
 
                 return proc.ExitCode;
             }
-        });
+        }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 }

@@ -32,11 +32,22 @@ public static class WindowsUpdateCleaner {
         freedBytes = 0;
         var sb = new StringBuilder();
         int filesDeleted = 0;
+        int errors = 0;
+
+        if (!Engine.IsAdministrator()) {
+            sb.AppendLine("! Cảnh báo: PurePC chưa chạy dưới quyền Administrator. Không thể tạm dừng dịch vụ wuauserv/bits hoặc xóa tệp hệ thống trong SoftwareDistribution.");
+            report = sb.ToString();
+            return false;
+        }
 
         // 1. Tạm dừng dịch vụ Windows Update
-        RunServiceCommand("stop", "wuauserv");
-        RunServiceCommand("stop", "bits");
-        sb.AppendLine("✓ Đã tạm dừng dịch vụ Windows Update (wuauserv & bits).");
+        bool stopWu = RunServiceCommand("stop", "wuauserv");
+        bool stopBits = RunServiceCommand("stop", "bits");
+        if (stopWu || stopBits) {
+            sb.AppendLine("✓ Đã tạm dừng dịch vụ Windows Update (wuauserv & bits).");
+        } else {
+            sb.AppendLine("i Dịch vụ Windows Update hiện đang ở trạng thái nghỉ.");
+        }
 
         // 2. Dọn dẹp thư mục Download
         string dir = DownloadCacheDir;
@@ -45,40 +56,56 @@ public static class WindowsUpdateCleaner {
                 var dInfo = new DirectoryInfo(dir);
                 foreach (var fi in dInfo.GetFiles("*", SearchOption.AllDirectories)) {
                     try {
+                        fi.Attributes = FileAttributes.Normal;
                         long len = fi.Length;
                         fi.Delete();
                         freedBytes += len;
                         filesDeleted++;
-                    } catch {}
+                    } catch {
+                        errors++;
+                    }
                 }
                 foreach (var sub in dInfo.GetDirectories()) {
                     try {
                         sub.Delete(true);
                     } catch {}
                 }
-                sb.AppendLine("✓ Đã dọn sạch " + filesDeleted + " tệp bản cập nhật cũ (" + Features.Size(freedBytes) + ").");
+                sb.AppendLine("✓ Đã dọn sạch " + filesDeleted + " tệp bản cập nhật cũ (" + Features.Size(freedBytes) + ")" + (errors > 0 ? " · bỏ qua " + errors + " tệp đang bận." : "."));
             } catch (Exception ex) {
                 sb.AppendLine("! Lỗi khi xóa tệp cache: " + ex.Message);
             }
+        } else {
+            sb.AppendLine("i Thư mục SoftwareDistribution\\Download hiện đang trống.");
         }
 
-        // 3. Khởi động lại dịch vụ
+        // 3. Khởi động lại dịch vụ (nếu trước đó đang bật hoặc cần làm mới)
         RunServiceCommand("start", "wuauserv");
         RunServiceCommand("start", "bits");
-        sb.AppendLine("✓ Đã khởi động lại dịch vụ Windows Update.");
+        sb.AppendLine("✓ Đã làm mới và khởi động lại dịch vụ Windows Update.");
 
         report = sb.ToString();
-        return filesDeleted > 0;
+        return true;
     }
 
-    static void RunServiceCommand(string verb, string service) {
+    static bool RunServiceCommand(string verb, string service) {
         try {
             var psi = new ProcessStartInfo("net", verb + " " + service);
             psi.CreateNoWindow = true;
             psi.UseShellExecute = false;
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
             using (var p = Process.Start(psi)) {
-                p.WaitForExit(4000);
+                if (p == null) return false;
+                var o = p.StandardOutput.ReadToEndAsync();
+                var e = p.StandardError.ReadToEndAsync();
+                if (!p.WaitForExit(6000)) {
+                    try { p.Kill(); } catch {}
+                    return false;
+                }
+                return p.ExitCode == 0;
             }
-        } catch {}
+        } catch {
+            return false;
+        }
     }
 }

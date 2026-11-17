@@ -54,8 +54,6 @@ static class AnalysisTools {
   if(Directory.Exists(nvDx))roots.Add(new CleanupRoot{Name="NVIDIA · Bộ đệm Shader DX",Path=nvDx});
   string amdDx=System.IO.Path.Combine(local,"AMD","DxCache");
   if(Directory.Exists(amdDx))roots.Add(new CleanupRoot{Name="AMD · Bộ đệm Shader DX",Path=amdDx});
-  string deliveryOpt=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"SoftwareDistribution","DeliveryOptimization");
-  if(Directory.Exists(deliveryOpt))roots.Add(new CleanupRoot{Name="Windows Update · Delivery Optimization",Path=deliveryOpt});
   return roots;
  }
  public static bool IsJunkOrSystemCacheDir(string dir){
@@ -76,12 +74,26 @@ static class AnalysisTools {
  }
  public static bool Eligible(FileItem item,string root,DateTime now){try{var f=new FileInfo(item.Path);return Engine.Within(f.FullName,System.IO.Path.GetFullPath(root))&&f.Exists&&f.Length==item.Size&&f.LastWriteTimeUtc==item.Modified&&f.CreationTimeUtc<now.AddDays(-7)&&f.LastWriteTimeUtc<now.AddDays(-7)&&(f.Attributes&(FileAttributes.ReadOnly|FileAttributes.System|FileAttributes.ReparsePoint))==0&&Features.NoLinks(f.FullName);}catch{return false;}}
  public static FileScan Cleanup(CleanupRoot root,CancellationToken token,IProgress<ScanProgress> progress){int skipped;bool limit;var files=Walk(root.Path,token,progress,out skipped,out limit);var result=new FileScan{Skipped=skipped,Limited=limit,Visited=files.Count};result.Items=files.Where(x=>Eligible(x,root.Path,DateTime.UtcNow)).OrderByDescending(x=>x.Size).Take(5000).ToList();if(result.Items.Count==5000)result.Limited=true;foreach(var file in result.Items){file.Group=root.Name;file.Evidence="Tạo/sửa hơn 7 ngày; đúng thư mục được chọn";}return result;}
- public static void Clean(FileItem item){var root=Roots().FirstOrDefault(x=>String.Equals(System.IO.Path.GetFullPath(x.Path).TrimEnd('\\'),(item.ScopeRoot??"").TrimEnd('\\'),StringComparison.OrdinalIgnoreCase));if(root==null||!Eligible(item,root.Path,DateTime.UtcNow))throw new Exception("Mục không còn thuộc phạm vi dọn hợp lệ hoặc đã thay đổi.");if(!String.IsNullOrEmpty(root.Process)&&Process.GetProcessesByName(root.Process).Length>0)throw new Exception("Đóng "+root.Process+" trước khi dọn cache; dữ liệu được giữ nguyên.");using(var stream=new FileStream(item.Path,FileMode.Open,FileAccess.Read,FileShare.None)){}FileSystem.DeleteFile(item.Path,UIOption.AllDialogs,RecycleOption.SendToRecycleBin,UICancelOption.ThrowException);Engine.Log("RECYCLED "+item.Size+" bytes | "+item.Path);}
+ static bool IsProcessActive(string processName){
+  if(String.IsNullOrEmpty(processName))return false;
+  Process[] procs=null;
+  try{procs=Process.GetProcessesByName(processName);return procs.Length>0;}catch{return false;}
+  finally{if(procs!=null)for(int i=0;i<procs.Length;i++)try{procs[i].Dispose();}catch{}}
+ }
+ public static void Clean(FileItem item){var root=Roots().FirstOrDefault(x=>String.Equals(System.IO.Path.GetFullPath(x.Path).TrimEnd('\\'),(item.ScopeRoot??"").TrimEnd('\\'),StringComparison.OrdinalIgnoreCase));if(root==null||!Eligible(item,root.Path,DateTime.UtcNow))throw new Exception("Mục không còn thuộc phạm vi dọn hợp lệ hoặc đã thay đổi.");if(IsProcessActive(root.Process))throw new Exception("Đóng "+root.Process+" trước khi dọn cache; dữ liệu được giữ nguyên.");using(var stream=new FileStream(item.Path,FileMode.Open,FileAccess.Read,FileShare.None)){}FileSystem.DeleteFile(item.Path,UIOption.OnlyErrorDialogs,RecycleOption.SendToRecycleBin,UICancelOption.ThrowException);Engine.Log("RECYCLED "+item.Size+" bytes | "+item.Path);}
+ static void ReadExact(Stream s,byte[] buf,int offset,int count){
+  int total=0;
+  while(total<count){
+   int r=s.Read(buf,offset+total,count-total);
+   if(r<=0)break;
+   total+=r;
+  }
+ }
  static string FastSample(string path,long size){
   try{
    using(var f=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read)){
-    if(size<=8192){byte[] b=new byte[(int)size];f.Read(b,0,b.Length);return Convert.ToBase64String(b);}
-    byte[] s=new byte[8192];f.Read(s,0,4096);f.Seek(-4096,SeekOrigin.End);f.Read(s,4096,4096);
+    if(size<=8192){byte[] b=new byte[(int)size];ReadExact(f,b,0,b.Length);return Convert.ToBase64String(b);}
+    byte[] s=new byte[8192];ReadExact(f,s,0,4096);f.Seek(-4096,SeekOrigin.End);ReadExact(f,s,4096,4096);
     using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(s));
    }
   }catch{return Guid.NewGuid().ToString();}
@@ -98,20 +110,10 @@ partial class Remnant {
  public bool IsShortcut;public long Bytes;public bool SizeComplete;
  public bool CanClean {get{return !IsRegistry;}}
  public string Confidence {get{return IsRegistry?"Thấp · chỉ xem":IsShortcut?"Đích shortcut thuộc ứng dụng":"Trung bình · khớp tên/vị trí";}}
- public string SizeLabel {get{return IsRegistry?"Không áp dụng":Features.Size(Bytes)+(SizeComplete?"":" (chưa đủ)");}}
+ public string SizeLabel {get{return IsRegistry?"—":(SizeComplete?"":"≥ ")+Features.Size(Bytes);}}
 }
 static partial class Engine {
- public static void MeasureRemnant(Remnant item){if(item.IsRegistry)return;try{if(item.IsShortcut){item.Bytes=new FileInfo(item.Path).Length;item.SizeComplete=true;return;}int skip;bool limited;item.Bytes=AnalysisTools.Walk(item.Path,CancellationToken.None,null,out skip,out limited).Sum(x=>x.Size);item.SizeComplete=skip==0&&!limited;}catch{}}
- public static void AddShortcutRemnants(AppEntry a,List<Remnant> results){
-  string executable=KnownExecutable(a),location=a.Location;if(String.IsNullOrWhiteSpace(location)&&!String.IsNullOrWhiteSpace(executable))location=System.IO.Path.GetDirectoryName(executable);
-  // Require an explicit installation location; never infer ownership from shortcut name.
-  if(String.IsNullOrWhiteSpace(a.Location)||!System.IO.Path.IsPathRooted(a.Location))return;
-  location=System.IO.Path.GetFullPath(a.Location).TrimEnd('\\');if(!AppNames(a).Contains(Norm(System.IO.Path.GetFileName(location))))return;
-  string[] installRoots={Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs")};
-  if(!installRoots.Any(x=>String.Equals(x.TrimEnd('\\'),System.IO.Path.GetDirectoryName(location),StringComparison.OrdinalIgnoreCase)))return;
-  if(Apps().Any(x=>x.Id!=a.Id&&(AppNames(x).Intersect(AppNames(a)).Any()||(!String.IsNullOrWhiteSpace(x.Location)&&Within(System.IO.Path.GetFullPath(x.Location),location)))))return;
-  string[] roots={Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),Environment.GetFolderPath(Environment.SpecialFolder.Programs)};
-  Type type=Type.GetTypeFromProgID("WScript.Shell");if(type==null)return;dynamic shell=Activator.CreateInstance(type);
-  try{foreach(string root in roots){if(!Directory.Exists(root))continue;int skipped;bool limited;foreach(var file in AnalysisTools.Walk(root,CancellationToken.None,null,out skipped,out limited).Where(x=>x.Path.EndsWith(".lnk",StringComparison.OrdinalIgnoreCase))){dynamic shortcut=null;try{shortcut=shell.CreateShortcut(file.Path);string target=shortcut.TargetPath;if(!String.IsNullOrWhiteSpace(target)&&Engine.Within(System.IO.Path.GetFullPath(target),System.IO.Path.GetFullPath(a.Location).TrimEnd('\\'))&&!File.Exists(target))results.Add(new Remnant{Path=file.Path,IsShortcut=true});}catch{}finally{if(shortcut!=null)System.Runtime.InteropServices.Marshal.ReleaseComObject(shortcut);}}}}finally{System.Runtime.InteropServices.Marshal.ReleaseComObject(shell);}
- }
+ static string LinkTarget(string lnk){dynamic shell=null,shortcut=null;try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));shortcut=shell.CreateShortcut(lnk);return Convert.ToString(shortcut.TargetPath);}catch{return "";}finally{if(shortcut!=null&&System.Runtime.InteropServices.Marshal.IsComObject(shortcut))System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shortcut);if(shell!=null&&System.Runtime.InteropServices.Marshal.IsComObject(shell))System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);}}
+ static void AddShortcutRemnants(AppEntry a,List<Remnant> result){if(String.IsNullOrWhiteSpace(a.Location)||!Path.IsPathRooted(a.Location))return;string install=Path.GetFullPath(a.Location).TrimEnd('\\');if(install.Length<5)return;string[] menus={Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),Environment.GetFolderPath(Environment.SpecialFolder.Programs)};foreach(string menu in menus.Where(Directory.Exists)){int seen=0;foreach(string lnk in Directory.EnumerateFiles(menu,"*.lnk",System.IO.SearchOption.AllDirectories)){if(++seen>1500)break;try{if(!Features.NoLinks(lnk))continue;string target=LinkTarget(lnk);if(!String.IsNullOrWhiteSpace(target)&&Path.IsPathRooted(target)&&Within(Path.GetFullPath(target),install)&&!File.Exists(target))result.Add(new Remnant{Path=lnk,IsShortcut=true,Bytes=new FileInfo(lnk).Length,SizeComplete=true});}catch{}}}}
+ static void MeasureRemnant(Remnant r){if(r.IsRegistry||r.IsShortcut)return;r.SizeComplete=true;var stack=new Stack<string>();stack.Push(r.Path);int visited=0;while(stack.Count>0){string dir=stack.Pop();try{foreach(string entry in Directory.EnumerateFileSystemEntries(dir)){if(++visited>15000){r.SizeComplete=false;return;}var attr=File.GetAttributes(entry);if((attr&FileAttributes.ReparsePoint)!=0)continue;if((attr&FileAttributes.Directory)!=0)stack.Push(entry);else r.Bytes+=new FileInfo(entry).Length;}}catch{r.SizeComplete=false;}}}
 }
